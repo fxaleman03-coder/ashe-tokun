@@ -19,6 +19,31 @@ export type Translation = {
     secondaryButton: string;
     logoAlt: string;
   };
+  traditions: {
+    label: string;
+    heading: string;
+    subtitle: string;
+    cardButton: string;
+    cards: readonly {
+      title: string;
+      description: string;
+      imageSrc: string;
+      imageAlt: string;
+    }[];
+  };
+  featuredProducts: {
+    label: string;
+    heading: string;
+    subtitle: string;
+    labels: {
+      viewProduct: string;
+      addToCart: string;
+      inStock: string;
+      soldOut: string;
+      new: string;
+      featured: string;
+    };
+  };
   footer: {
     copyright: (year: number) => string;
   };
