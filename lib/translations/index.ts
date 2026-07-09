@@ -42,7 +42,28 @@ export type Translation = {
       soldOut: string;
       new: string;
       featured: string;
+      newArrival: string;
+      ajakoOriginals: string;
+      handcrafted: string;
+      limitedEdition: string;
+      bestSeller: string;
     };
+  };
+  productPage: {
+    breadcrumbHome: string;
+    breadcrumbShop: string;
+    details: string;
+    materials: string;
+    spiritualNote: string;
+    shipping: string;
+    addToCart: string;
+    backToShop: string;
+    productNotFound: string;
+    productNotFoundDescription: string;
+    detailsPlaceholder: string;
+    materialsPlaceholder: string;
+    spiritualNotePlaceholder: string;
+    shippingPlaceholder: string;
   };
   footer: {
     copyright: (year: number) => string;

@@ -68,11 +68,38 @@ const yo: Translation = {
     labels: {
       viewProduct: "Wo Ọjà",
       addToCart: "Fi Kún",
-      inStock: "Wà Ní Ọjà",
-      soldOut: "Kò Sí",
+      inStock: "Ṣetán fún Fífi Ránṣẹ́",
+      soldOut: "Kò Sí Lọ́wọ́lọ́wọ́",
       new: "Tuntun",
       featured: "Àṣàyàn",
+      newArrival: "Ọjà Tuntun",
+      ajakoOriginals: "AJAKO Originals",
+      handcrafted: "Iṣẹ́ Ọwọ́",
+      limitedEdition: "Ẹ̀dà Díẹ̀",
+      bestSeller: "Tí A Máa ń Rà Jù",
     },
+  },
+  productPage: {
+    // Draft Yoruba placeholders only. Product page labels need later review.
+    breadcrumbHome: "Ilé",
+    breadcrumbShop: "Ọjà",
+    details: "Àlàyé",
+    materials: "Àwọn Ohun Èlò",
+    spiritualNote: "Àkọsílẹ̀ Ẹ̀mí",
+    shipping: "Fífi Ránṣẹ́",
+    addToCart: "Fi Kún",
+    backToShop: "Padà sí Ọjà",
+    productNotFound: "A kò rí ọjà yìí",
+    productNotFoundDescription:
+      "Ọjà yìí kò sí nínú katalogi ASHE TOKUN lọ́wọ́lọ́wọ́.",
+    detailsPlaceholder:
+      "Ọjà ASHE TOKUN tí a yàn fún ayẹyẹ, ìbòwọ̀, tàbí ìṣe ẹ̀mí ojoojúmọ́.",
+    materialsPlaceholder:
+      "Àlàyé ohun èlò yóò jẹ́rìí nígbà tí katalogi osìsẹ́ bá parí.",
+    spiritualNotePlaceholder:
+      "Àlàyé àṣà àti ẹ̀mí yóò jẹ́ kí ẹni tó mọ̀ dájú kí ó tó jáde.",
+    shippingPlaceholder:
+      "Àṣàyàn fífi ránṣẹ́ àti àkókò rẹ̀ yóò wá ṣáájú checkout.",
   },
   footer: {
     copyright: (year) => `© ${year} ASHE TOKUN. All rights reserved.`,

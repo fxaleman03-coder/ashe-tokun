@@ -63,11 +63,37 @@ const en: Translation = {
     labels: {
       viewProduct: "View Product",
       addToCart: "Add to Cart",
-      inStock: "In Stock",
-      soldOut: "Sold Out",
+      inStock: "Ready to Ship",
+      soldOut: "Currently Unavailable",
       new: "New",
       featured: "Featured",
+      newArrival: "New Arrival",
+      ajakoOriginals: "AJAKO Originals",
+      handcrafted: "Handcrafted",
+      limitedEdition: "Limited Edition",
+      bestSeller: "Best Seller",
     },
+  },
+  productPage: {
+    breadcrumbHome: "Home",
+    breadcrumbShop: "Shop",
+    details: "Details",
+    materials: "Materials",
+    spiritualNote: "Spiritual Note",
+    shipping: "Shipping",
+    addToCart: "Add to Cart",
+    backToShop: "Back to Shop",
+    productNotFound: "Product not found",
+    productNotFoundDescription:
+      "This item is not available in the ASHE TOKUN catalog right now.",
+    detailsPlaceholder:
+      "A premium ASHE TOKUN selection prepared for ceremonial, devotional, or daily spiritual use.",
+    materialsPlaceholder:
+      "Material details will be confirmed as the official product catalog is finalized.",
+    spiritualNotePlaceholder:
+      "Cultural and spiritual guidance will be reviewed with knowledgeable practitioners before publication.",
+    shippingPlaceholder:
+      "Shipping options and handling times will be added before checkout functionality launches.",
   },
   footer: {
     copyright: (year: number) =>

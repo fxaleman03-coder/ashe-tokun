@@ -2,10 +2,13 @@
 
 import { useLanguage } from "@/components/LanguageProvider";
 import ProductCard from "@/components/shop/ProductCard";
-import { featuredProducts } from "@/lib/products";
+import { useProductCatalog } from "@/lib/productStore";
 
 export default function FeaturedProductsPreview() {
   const { language, t } = useLanguage();
+  const featuredProducts = useProductCatalog().filter(
+    (product) => product.isFeatured,
+  );
 
   return (
     <section className="bg-[#0f0b07] px-6 py-24 sm:px-8 sm:py-28 lg:px-10 lg:py-32">
@@ -29,6 +32,7 @@ export default function FeaturedProductsPreview() {
               product={product}
               language={language}
               labels={t.featuredProducts.labels}
+              showAddToCart={false}
             />
           ))}
         </div>
