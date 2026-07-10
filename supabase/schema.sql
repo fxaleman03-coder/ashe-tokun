@@ -1,9 +1,18 @@
--- ASHE TOKUN Supabase schema planning document.
--- Phase 4.6: Operations Domain Architecture.
--- Do not execute this file yet.
--- No migrations are run in this phase.
-
 create extension if not exists "pgcrypto";
+
+-- ASHE TOKUN Supabase schema.
+-- Phase 4.7: Database Migration Readiness.
+-- Prepared for future manual execution in Supabase SQL editor.
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Stores
@@ -68,10 +77,24 @@ create table if not exists public.product_types (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.suppliers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  slug text not null unique,
+  contact_name text,
+  email text,
+  phone text,
+  website text,
+  notes text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
   brand_id uuid not null references public.brands(id) on delete restrict,
-  supplier_id uuid,
+  supplier_id uuid references public.suppliers(id) on delete set null,
   category_id uuid not null references public.categories(id) on delete restrict,
   tradition_id uuid references public.traditions(id) on delete set null,
   product_type_id uuid not null references public.product_types(id) on delete restrict,
@@ -108,10 +131,12 @@ create index if not exists categories_slug_idx on public.categories(slug);
 create index if not exists collections_slug_idx on public.collections(slug);
 create index if not exists traditions_slug_idx on public.traditions(slug);
 create index if not exists product_types_slug_idx on public.product_types(slug);
+create index if not exists suppliers_slug_idx on public.suppliers(slug);
 create index if not exists products_slug_idx on public.products(slug);
 create index if not exists products_sku_idx on public.products(sku);
 create index if not exists products_barcode_idx on public.products(barcode);
 create index if not exists products_brand_id_idx on public.products(brand_id);
+create index if not exists products_supplier_id_idx on public.products(supplier_id);
 create index if not exists products_category_id_idx on public.products(category_id);
 create index if not exists products_product_type_id_idx on public.products(product_type_id);
 
@@ -177,12 +202,11 @@ on conflict (slug) do update set
 -- ---------------------------------------------------------------------------
 -- Suppliers
 -- ---------------------------------------------------------------------------
--- Future planning area for operational vendors, sources, and artisan partners.
--- Products include nullable supplier_id now; a future Suppliers phase will add
--- the supplier table and foreign key.
+-- Suppliers are created before products so optional supplier references can be
+-- enforced while still allowing products without a supplier.
 
 -- ---------------------------------------------------------------------------
--- Media Assets
+-- Media
 -- ---------------------------------------------------------------------------
 -- Digital assets support both commerce media and future production files.
 
@@ -244,7 +268,7 @@ where is_primary = true;
 
 create table if not exists public.media_usage (
   id uuid primary key default gen_random_uuid(),
-  media_asset_id uuid not null references public.media_assets(id) on delete cascade,
+  media_asset_id uuid not null references public.media_assets(id) on delete restrict,
   usage_type text not null,
   reference_table text,
   reference_id uuid,
@@ -299,7 +323,7 @@ create table if not exists public.inventory_locations (
 
 create table if not exists public.inventory_items (
   id uuid primary key default gen_random_uuid(),
-  product_id uuid not null references public.products(id) on delete cascade,
+  product_id uuid not null references public.products(id) on delete restrict,
   location_id uuid not null references public.inventory_locations(id) on delete restrict,
   on_hand_quantity integer not null default 0,
   reserved_quantity integer not null default 0,
@@ -330,7 +354,7 @@ create table if not exists public.inventory_items (
 
 create table if not exists public.inventory_transactions (
   id uuid primary key default gen_random_uuid(),
-  inventory_item_id uuid not null references public.inventory_items(id) on delete cascade,
+  inventory_item_id uuid not null references public.inventory_items(id) on delete restrict,
   transaction_type text not null,
   reference_type text not null,
   reference_id uuid,
@@ -385,7 +409,7 @@ on conflict (code) do update set
   updated_at = now();
 
 -- ---------------------------------------------------------------------------
--- Customers
+-- Sales
 -- ---------------------------------------------------------------------------
 -- Sales customers support walk-in, registered, wholesale, and VIP buyers.
 
@@ -415,7 +439,7 @@ create table if not exists public.customers (
 
 create table if not exists public.customer_addresses (
   id uuid primary key default gen_random_uuid(),
-  customer_id uuid not null references public.customers(id) on delete cascade,
+  customer_id uuid not null references public.customers(id) on delete restrict,
   address_type text not null,
   first_name text,
   last_name text,
@@ -469,7 +493,7 @@ create table if not exists public.orders (
 
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.orders(id) on delete cascade,
+  order_id uuid not null references public.orders(id) on delete restrict,
   product_id uuid references public.products(id) on delete set null,
   sku text,
   product_name text not null,
@@ -489,7 +513,7 @@ create table if not exists public.order_items (
 
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.orders(id) on delete cascade,
+  order_id uuid not null references public.orders(id) on delete restrict,
   payment_method text not null,
   amount numeric(10, 2) not null default 0,
   reference_number text,
@@ -511,7 +535,7 @@ create table if not exists public.payments (
 
 create table if not exists public.receipts (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid references public.orders(id) on delete cascade,
+  order_id uuid references public.orders(id) on delete restrict,
   receipt_number text not null unique,
   printed boolean not null default false,
   emailed boolean not null default false,
@@ -569,20 +593,6 @@ on conflict (customer_number) do update set
 -- consignment, payouts, discounts, tax rates, gift cards, staff placeholders,
 -- and audit logs.
 
-create table if not exists public.suppliers (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  slug text not null unique,
-  contact_name text,
-  email text,
-  phone text,
-  website text,
-  notes text,
-  active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
 create table if not exists public.purchase_orders (
   id uuid primary key default gen_random_uuid(),
   po_number text not null unique,
@@ -602,7 +612,7 @@ create table if not exists public.purchase_orders (
 
 create table if not exists public.purchase_order_items (
   id uuid primary key default gen_random_uuid(),
-  purchase_order_id uuid not null references public.purchase_orders(id) on delete cascade,
+  purchase_order_id uuid not null references public.purchase_orders(id) on delete restrict,
   product_id uuid references public.products(id) on delete set null,
   description text not null,
   sku text,
@@ -626,7 +636,7 @@ create table if not exists public.receiving_records (
 
 create table if not exists public.receiving_record_items (
   id uuid primary key default gen_random_uuid(),
-  receiving_record_id uuid not null references public.receiving_records(id) on delete cascade,
+  receiving_record_id uuid not null references public.receiving_records(id) on delete restrict,
   product_id uuid references public.products(id) on delete set null,
   sku text,
   description text not null,
@@ -639,7 +649,7 @@ create table if not exists public.receiving_record_items (
 create table if not exists public.returns (
   id uuid primary key default gen_random_uuid(),
   return_number text not null unique,
-  order_id uuid references public.orders(id) on delete set null,
+  order_id uuid references public.orders(id) on delete restrict,
   customer_id uuid references public.customers(id) on delete set null,
   return_type text not null,
   status text not null default 'requested',
@@ -657,7 +667,7 @@ create table if not exists public.returns (
 
 create table if not exists public.return_items (
   id uuid primary key default gen_random_uuid(),
-  return_id uuid not null references public.returns(id) on delete cascade,
+  return_id uuid not null references public.returns(id) on delete restrict,
   order_item_id uuid references public.order_items(id) on delete set null,
   product_id uuid references public.products(id) on delete set null,
   sku text,
@@ -724,8 +734,8 @@ create table if not exists public.consignment_accounts (
 
 create table if not exists public.consignment_items (
   id uuid primary key default gen_random_uuid(),
-  consignment_account_id uuid not null references public.consignment_accounts(id) on delete cascade,
-  product_id uuid not null references public.products(id) on delete cascade,
+  consignment_account_id uuid not null references public.consignment_accounts(id) on delete restrict,
+  product_id uuid not null references public.products(id) on delete restrict,
   ownership_status text not null default 'consigned',
   commission_rate numeric(10, 4) not null default 0,
   payout_status text not null default 'not_due',
@@ -757,6 +767,11 @@ create table if not exists public.vendor_payouts (
   )
 );
 
+-- ---------------------------------------------------------------------------
+-- Admin / Audit
+-- ---------------------------------------------------------------------------
+-- Staff placeholders and audit logs preserve admin/system accountability.
+
 create table if not exists public.staff_users (
   id uuid primary key default gen_random_uuid(),
   display_name text not null,
@@ -766,11 +781,6 @@ create table if not exists public.staff_users (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
--- ---------------------------------------------------------------------------
--- Audit Logs
--- ---------------------------------------------------------------------------
--- Audit logs preserve staff and system change history.
 
 create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
@@ -830,3 +840,130 @@ select 'Admin', 'admin', true
 where not exists (
   select 1 from public.staff_users where display_name = 'Admin'
 );
+
+-- ---------------------------------------------------------------------------
+-- updated_at Triggers
+-- ---------------------------------------------------------------------------
+
+drop trigger if exists set_brands_updated_at on public.brands;
+create trigger set_brands_updated_at
+before update on public.brands
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_categories_updated_at on public.categories;
+create trigger set_categories_updated_at
+before update on public.categories
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_collections_updated_at on public.collections;
+create trigger set_collections_updated_at
+before update on public.collections
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_traditions_updated_at on public.traditions;
+create trigger set_traditions_updated_at
+before update on public.traditions
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_product_types_updated_at on public.product_types;
+create trigger set_product_types_updated_at
+before update on public.product_types
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_suppliers_updated_at on public.suppliers;
+create trigger set_suppliers_updated_at
+before update on public.suppliers
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_products_updated_at on public.products;
+create trigger set_products_updated_at
+before update on public.products
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_media_assets_updated_at on public.media_assets;
+create trigger set_media_assets_updated_at
+before update on public.media_assets
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_inventory_locations_updated_at on public.inventory_locations;
+create trigger set_inventory_locations_updated_at
+before update on public.inventory_locations
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_inventory_items_updated_at on public.inventory_items;
+create trigger set_inventory_items_updated_at
+before update on public.inventory_items
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_customers_updated_at on public.customers;
+create trigger set_customers_updated_at
+before update on public.customers
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_customer_addresses_updated_at on public.customer_addresses;
+create trigger set_customer_addresses_updated_at
+before update on public.customer_addresses
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_orders_updated_at on public.orders;
+create trigger set_orders_updated_at
+before update on public.orders
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_purchase_orders_updated_at on public.purchase_orders;
+create trigger set_purchase_orders_updated_at
+before update on public.purchase_orders
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_purchase_order_items_updated_at on public.purchase_order_items;
+create trigger set_purchase_order_items_updated_at
+before update on public.purchase_order_items
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_returns_updated_at on public.returns;
+create trigger set_returns_updated_at
+before update on public.returns
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_discounts_updated_at on public.discounts;
+create trigger set_discounts_updated_at
+before update on public.discounts
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_tax_rates_updated_at on public.tax_rates;
+create trigger set_tax_rates_updated_at
+before update on public.tax_rates
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_gift_cards_updated_at on public.gift_cards;
+create trigger set_gift_cards_updated_at
+before update on public.gift_cards
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_consignment_accounts_updated_at on public.consignment_accounts;
+create trigger set_consignment_accounts_updated_at
+before update on public.consignment_accounts
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_consignment_items_updated_at on public.consignment_items;
+create trigger set_consignment_items_updated_at
+before update on public.consignment_items
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_vendor_payouts_updated_at on public.vendor_payouts;
+create trigger set_vendor_payouts_updated_at
+before update on public.vendor_payouts
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_staff_users_updated_at on public.staff_users;
+create trigger set_staff_users_updated_at
+before update on public.staff_users
+for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- Migration Notes
+-- ---------------------------------------------------------------------------
+-- This file is ready for manual execution in Supabase SQL editor.
+-- Local app behavior still uses seed/local data until USE_SUPABASE is enabled
+-- in a future phase.
+-- Do not enable live writes until RLS policies are added.

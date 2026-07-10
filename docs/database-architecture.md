@@ -351,6 +351,31 @@ staff_users
 
 Operations is intentionally separate from POS behavior for now. The current app continues to use local data until future phases explicitly connect purchase orders, receiving, returns, discounts, taxes, gift cards, consignment, payouts, staff users, and audit logging.
 
+## Phase 4.7 Migration Readiness
+
+Phase 4.7 hardens the schema for future manual execution in the Supabase SQL editor. It does not connect live data, replace local data, or run migrations.
+
+Execution order matters because parent tables must exist before child tables can reference them. The schema creates foundational catalog tables first, then media, inventory, sales, operations, and admin/audit records. This keeps foreign keys valid when the SQL is eventually executed.
+
+`updated_at` triggers exist so mutable records keep accurate modification timestamps without every future application write needing to remember to set `updated_at`. The shared `set_updated_at()` trigger function is attached to every table that has an `updated_at` column.
+
+`ON DELETE` behavior matters because commerce history must not disappear accidentally. Join tables can cascade because they only connect records. Financial, inventory, order, receipt, return, payout, and audit history use restrictive behavior where appropriate. Optional supplier, customer, brand, and staff references can use `set null` when preserving the child record is more important than preserving the relationship.
+
+RLS is required before production writes. The schema is migration-ready, but live writes should not be enabled until row-level security policies define who can read, create, update, and audit each business record.
+
+The local catalog remains active. `lib/products.ts`, localStorage overrides, POS, Product Studio, Product Wizard, Inventory, Media Library, and the storefront continue using local data until a future phase explicitly enables Supabase through `USE_SUPABASE`.
+
+Future migration steps:
+
+1. Review and approve the SQL in Supabase SQL editor.
+2. Add RLS policies for admin, staff, storefront, and service access.
+3. Seed catalog taxonomies, brands, locations, and operational placeholders.
+4. Import products and media metadata from the local catalog and filesystem.
+5. Enable read paths behind `USE_SUPABASE`.
+6. Connect Product Studio writes.
+7. Connect POS orders, payments, receipts, and inventory transactions.
+8. Connect media storage and production file workflows.
+
 ## Phase Migration Plan
 
 1. Keep `lib/products.ts` active.

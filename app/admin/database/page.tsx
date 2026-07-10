@@ -69,6 +69,16 @@ const operationsCards = [
   "Staff / Audit Logs",
 ];
 
+const readinessCards = [
+  { label: "Extension Check", status: "Ready" },
+  { label: "Table Order", status: "Ready" },
+  { label: "Foreign Keys", status: "Ready" },
+  { label: "Updated At Triggers", status: "Ready" },
+  { label: "Constraints", status: "Ready" },
+  { label: "Migration Notes", status: "Ready" },
+  { label: "RLS Pending", status: "Pending" },
+];
+
 export default function AdminDatabasePage() {
   return (
     <AdminShell
@@ -268,6 +278,44 @@ export default function AdminDatabasePage() {
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
                   Ready for Migration
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Phase 4.7 Migration Readiness
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Manual Supabase execution review
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              RLS Pending
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {readinessCards.map((card) => (
+              <article
+                key={card.label}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card.label}
+                </p>
+                <p
+                  className={`mt-2 text-xs uppercase tracking-[0.18em] ${
+                    card.status === "Ready"
+                      ? "text-[#d8a344]"
+                      : "text-[#e8dcc8]/42"
+                  }`}
+                >
+                  {card.status}
                 </p>
               </article>
             ))}
