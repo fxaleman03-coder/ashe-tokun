@@ -90,6 +90,14 @@ const securityCards = [
   { label: "RLS Not Enabled Yet", status: "Pending Authentication" },
 ];
 
+const executionChecklistCards = [
+  "Pre-Execution",
+  "SQL Editor",
+  "Post-Execution Verification",
+  "Rollback Notes",
+  "Next Phases",
+];
+
 export default function AdminDatabasePage() {
   return (
     <AdminShell
@@ -365,6 +373,38 @@ export default function AdminDatabasePage() {
                   }`}
                 >
                   {card.status}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Phase 4.9 Supabase Execution Checklist
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                First schema execution readiness
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              Checklist Ready
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {executionChecklistCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  Checklist Ready
                 </p>
               </article>
             ))}

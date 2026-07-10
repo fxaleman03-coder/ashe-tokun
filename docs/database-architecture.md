@@ -396,6 +396,12 @@ Audit logs matter because catalog edits, price changes, refunds, inventory adjus
 
 RLS should be enabled only after authentication is implemented. The planned helper functions include `current_staff_role()`, `current_staff_id()`, `is_manager()`, `is_pos_staff()`, `is_vendor_user()`, and `current_vendor_brand_id()`. Until those identity boundaries exist, the local catalog remains active and Supabase writes stay disabled.
 
+## Phase 4.9 Supabase Execution Checklist
+
+Phase 4.9 creates the final pre-execution checklist for the first future manual run of `supabase/schema.sql` in the Supabase SQL Editor. The checklist covers pre-execution review, SQL Editor steps, post-execution verification, rollback notes, and the next Phase 5 migration steps.
+
+Reference: `docs/supabase-execution-checklist.md`
+
 ## Phase Migration Plan
 
 1. Keep `lib/products.ts` active.
