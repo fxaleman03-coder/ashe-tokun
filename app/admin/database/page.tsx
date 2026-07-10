@@ -1,5 +1,11 @@
 import AdminShell from "@/components/admin/AdminShell";
 import { USE_SUPABASE } from "@/lib/config";
+import { getBrandsResult } from "@/lib/data/brands";
+import {
+  getFeaturedProducts,
+  getProductSourceStatus,
+  getProducts,
+} from "@/lib/data/productsRepository";
 
 const environmentChecks = [
   {
@@ -98,7 +104,48 @@ const executionChecklistCards = [
   "Next Phases",
 ];
 
-export default function AdminDatabasePage() {
+const schemaValidationCards = [
+  "Schema Reviewed",
+  "Dependencies Validated",
+  "Seed Data Ready",
+  "Ready For SQL Execution",
+];
+
+const brandSourceCards = [
+  "Local fallback brands available",
+  "Supabase brands query prepared",
+  `USE_SUPABASE currently ${String(USE_SUPABASE)}`,
+  "Fallback enabled",
+];
+
+const productMigrationCards = [
+  "Local Catalog Source",
+  "Supabase Product Upsert",
+  "SKU Conflict Protection",
+  "Media Migration Deferred",
+  "Manual Confirmation Required",
+];
+
+export default async function AdminDatabasePage() {
+  const [brandReadResult, productSourceStatus, repositoryProducts, featuredProducts] =
+    await Promise.all([
+      getBrandsResult(),
+      getProductSourceStatus(),
+      getProducts(),
+      getFeaturedProducts(),
+    ]);
+  const brands = brandReadResult.brands;
+  const brandSourceLabel =
+    brandReadResult.source === "supabase" ? "Supabase" : "Local fallback";
+  const sampleProductSku = repositoryProducts[0]?.sku ?? "Pending";
+  const productRepositoryCards = [
+    { label: "Product Source Status", value: productSourceStatus },
+    { label: "Total Products", value: String(repositoryProducts.length) },
+    { label: "Featured Products", value: String(featuredProducts.length) },
+    { label: "Sample Product SKU", value: sampleProductSku },
+    { label: "Fallback Available", value: "Yes" },
+  ];
+
   return (
     <AdminShell
       title="Supabase Foundation"
@@ -405,6 +452,173 @@ export default function AdminDatabasePage() {
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
                   Checklist Ready
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                PHASE 4.10
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Schema execution preparation
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              READY
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {schemaValidationCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  READY
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Brand Source Status
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Phase 5.1 brand read foundation
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              {brandSourceLabel}
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {brandSourceCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  {card === "Supabase brands query prepared"
+                    ? brandSourceLabel
+                    : "Prepared"}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Brands Preview
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Safe brand read result
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              {brandSourceLabel}
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            {brands.map((brand) => (
+              <article
+                key={brand.slug}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-5"
+              >
+                <p className="font-serif text-2xl font-semibold text-[#f7ead2]">
+                  {brand.name}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  {brand.active ? "Active" : "Inactive"}
+                </p>
+                {brand.description ? (
+                  <p className="mt-4 text-sm leading-6 text-[#e8dcc8]/58">
+                    {brand.description}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Product Repository Preview
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Safe product data access layer
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              Read Only
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {productRepositoryCards.map((card) => (
+              <article
+                key={card.label}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                  {card.label}
+                </p>
+                <p className="mt-4 font-serif text-2xl font-semibold text-[#f7ead2]">
+                  {card.value}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Product Migration Engine
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                One-time Supabase product seeding
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              Ready
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {productMigrationCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                  {card}
+                </p>
+                <p className="mt-4 font-serif text-2xl font-semibold text-[#f7ead2]">
+                  Ready
                 </p>
               </article>
             ))}

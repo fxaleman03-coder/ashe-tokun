@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate:products": "tsx scripts/migrate-products-to-supabase.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
@@ -22,6 +23,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5"
   }
 }

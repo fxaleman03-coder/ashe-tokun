@@ -36,6 +36,31 @@ This checklist is for the first future manual execution of `supabase/schema.sql`
 - Confirm RLS is not enabled yet.
 - Confirm no app behavior changed.
 
+If the `brands` table is empty after schema execution, run `supabase/seed-brands.sql` once in the Supabase SQL Editor.
+
+If the app can connect but reads zero brands while SQL Editor shows active rows, run `supabase/policies-brands-read.sql` to allow anon public reads for active brands.
+
+If the app can connect but reads zero categories while SQL Editor shows active rows, run `supabase/policies-categories-read.sql` to allow anon public reads for active categories.
+
+If the app can connect but reads zero collections while SQL Editor shows active rows, run `supabase/policies-collections-read.sql` to allow anon public reads for active collections.
+
+If the app can connect but reads zero product types while SQL Editor shows active rows, run `supabase/policies-product-types-read.sql` to allow anon public reads for active product types.
+
+If the app can connect but reads zero traditions while SQL Editor shows active rows, run `supabase/policies-traditions-read.sql` to allow anon public reads for active traditions.
+
+## Product Migration Engine
+
+Run the local catalog product migration only after brands, categories, traditions, and product types exist in Supabase and their read policies are configured.
+
+Product migration write policy:
+Run `supabase/policies-products-migration-write.sql` only in development before running product migration. This temporary policy allows product upserts for the migration and must be removed or replaced before production.
+
+```bash
+npm run migrate:products -- --confirm
+```
+
+This writes products to Supabase with SKU conflict protection. Do not run it until the lookup tables are ready and the migration output can be reviewed.
+
 ## 4. Rollback Notes
 
 - This execution is for development only.

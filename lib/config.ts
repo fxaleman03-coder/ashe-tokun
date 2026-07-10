@@ -1,1 +1,1 @@
-export const USE_SUPABASE = false;
+export const USE_SUPABASE = true;
