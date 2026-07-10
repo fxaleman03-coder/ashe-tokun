@@ -30,7 +30,10 @@ const navigationGroups = [
   },
   {
     title: "Settings",
-    links: [{ href: "/admin/settings", label: "Settings" }],
+    links: [
+      { href: "/admin/settings", label: "Settings" },
+      { href: "/admin/database", label: "Database" },
+    ],
   },
 ];
 
