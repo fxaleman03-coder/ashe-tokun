@@ -4,7 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { Product } from "@/lib/products";
-import { useProduct } from "@/lib/productStore";
+import {
+  mergeProductOverride,
+  useProductOverride,
+} from "@/lib/productStore";
 
 type ProductDetailPageProps = {
   product: Product | null;
@@ -21,8 +24,10 @@ function formatPrice(price: number) {
 
 export default function ProductDetailPage({ product }: ProductDetailPageProps) {
   const { language, t } = useLanguage();
-  const localProduct = useProduct(product?.slug ?? "");
-  const displayProduct = localProduct ?? product;
+  const productOverride = useProductOverride(product?.slug ?? "");
+  const displayProduct = product
+    ? mergeProductOverride(product, productOverride)
+    : null;
 
   if (!displayProduct) {
     return (

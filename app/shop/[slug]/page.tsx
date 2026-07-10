@@ -2,13 +2,18 @@ import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import Navbar from "@/components/Navbar";
 import ProductDetailPage from "@/components/shop/ProductDetailPage";
-import { products } from "@/lib/products";
+import {
+  getProductBySlug,
+  getProducts,
+} from "@/lib/data/productsRepository";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const products = await getProducts();
+
   return products.map((product) => ({
     slug: product.slug,
   }));
@@ -16,7 +21,7 @@ export function generateStaticParams() {
 
 export default async function Page({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = products.find((item) => item.slug === slug) ?? null;
+  const product = (await getProductBySlug(slug)) ?? null;
 
   return (
     <LanguageProvider>
