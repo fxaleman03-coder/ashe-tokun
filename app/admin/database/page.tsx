@@ -12,25 +12,61 @@ const environmentChecks = [
   },
 ];
 
-const planningSections = [
-  "Stores",
-  "Brands",
-  "Suppliers",
-  "Products",
-  "Categories",
-  "Collections",
-  "Traditions",
-  "Media Assets",
-  "Inventory",
-  "Inventory Transactions",
+const databaseDomains = [
+  { label: "Core Catalog", status: "Ready for Migration" },
+  { label: "Stores", status: "Planning" },
+  { label: "Suppliers", status: "Ready for Migration" },
+  { label: "Media Assets", status: "Ready for Migration" },
+  { label: "Inventory", status: "Ready for Migration" },
+  { label: "Inventory Transactions", status: "Ready for Migration" },
+  { label: "Customers", status: "Ready for Migration" },
+  { label: "Customer Addresses", status: "Ready for Migration" },
+  { label: "Orders", status: "Ready for Migration" },
+  { label: "Order Items", status: "Ready for Migration" },
+  { label: "Payments", status: "Ready for Migration" },
+  { label: "Receipts", status: "Ready for Migration" },
+  { label: "Operations", status: "Ready for Migration" },
+  { label: "Staff / Audit Logs", status: "Ready for Migration" },
+];
+
+const inventoryCards = [
+  "Inventory Locations",
+  "Inventory Items",
+  "Inventory Ledger",
+  "Multiple Locations",
+  "Transaction History",
+];
+
+const salesCards = [
   "Customers",
-  "Customer Addresses",
   "Orders",
   "Order Items",
   "Payments",
   "Receipts",
-  "Users",
-  "Audit Logs",
+  "Sales Channels",
+  "Historical Sales",
+];
+
+const mediaCards = [
+  "Media Assets",
+  "Product Media",
+  "Media Usage",
+  "Commerce Assets",
+  "Production Assets",
+  "Digital Asset Manager",
+];
+
+const operationsCards = [
+  "Suppliers",
+  "Purchase Orders",
+  "Receiving",
+  "Returns",
+  "Discounts",
+  "Tax Rates",
+  "Gift Cards",
+  "Consignment",
+  "Vendor Payouts",
+  "Staff / Audit Logs",
 ];
 
 export default function AdminDatabasePage() {
@@ -76,10 +112,10 @@ export default function AdminDatabasePage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-                Schema Planning
+                Database Architecture
               </p>
               <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
-                Comment-only foundation
+                Core Catalog foundation
               </h2>
             </div>
             <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
@@ -88,16 +124,150 @@ export default function AdminDatabasePage() {
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {planningSections.map((section) => (
+            {databaseDomains.map((domain) => (
               <article
-                key={section}
+                key={domain.label}
                 className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
               >
                 <p className="font-serif text-xl font-semibold text-[#f7ead2]">
-                  {section}
+                  {domain.label}
                 </p>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#e8dcc8]/42">
-                  Planned section
+                <p
+                  className={`mt-2 text-xs uppercase tracking-[0.18em] ${
+                    domain.status === "Ready for Migration"
+                      ? "text-[#d8a344]"
+                      : "text-[#e8dcc8]/42"
+                  }`}
+                >
+                  {domain.status}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Inventory Domain
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Transaction-based stock architecture
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              Ready for Migration
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {inventoryCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  Ready for Migration
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Sales Domain
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                POS, orders, payments, and receipts
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              Ready for Migration
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {salesCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  Ready for Migration
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Media Domain
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Commerce and production assets
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              Ready for Migration
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {mediaCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  Ready for Migration
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-[#f7ead2]/10 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Operations Domain
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                Purchasing, returns, discounts, and audit
+              </h2>
+            </div>
+            <span className="border border-[#d8a344]/25 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+              Ready for Migration
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {operationsCards.map((card) => (
+              <article
+                key={card}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
+              >
+                <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                  {card}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
+                  Ready for Migration
                 </p>
               </article>
             ))}
