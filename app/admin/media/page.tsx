@@ -7,8 +7,8 @@ export default function AdminMediaPage() {
 
   return (
     <AdminShell
-      title="Media Library"
-      description="Manage every image used across ASHE TOKUN."
+      title="Digital Asset Manager"
+      description="Manage product photography, brand assets, and future media used across ASHE TOKUN."
     >
       <MediaLibrary images={images} />
     </AdminShell>

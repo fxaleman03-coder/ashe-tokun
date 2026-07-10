@@ -47,6 +47,12 @@ export default function AdminDashboardStats({
         marker="O"
       />
       <AdminStatCard
+        label="POS"
+        value="Ready"
+        detail="Local sale workflow ready for future store checkout."
+        marker="P"
+      />
+      <AdminStatCard
         label="Customers"
         value="0"
         detail="Customer records will appear after auth and checkout setup."

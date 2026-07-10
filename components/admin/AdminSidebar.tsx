@@ -21,6 +21,7 @@ const navigationGroups = [
   {
     title: "Commerce",
     links: [
+      { href: "/admin/pos", label: "POS" },
       { href: "/admin/inventory", label: "Inventory" },
       { href: "/admin/orders", label: "Orders" },
       { href: "/admin/customers", label: "Customers" },
