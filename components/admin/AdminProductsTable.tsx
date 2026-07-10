@@ -21,10 +21,11 @@ export default function AdminProductsTable() {
         <thead>
           <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
             <th className="px-5 py-4">Product</th>
+            <th className="px-5 py-4">SKU</th>
             <th className="px-5 py-4">Vendor</th>
             <th className="px-5 py-4">Category</th>
-            <th className="px-5 py-4">Tradition</th>
             <th className="px-5 py-4">Price</th>
+            <th className="px-5 py-4">Stock</th>
             <th className="px-5 py-4">Status</th>
             <th className="px-5 py-4">Featured</th>
             <th className="px-5 py-4">Edit</th>
@@ -37,12 +38,16 @@ export default function AdminProductsTable() {
               className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"
             >
               <td className="px-5 py-4 font-medium text-[#f7ead2]">
-                {product.name.en}
+                <span className="block">{product.name.en}</span>
+                <span className="mt-1 block text-xs font-normal text-[#e8dcc8]/42">
+                  Barcode: {product.barcode}
+                </span>
               </td>
+              <td className="px-5 py-4">{product.sku}</td>
               <td className="px-5 py-4">{product.vendor}</td>
               <td className="px-5 py-4">{product.category.en}</td>
-              <td className="px-5 py-4">{product.tradition.en}</td>
               <td className="px-5 py-4">{formatPrice(product.price)}</td>
+              <td className="px-5 py-4">{product.stock}</td>
               <td className="px-5 py-4">
                 {product.inStock ? "Ready to Ship" : "Unavailable"}
               </td>

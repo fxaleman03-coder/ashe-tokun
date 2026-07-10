@@ -11,13 +11,21 @@ type LocalizedProductField = Product["name"];
 
 export type ProductOverride = {
   vendor?: Product["vendor"];
+  sku?: string;
+  barcode?: string;
+  vendorSku?: string;
   name?: string;
   category?: string;
   tradition?: string;
   productType?: string;
   price?: number;
   compareAtPrice?: number | null;
+  cost?: number | null;
   stock?: number;
+  reorderLevel?: number | null;
+  inventoryLocation?: string;
+  availableOnline?: boolean;
+  availableInStore?: boolean;
   image?: string | null;
   isFeatured?: boolean;
   isNew?: boolean;
@@ -99,6 +107,10 @@ export function mergeProductOverride(
   return {
     ...product,
     vendor: override.vendor ?? product.vendor,
+    sku: override.sku || product.sku,
+    barcode: override.barcode || product.barcode,
+    vendorSku:
+      override.vendorSku === undefined ? product.vendorSku : override.vendorSku,
     name: toLocalizedText(override.name, product.name),
     category: toLocalizedText(override.category, product.category),
     tradition: toLocalizedText(override.tradition, product.tradition),
@@ -115,6 +127,31 @@ export function mergeProductOverride(
         : typeof override.compareAtPrice === "number"
           ? override.compareAtPrice
           : product.compareAtPrice,
+    cost:
+      override.cost === null
+        ? undefined
+        : typeof override.cost === "number"
+          ? override.cost
+          : product.cost,
+    stock: typeof override.stock === "number" ? override.stock : product.stock,
+    reorderLevel:
+      override.reorderLevel === null
+        ? undefined
+        : typeof override.reorderLevel === "number"
+          ? override.reorderLevel
+          : product.reorderLevel,
+    inventoryLocation:
+      override.inventoryLocation === undefined
+        ? product.inventoryLocation
+        : override.inventoryLocation,
+    availableOnline:
+      typeof override.availableOnline === "boolean"
+        ? override.availableOnline
+        : product.availableOnline,
+    availableInStore:
+      typeof override.availableInStore === "boolean"
+        ? override.availableInStore
+        : product.availableInStore,
     image: override.image === undefined ? product.image : override.image,
     inStock:
       typeof override.stock === "number"

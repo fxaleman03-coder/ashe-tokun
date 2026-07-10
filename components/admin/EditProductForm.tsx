@@ -29,12 +29,14 @@ type EditProductFormState = {
   price: string;
   compareAtPrice: string;
   cost: string;
-  margin: string;
   sku: string;
+  barcode: string;
+  vendorSku: string;
   stock: string;
-  storeLocation: string;
-  webAvailability: boolean;
-  physicalStoreAvailability: boolean;
+  reorderLevel: string;
+  inventoryLocation: string;
+  availableOnline: boolean;
+  availableInStore: boolean;
   isFeatured: boolean;
   isNew: boolean;
   isBestSeller: boolean;
@@ -53,11 +55,11 @@ function formatInputPrice(price?: number) {
 }
 
 function getSku(product: Product) {
-  return `SKU-${product.id.replace("prod-", "").toUpperCase()}`;
+  return product.sku;
 }
 
 function getDefaultStock(product: Product) {
-  return product.inStock ? "12" : "0";
+  return String(product.stock);
 }
 
 function toFormState(product: Product, stock?: number): EditProductFormState {
@@ -72,13 +74,16 @@ function toFormState(product: Product, stock?: number): EditProductFormState {
     image: product.image ?? "",
     price: formatInputPrice(product.price),
     compareAtPrice: formatInputPrice(product.compareAtPrice),
-    cost: "",
-    margin: "",
+    cost: formatInputPrice(product.cost),
     sku: getSku(product),
+    barcode: product.barcode,
+    vendorSku: product.vendorSku ?? "",
     stock: typeof stock === "number" ? String(stock) : getDefaultStock(product),
-    storeLocation: "",
-    webAvailability: product.inStock,
-    physicalStoreAvailability: true,
+    reorderLevel:
+      typeof product.reorderLevel === "number" ? String(product.reorderLevel) : "",
+    inventoryLocation: product.inventoryLocation ?? "",
+    availableOnline: product.availableOnline,
+    availableInStore: product.availableInStore,
     isFeatured: product.isFeatured,
     isNew: product.isNew,
     isBestSeller: false,
@@ -102,6 +107,33 @@ function parseOptionalPrice(value: string) {
 
   const parsedValue = Number(normalizedValue);
   return Number.isFinite(parsedValue) ? parsedValue : undefined;
+}
+
+function parseOptionalNumber(value: string) {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const parsedValue = Number(normalizedValue);
+  return Number.isFinite(parsedValue) ? parsedValue : undefined;
+}
+
+function formatEstimatedMargin(price: string, cost: string) {
+  const parsedPrice = Number(price);
+  const parsedCost = Number(cost);
+
+  if (
+    !Number.isFinite(parsedPrice) ||
+    !Number.isFinite(parsedCost) ||
+    parsedPrice <= 0
+  ) {
+    return "Estimated margin display placeholder";
+  }
+
+  const margin = ((parsedPrice - parsedCost) / parsedPrice) * 100;
+  return `${margin.toFixed(1)}% estimated margin`;
 }
 
 function SectionCard({
@@ -181,12 +213,20 @@ function ProductStudioForm({
     saveProductOverride(product.slug, {
       name: formState.name.trim() || seedProduct.name.en,
       vendor: formState.vendor,
+      sku: formState.sku.trim() || seedProduct.sku,
+      barcode: formState.barcode.trim() || seedProduct.barcode,
+      vendorSku: formState.vendorSku.trim(),
       category: formState.category.trim() || seedProduct.category.en,
       tradition: formState.tradition.trim() || seedProduct.tradition.en,
       productType: formState.productType.trim(),
       price: Number.isFinite(parsedPrice) ? parsedPrice : seedProduct.price,
       compareAtPrice: parseOptionalPrice(formState.compareAtPrice),
+      cost: parseOptionalNumber(formState.cost),
       stock: Number.isFinite(parsedStock) ? parsedStock : 0,
+      reorderLevel: parseOptionalNumber(formState.reorderLevel),
+      inventoryLocation: formState.inventoryLocation.trim(),
+      availableOnline: formState.availableOnline,
+      availableInStore: formState.availableInStore,
       image: formState.image.trim() || null,
       isFeatured: formState.isFeatured,
       isNew: formState.isNew,
@@ -418,15 +458,14 @@ function ProductStudioForm({
                 className={inputClass}
               />
             </FieldLabel>
-            <FieldLabel label="Margin">
-              <input
-                type="text"
-                value={formState.margin}
-                onChange={(event) => updateField("margin", event.target.value)}
-                placeholder="Margin placeholder"
-                className={inputClass}
-              />
-            </FieldLabel>
+            <div className="border border-[#d8a344]/20 bg-[#0f0b07] px-4 py-4 text-sm leading-6 text-[#e8dcc8]/70">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+                Estimated Margin
+              </p>
+              <p className="mt-2">
+                {formatEstimatedMargin(formState.price, formState.cost)}
+              </p>
+            </div>
           </div>
         </SectionCard>
 
@@ -436,11 +475,30 @@ function ProductStudioForm({
               <input
                 type="text"
                 value={formState.sku}
-                readOnly
-                className={`${inputClass} text-[#f7ead2]/58`}
+                onChange={(event) => updateField("sku", event.target.value)}
+                className={inputClass}
               />
             </FieldLabel>
-            <FieldLabel label="Stock">
+            <FieldLabel label="Barcode">
+              <input
+                type="text"
+                value={formState.barcode}
+                onChange={(event) => updateField("barcode", event.target.value)}
+                className={inputClass}
+              />
+            </FieldLabel>
+            <FieldLabel label="Vendor SKU">
+              <input
+                type="text"
+                value={formState.vendorSku}
+                onChange={(event) =>
+                  updateField("vendorSku", event.target.value)
+                }
+                placeholder="Vendor SKU"
+                className={inputClass}
+              />
+            </FieldLabel>
+            <FieldLabel label="Quantity / Stock">
               <input
                 type="number"
                 min="0"
@@ -450,22 +508,34 @@ function ProductStudioForm({
                 className={inputClass}
               />
             </FieldLabel>
-            <FieldLabel label="Store Location">
+            <FieldLabel label="Reorder Level">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={formState.reorderLevel}
+                onChange={(event) =>
+                  updateField("reorderLevel", event.target.value)
+                }
+                className={inputClass}
+              />
+            </FieldLabel>
+            <FieldLabel label="Inventory Location">
               <input
                 type="text"
-                value={formState.storeLocation}
+                value={formState.inventoryLocation}
                 onChange={(event) =>
-                  updateField("storeLocation", event.target.value)
+                  updateField("inventoryLocation", event.target.value)
                 }
-                placeholder="Store Location placeholder"
+                placeholder="Inventory Location"
                 className={inputClass}
               />
             </FieldLabel>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {[
-              ["Web Availability", "webAvailability"],
-              ["Physical Store Availability", "physicalStoreAvailability"],
+              ["Available Online", "availableOnline"],
+              ["Available In Store", "availableInStore"],
             ].map(([label, field]) => (
               <label
                 key={field}
@@ -478,7 +548,7 @@ function ProductStudioForm({
                   }
                   onChange={(event) =>
                     updateField(
-                      field as "webAvailability" | "physicalStoreAvailability",
+                      field as "availableOnline" | "availableInStore",
                       event.target.checked,
                     )
                   }
