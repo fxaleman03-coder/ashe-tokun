@@ -43,6 +43,9 @@ type SupabaseProductRow = {
 };
 
 let cachedProductsResult: Promise<ProductsResult> | null = null;
+const localProductsBySku = new Map(
+  localProducts.map((product) => [product.sku, product]),
+);
 
 const localized = (value: string): Record<Language, string> => ({
   en: value,
@@ -76,6 +79,8 @@ const mapSupabaseProduct = (row: SupabaseProductRow): Product => {
   const price = toNumber(row.price) ?? 0;
   const compareAtPrice = toNumber(row.compare_at_price);
   const cost = toNumber(row.cost);
+  const localProduct = localProductsBySku.get(row.sku);
+  const image = row.image?.trim() ? row.image : localProduct?.image ?? null;
 
   return {
     id: row.id,
@@ -96,7 +101,7 @@ const mapSupabaseProduct = (row: SupabaseProductRow): Product => {
     inventoryLocation: row.inventory_location ?? undefined,
     availableOnline: row.available_online ?? true,
     availableInStore: row.available_in_store ?? true,
-    image: row.image ?? null,
+    image,
     inStock: stock > 0,
     isFeatured: row.featured ?? false,
     isNew: row.new_arrival ?? false,
