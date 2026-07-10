@@ -967,3 +967,131 @@ for each row execute function public.set_updated_at();
 -- Local app behavior still uses seed/local data until USE_SUPABASE is enabled
 -- in a future phase.
 -- Do not enable live writes until RLS policies are added.
+
+-- ---------------------------------------------------------------------------
+-- RLS AND SECURITY PLANNING
+-- ---------------------------------------------------------------------------
+-- Phase 4.8 plans row-level security before any live Supabase writes.
+-- Do not enable RLS yet.
+-- Do not create live policies until authentication, staff roles, and service
+-- boundaries are implemented and tested.
+
+-- Access level planning:
+--
+-- Public Storefront
+-- - Can read active products.
+-- - Can read active brands.
+-- - Can read active collections.
+-- - Can read active categories.
+-- - Can read public product media.
+-- - Cannot read product cost.
+-- - Cannot read inventory internals.
+-- - Cannot read customers.
+-- - Cannot read orders.
+-- - Cannot read payments.
+--
+-- Admin Staff
+-- - Can manage products.
+-- - Can manage media.
+-- - Can manage inventory.
+-- - Can manage orders.
+-- - Can manage customers.
+-- - Can manage discounts.
+-- - Can view reports.
+--
+-- POS Staff
+-- - Can read products.
+-- - Can create POS orders.
+-- - Can create payments.
+-- - Can create receipts.
+-- - Can create inventory transactions.
+-- - Cannot change product cost.
+-- - Cannot delete products.
+--
+-- Manager / Owner
+-- - Full operational access.
+-- - Can manage staff.
+-- - Can approve discounts.
+-- - Can view profit and cost.
+-- - Can process refunds.
+--
+-- Future Vendor Portal
+-- - Vendor users can only see their own brand, products, orders, and payouts.
+-- - Vendor users cannot see other vendors.
+-- - Vendor users cannot see ASHE TOKUN financial internals.
+
+-- Future helper functions to define after authentication is implemented:
+-- - current_staff_role()
+-- - current_staff_id()
+-- - is_manager()
+-- - is_pos_staff()
+-- - is_vendor_user()
+-- - current_vendor_brand_id()
+
+-- Future RLS policy examples, comments only:
+--
+-- products
+-- - Public storefront can select active products where available_online = true.
+-- - Public storefront selection must exclude cost and other private fields,
+--   likely through a public product view instead of direct table access.
+-- - Admin staff can insert and update product records.
+-- - POS staff can select products but cannot update cost or delete products.
+-- - Vendor portal users can select products where brand_id matches
+--   current_vendor_brand_id().
+--
+-- orders
+-- - Admin staff and managers can manage all orders.
+-- - POS staff can create and read POS orders they are allowed to process.
+-- - Customers can read only their own online orders after customer auth exists.
+-- - Vendor portal users may read only order line summaries related to their
+--   brand, not full ASHE TOKUN order financial internals.
+--
+-- order_items
+-- - Admin staff and managers can read full order item history.
+-- - POS staff can create order items for POS orders.
+-- - Historical snapshots must remain immutable except for approved correction
+--   workflows.
+-- - Vendor portal users may read only rows where product brand ownership
+--   matches their vendor account.
+--
+-- payments
+-- - Admin staff and managers can read payment records.
+-- - POS staff can create payments for POS orders.
+-- - Public storefront users cannot read payment records directly.
+-- - Vendor portal users cannot read ASHE TOKUN payment internals.
+--
+-- customers
+-- - Admin staff can manage customer records.
+-- - POS staff can create or search limited customer information needed for
+--   in-store checkout.
+-- - Customers can read and update only their own profile after customer auth
+--   exists.
+-- - Vendor portal users cannot read ASHE TOKUN customer records.
+--
+-- inventory_items
+-- - Admin staff and managers can manage inventory records.
+-- - POS staff can read availability needed for checkout.
+-- - Public storefront should read availability through safe views only.
+-- - Vendor portal users cannot read ASHE TOKUN internal inventory locations.
+--
+-- inventory_transactions
+-- - Admin staff and managers can read the full inventory ledger.
+-- - POS staff can create sale-related inventory transactions only after sale
+--   completion workflows are connected.
+-- - Inventory transaction rows should not be deleted through normal app paths.
+-- - Public storefront and vendor portal users cannot read internal ledger rows.
+--
+-- media_assets
+-- - Public storefront can read active commerce media marked for public usage.
+-- - Admin staff can manage commerce and production assets.
+-- - POS staff can read product media needed for checkout.
+-- - Vendor portal users can read or manage only media attached to their own
+--   brand after vendor workflows exist.
+--
+-- audit_logs
+-- - Managers and owners can read audit logs.
+-- - Admin actions should write audit log entries through controlled service
+--   paths.
+-- - Staff users should not update or delete audit log history.
+-- - Public storefront, POS staff, customers, and vendor portal users cannot
+--   read audit logs unless a future role explicitly allows it.

@@ -376,6 +376,26 @@ Future migration steps:
 7. Connect POS orders, payments, receipts, and inventory transactions.
 8. Connect media storage and production file workflows.
 
+## Phase 4.8 RLS & Security Planning
+
+Phase 4.8 plans row-level security before ASHE TOKUN allows live database writes. RLS has to be designed before production usage because the same database will eventually serve the public storefront, admin staff, POS workflows, customer records, vendor-facing records, payment records, and inventory history.
+
+Public storefront reads are different from admin writes. Storefront visitors should only see active products, active brands, public categories, collections, and approved public product media. Admin staff need controlled write access to catalog, media, inventory, orders, customers, discounts, and reports.
+
+Product cost must never be exposed publicly. Cost, profit, margin, vendor payout, and internal inventory valuation belong to manager or owner workflows, not the storefront, customer accounts, or future vendor-facing views unless explicitly approved.
+
+Customer, order, and payment data must be protected because they contain personal, commercial, and financial information. Public users should not read those tables directly, and POS staff should only have the access needed to complete in-store transactions.
+
+POS staff need limited permissions. They should be able to read products, create POS orders, accept local payment records, create receipts, and create sale-related inventory transactions in future phases. They should not delete products, change cost, alter historical financial data, or view owner-level reporting.
+
+Managers and owners need broader access because they approve discounts, process refunds, manage staff, inspect cost and profit, view operational reports, and review audit logs. This access should be role-based rather than hardcoded into application screens.
+
+The future vendor portal must isolate vendors. A vendor user should only see records connected to their own brand, products, orders, media, and payout records. They must not see other vendors or ASHE TOKUN internal financial records.
+
+Audit logs matter because catalog edits, price changes, refunds, inventory adjustments, staff actions, and future vendor activity need traceable history. Audit logs should be append-oriented and protected from ordinary update or delete access.
+
+RLS should be enabled only after authentication is implemented. The planned helper functions include `current_staff_role()`, `current_staff_id()`, `is_manager()`, `is_pos_staff()`, `is_vendor_user()`, and `current_vendor_brand_id()`. Until those identity boundaries exist, the local catalog remains active and Supabase writes stay disabled.
+
 ## Phase Migration Plan
 
 1. Keep `lib/products.ts` active.
