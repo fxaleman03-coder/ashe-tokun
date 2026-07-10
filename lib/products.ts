@@ -103,7 +103,7 @@ export const products: Product[] = [
     productType: productType.opele,
     tradition: tradition.ifa,
     price: 185,
-    image: "/products/ajako-originals/opele/custom-opele-01.jpeg",
+    image: "/products/ajako-originals/opele/ajako-custom-opele-01.jpeg",
     inStock: true,
     isFeatured: true,
     isNew: true,
