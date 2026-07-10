@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
 import { useProductCatalog } from "@/lib/productStore";
 
@@ -14,6 +14,7 @@ type DiscountType = "amount" | "percent";
 
 const paymentMethods = ["Cash", "Card", "Zelle", "Other", "Split Payment"];
 const defaultCustomer = "Walk-in Customer";
+const receiptNumber = "Receipt #100001";
 
 const inputClass =
   "min-h-14 w-full border border-[#f7ead2]/10 bg-[#120d08] px-4 text-sm text-[#f7ead2] outline-none transition duration-300 placeholder:text-[#e8dcc8]/38 focus:border-[#d8a344]/70";
@@ -56,6 +57,30 @@ export default function AdminPOS() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [warning, setWarning] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [receiptDateTime, setReceiptDateTime] = useState({
+    date: "Pending",
+    time: "Pending",
+  });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const now = new Date();
+
+      setReceiptDateTime({
+        date: now.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        time: now.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -614,9 +639,27 @@ export default function AdminPOS() {
                 ASHE TOKUN
               </p>
               <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
-                {defaultCustomer}
+                {receiptNumber}
               </p>
             </div>
+            <dl className="mt-4 grid gap-2 border-b border-[#f7ead2]/10 pb-4 text-xs sm:grid-cols-2">
+              <div className="flex justify-between gap-3 sm:block">
+                <dt className="text-[#d8a344]">Date</dt>
+                <dd className="mt-1 text-[#f7ead2]">{receiptDateTime.date}</dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:block">
+                <dt className="text-[#d8a344]">Time</dt>
+                <dd className="mt-1 text-[#f7ead2]">{receiptDateTime.time}</dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:block">
+                <dt className="text-[#d8a344]">Cashier</dt>
+                <dd className="mt-1 text-[#f7ead2]">Admin</dd>
+              </div>
+              <div className="flex justify-between gap-3 sm:block">
+                <dt className="text-[#d8a344]">Customer</dt>
+                <dd className="mt-1 text-[#f7ead2]">{defaultCustomer}</dd>
+              </div>
+            </dl>
             <div className="mt-4 space-y-3">
               {cartItems.length === 0 ? (
                 <p className="text-center text-[#e8dcc8]/46">
@@ -632,7 +675,13 @@ export default function AdminPOS() {
                       <p className="text-[#f7ead2]">
                         {getProductLabel(item.product)}
                       </p>
-                      <p className="text-xs text-[#e8dcc8]/42">
+                      <p className="mt-1 text-xs text-[#d8a344]">
+                        {item.product.vendor}
+                      </p>
+                      <p className="mt-1 text-xs text-[#e8dcc8]/42">
+                        SKU {item.product.sku}
+                      </p>
+                      <p className="mt-1 text-xs text-[#e8dcc8]/42">
                         {item.quantity} x {formatCurrency(item.product.price)}
                       </p>
                     </div>
