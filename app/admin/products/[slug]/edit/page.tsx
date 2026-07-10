@@ -37,8 +37,8 @@ export default async function AdminEditProductPage({
 
   return (
     <AdminShell
-      title={`Edit ${product.name.en}`}
-      description="Update product pricing and catalog fields locally before database integration."
+      title="Product Studio"
+      description={`Refine ${product.name.en} across catalog, media, pricing, inventory, SEO, and publishing.`}
     >
       <EditProductForm product={product} />
     </AdminShell>

@@ -1,17 +1,36 @@
 import Link from "next/link";
 
-const adminLinks = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/catalog", label: "Catalog" },
-  { href: "/admin/products", label: "Products" },
-  { href: "/admin/products", label: "Collections" },
-  { href: "/admin/products", label: "Categories" },
-  { href: "/admin/media", label: "Media Library" },
-  { href: "/admin/inventory", label: "Inventory" },
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/orders", label: "Customers" },
-  { href: "/admin", label: "Analytics" },
-  { href: "/admin/settings", label: "Settings" },
+const navigationGroups = [
+  {
+    title: "Dashboard",
+    links: [{ href: "/admin", label: "Dashboard" }],
+  },
+  {
+    title: "Catalog",
+    links: [
+      { href: "/admin/catalog", label: "Catalog Overview" },
+      { href: "/admin/products", label: "Products" },
+      { href: "/admin/vendors", label: "Vendors" },
+      { href: "/admin/collections", label: "Collections" },
+      { href: "/admin/categories", label: "Categories" },
+      { href: "/admin/product-types", label: "Product Types" },
+      { href: "/admin/traditions", label: "Traditions" },
+      { href: "/admin/media", label: "Media Library" },
+    ],
+  },
+  {
+    title: "Commerce",
+    links: [
+      { href: "/admin/inventory", label: "Inventory" },
+      { href: "/admin/orders", label: "Orders" },
+      { href: "/admin/customers", label: "Customers" },
+      { href: "/admin/analytics", label: "Analytics" },
+    ],
+  },
+  {
+    title: "Settings",
+    links: [{ href: "/admin/settings", label: "Settings" }],
+  },
 ];
 
 export default function AdminSidebar() {
@@ -22,19 +41,28 @@ export default function AdminSidebar() {
           ASHE TOKUN
         </p>
         <p className="mt-2 text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[#d8a344]">
-          Admin
+          Control Center
         </p>
       </Link>
 
-      <nav className="mt-8 flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
-        {adminLinks.map((link) => (
-          <Link
-            key={`${link.label}-${link.href}`}
-            href={link.href}
-            className="whitespace-nowrap border border-[#f7ead2]/10 px-4 py-3 text-[0.74rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/68 transition duration-500 ease-out hover:border-[#d8a344]/60 hover:text-[#d8a344] hover:shadow-[0_0_28px_rgba(216,163,68,0.1)]"
-          >
-            {link.label}
-          </Link>
+      <nav className="mt-8 flex gap-3 overflow-x-auto lg:flex-col lg:overflow-visible">
+        {navigationGroups.map((group) => (
+          <div key={group.title} className="min-w-max lg:min-w-0">
+            <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]/72">
+              {group.title}
+            </p>
+            <div className="flex gap-2 lg:flex-col">
+              {group.links.map((link) => (
+                <Link
+                  key={`${group.title}-${link.label}-${link.href}`}
+                  href={link.href}
+                  className="whitespace-nowrap border border-[#f7ead2]/10 px-4 py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/68 transition duration-500 ease-out hover:border-[#d8a344]/60 hover:text-[#d8a344] hover:shadow-[0_0_28px_rgba(216,163,68,0.1)]"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 

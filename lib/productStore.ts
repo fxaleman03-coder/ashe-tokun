@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { products as seedProducts, type Product } from "@/lib/products";
 
 const productOverridesKey = "ashe-tokun-product-overrides";
@@ -14,6 +14,7 @@ export type ProductOverride = {
   name?: string;
   category?: string;
   tradition?: string;
+  productType?: string;
   price?: number;
   compareAtPrice?: number | null;
   stock?: number;
@@ -57,6 +58,36 @@ function writeOverrides(overrides: ProductOverrides) {
   window.dispatchEvent(new Event(productOverridesEvent));
 }
 
+function subscribeToOverrides(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(productOverridesEvent, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(productOverridesEvent, onStoreChange);
+  };
+}
+
+function getOverridesSnapshot() {
+  if (typeof window === "undefined") {
+    return "{}";
+  }
+
+  return window.localStorage.getItem(productOverridesKey) ?? "{}";
+}
+
+function getServerOverridesSnapshot() {
+  return "{}";
+}
+
+function parseOverridesSnapshot(snapshot: string): ProductOverrides {
+  try {
+    return JSON.parse(snapshot);
+  } catch {
+    return {};
+  }
+}
+
 export function mergeProductOverride(
   product: Product,
   override?: ProductOverride,
@@ -71,6 +102,12 @@ export function mergeProductOverride(
     name: toLocalizedText(override.name, product.name),
     category: toLocalizedText(override.category, product.category),
     tradition: toLocalizedText(override.tradition, product.tradition),
+    productType: override.productType
+      ? toLocalizedText(
+          override.productType,
+          product.productType ?? product.category,
+        )
+      : product.productType,
     price: typeof override.price === "number" ? override.price : product.price,
     compareAtPrice:
       override.compareAtPrice === null
@@ -122,24 +159,27 @@ export function resetProductOverride(slug: string) {
   writeOverrides(overrides);
 }
 
-export function useProductCatalog() {
-  const [overrides, setOverrides] = useState<ProductOverrides>(() =>
-    readOverrides(),
+export function useProductOverrides() {
+  const overridesSnapshot = useSyncExternalStore(
+    subscribeToOverrides,
+    getOverridesSnapshot,
+    getServerOverridesSnapshot,
   );
 
-  const refreshOverrides = useCallback(() => {
-    setOverrides(readOverrides());
-  }, []);
+  return useMemo(
+    () => parseOverridesSnapshot(overridesSnapshot),
+    [overridesSnapshot],
+  );
+}
 
-  useEffect(() => {
-    window.addEventListener("storage", refreshOverrides);
-    window.addEventListener(productOverridesEvent, refreshOverrides);
+export function useProductOverride(slug: string) {
+  const overrides = useProductOverrides();
 
-    return () => {
-      window.removeEventListener("storage", refreshOverrides);
-      window.removeEventListener(productOverridesEvent, refreshOverrides);
-    };
-  }, [refreshOverrides]);
+  return overrides[slug];
+}
+
+export function useProductCatalog() {
+  const overrides = useProductOverrides();
 
   return useMemo(() => mergeProductCatalog(seedProducts, overrides), [overrides]);
 }
