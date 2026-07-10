@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useProductCatalog } from "@/lib/productStore";
+import {
+  mergeProductCatalog,
+  useProductOverrides,
+} from "@/lib/productStore";
+import type { Product } from "@/lib/products";
+
+type AdminProductsTableProps = {
+  products: Product[];
+};
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("en-US", {
@@ -12,8 +20,11 @@ function formatPrice(price: number) {
   }).format(price);
 }
 
-export default function AdminProductsTable() {
-  const products = useProductCatalog();
+export default function AdminProductsTable({
+  products,
+}: AdminProductsTableProps) {
+  const overrides = useProductOverrides();
+  const displayProducts = mergeProductCatalog(products, overrides);
 
   return (
     <div className="overflow-x-auto border border-[#f7ead2]/10 bg-[#120d08] shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
@@ -32,7 +43,7 @@ export default function AdminProductsTable() {
           </tr>
         </thead>
         <tbody>
-          {products.map((product) => (
+          {displayProducts.map((product) => (
             <tr
               key={product.id}
               className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"

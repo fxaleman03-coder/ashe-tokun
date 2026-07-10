@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navigationGroups = [
   {
@@ -37,7 +40,21 @@ const navigationGroups = [
   },
 ];
 
+const allNavigationLinks = navigationGroups.flatMap((group) => group.links);
+
+function getActiveHref(pathname: string) {
+  return allNavigationLinks
+    .filter(
+      (link) =>
+        pathname === link.href || pathname.startsWith(`${link.href}/`),
+    )
+    .sort((first, second) => second.href.length - first.href.length)[0]?.href;
+}
+
 export default function AdminSidebar() {
+  const pathname = usePathname();
+  const activeHref = getActiveHref(pathname);
+
   return (
     <aside className="border-b border-[#f7ead2]/10 bg-[#0f0b07] px-6 py-6 lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r lg:px-7 lg:py-8">
       <Link href="/admin" className="block">
@@ -56,15 +73,25 @@ export default function AdminSidebar() {
               {group.title}
             </p>
             <div className="flex gap-2 lg:flex-col">
-              {group.links.map((link) => (
-                <Link
-                  key={`${group.title}-${link.label}-${link.href}`}
-                  href={link.href}
-                  className="whitespace-nowrap border border-[#f7ead2]/10 px-4 py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/68 transition duration-500 ease-out hover:border-[#d8a344]/60 hover:text-[#d8a344] hover:shadow-[0_0_28px_rgba(216,163,68,0.1)]"
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {group.links.map((link) => {
+                const isActive = link.href === activeHref;
+
+                return (
+                  <Link
+                    key={`${group.title}-${link.label}-${link.href}`}
+                    href={link.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={[
+                      "whitespace-nowrap border px-4 py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] transition duration-500 ease-out hover:border-[#d8a344]/60 hover:text-[#d8a344] hover:shadow-[0_0_28px_rgba(216,163,68,0.1)]",
+                      isActive
+                        ? "border-[#d8a344]/70 bg-[#1a1209] text-[#d8a344] shadow-[inset_3px_0_0_rgba(216,163,68,0.9),0_0_28px_rgba(216,163,68,0.14)]"
+                        : "border-[#f7ead2]/10 text-[#e8dcc8]/68",
+                    ].join(" ")}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         ))}
