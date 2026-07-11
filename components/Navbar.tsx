@@ -1,11 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 import { languageOptions } from "@/lib/translations";
 
+const navHrefs = ["/", "/shop", "/about", "/contact"] as const;
+
 export default function Navbar() {
   const { language, setLanguage, t } = useLanguage();
+  const pathname = usePathname();
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[#f7ead2]/10 bg-[#0f0b07]/82 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
@@ -13,8 +18,8 @@ export default function Navbar() {
         aria-label="Main navigation"
         className="mx-auto flex h-[5.25rem] w-full max-w-7xl items-center justify-between px-6 sm:px-8 lg:px-10"
       >
-        <a
-          href="#"
+        <Link
+          href="/"
           className="group flex items-center gap-3 text-[#f7ead2]"
           aria-label={t.brand.homeLabel}
         >
@@ -29,31 +34,39 @@ export default function Navbar() {
           <span className="hidden font-serif text-[1.02rem] font-semibold tracking-[0.26em] transition-colors duration-500 ease-out group-hover:text-[#d8a344] sm:inline">
             {t.brand.name}
           </span>
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-10 md:flex">
-          {t.nav.links.map((link, index) => (
-            <a
-              key={link}
-              href="#"
-              aria-current={index === 0 ? "page" : undefined}
-              className="group relative py-3 text-[0.82rem] font-medium uppercase tracking-[0.16em] text-[#e8dcc8]/70 transition duration-500 ease-out hover:text-[#f7ead2] aria-[current=page]:text-[#d8a344]"
-            >
-              {link}
-              <span className="absolute inset-x-0 -bottom-0.5 h-px scale-x-0 bg-gradient-to-r from-transparent via-[#d8a344] to-transparent opacity-0 transition duration-500 ease-out group-hover:scale-x-100 group-hover:opacity-80 group-aria-[current=page]:scale-x-100 group-aria-[current=page]:opacity-70" />
-              <span className="absolute inset-x-1 -bottom-1 h-px scale-x-0 bg-[#d8a344]/25 blur-sm transition duration-500 ease-out group-hover:scale-x-100 group-aria-[current=page]:scale-x-100" />
-            </a>
-          ))}
+          {t.nav.links.map((link, index) => {
+            const href = navHrefs[index] ?? "/";
+            const isActive =
+              href === "/"
+                ? pathname === "/"
+                : pathname === href || pathname.startsWith(`${href}/`);
+
+            return (
+              <Link
+                key={link}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className="group relative py-3 text-[0.82rem] font-medium uppercase tracking-[0.16em] text-[#e8dcc8]/70 transition duration-500 ease-out hover:text-[#f7ead2] aria-[current=page]:text-[#d8a344]"
+              >
+                {link}
+                <span className="absolute inset-x-0 -bottom-0.5 h-px scale-x-0 bg-gradient-to-r from-transparent via-[#d8a344] to-transparent opacity-0 transition duration-500 ease-out group-hover:scale-x-100 group-hover:opacity-80 group-aria-[current=page]:scale-x-100 group-aria-[current=page]:opacity-70" />
+                <span className="absolute inset-x-1 -bottom-1 h-px scale-x-0 bg-[#d8a344]/25 blur-sm transition duration-500 ease-out group-hover:scale-x-100 group-aria-[current=page]:scale-x-100" />
+              </Link>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-            href="#"
+          <Link
+            href="/shop"
             className="group relative hidden min-h-11 items-center justify-center overflow-hidden border border-[#d8a344]/55 px-5 text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-[#d8a344] shadow-[0_0_0_rgba(216,163,68,0)] transition duration-500 ease-out hover:border-[#d8a344] hover:bg-[#d8a344] hover:text-[#0f0b07] hover:shadow-[0_0_34px_rgba(216,163,68,0.22)] sm:inline-flex"
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#f7ead2]/30 to-transparent transition duration-700 ease-out group-hover:translate-x-full" />
             <span className="relative">{t.nav.cta}</span>
-          </a>
+          </Link>
 
           <div
             className="inline-flex border border-[#f7ead2]/15 bg-[#0f0b07]/60 p-1"

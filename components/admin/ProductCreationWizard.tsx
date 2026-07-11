@@ -2,18 +2,20 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import {
-  categories,
-  collections,
-  traditions,
-  vendors,
-} from "@/lib/catalog";
+import { collections, traditions, vendors } from "@/lib/catalog";
+import type { Category } from "@/lib/data/localCategories";
+import type { ProductType } from "@/lib/data/localProductTypes";
+import { createProduct } from "@/lib/data/productMutations";
+import { setPrimaryProductMedia } from "@/lib/data/productMediaMutations";
+import type { MediaAsset } from "@/lib/data/mediaRepository";
 import type { ProductVendor } from "@/lib/products";
-import type { MediaImage } from "@/lib/media";
 
 type ProductCreationWizardProps = {
-  mediaImages: MediaImage[];
+  mediaAssets: MediaAsset[];
+  categories: Category[];
+  productTypes: ProductType[];
 };
 
 type WizardState = {
@@ -44,25 +46,6 @@ const steps = [
   "Review",
 ];
 
-const productTypesByVendor: Record<ProductVendor, string[]> = {
-  "AJAKO ORIGINALS": [
-    "Opele",
-    "Keychain",
-    "Opon",
-    "Lamp",
-    "Medallion",
-    "Odu Tablet",
-    "Sacred Art",
-  ],
-  "ODIBERE CREATIONS": [
-    "Ide Bracelet",
-    "Eleke",
-    "Ide & Necklace Set",
-    "Mazo",
-    "Beadwork Ceremonial Tool",
-  ],
-};
-
 const initialState: WizardState = {
   vendor: "",
   productType: "",
@@ -86,25 +69,25 @@ const inputClass =
 const textareaClass =
   "w-full border border-[#f7ead2]/10 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#f7ead2] outline-none transition duration-300 placeholder:text-[#e8dcc8]/36 focus:border-[#d8a344]/70";
 
-function getSkuPrefix(vendor: ProductVendor | "", productType: string) {
-  const normalizedType = productType.toLowerCase();
+function getSkuPrefix(vendor: ProductVendor | "", category: string) {
+  const normalizedCategory = category.toLowerCase();
 
   if (vendor === "AJAKO ORIGINALS") {
-    if (normalizedType.includes("opele")) return "AJO-OPE";
-    if (normalizedType.includes("keychain")) return "AJO-KEY";
-    if (normalizedType.includes("opon")) return "AJO-OPN";
-    if (normalizedType.includes("lamp")) return "AJO-LMP";
-    if (normalizedType.includes("medallion")) return "AJO-MED";
-    if (normalizedType.includes("odu")) return "AJO-ODU";
+    if (normalizedCategory.includes("opele")) return "AJO-OPE";
+    if (normalizedCategory.includes("keychain")) return "AJO-KEY";
+    if (normalizedCategory.includes("opon")) return "AJO-OPN";
+    if (normalizedCategory.includes("lamp")) return "AJO-LMP";
+    if (normalizedCategory.includes("medallion")) return "AJO-MED";
+    if (normalizedCategory.includes("odu")) return "AJO-ODU";
   }
 
   if (vendor === "ODIBERE CREATIONS") {
-    if (normalizedType.includes("ide") && !normalizedType.includes("set")) {
+    if (normalizedCategory.includes("ide") && !normalizedCategory.includes("set")) {
       return "ODI-IDE";
     }
-    if (normalizedType.includes("eleke")) return "ODI-ELE";
-    if (normalizedType.includes("set")) return "ODI-SET";
-    if (normalizedType.includes("mazo") || normalizedType.includes("tool")) {
+    if (normalizedCategory.includes("eleke")) return "ODI-ELE";
+    if (normalizedCategory.includes("set")) return "ODI-SET";
+    if (normalizedCategory.includes("mazo") || normalizedCategory.includes("tool")) {
       return "ODI-MAZ";
     }
   }
@@ -117,11 +100,11 @@ function getPreviewSku(state: WizardState) {
     return "Waiting for vendor...";
   }
 
-  if (!state.productType) {
+  if (!state.category) {
     return state.vendor === "AJAKO ORIGINALS" ? "AJO-???" : "ODI-???";
   }
 
-  return `${getSkuPrefix(state.vendor, state.productType)}-DRAFT`;
+  return `${getSkuPrefix(state.vendor, state.category)}-DRAFT`;
 }
 
 function getEstimatedMargin(cost: string, price: string) {
@@ -141,6 +124,24 @@ function getEstimatedMargin(cost: string, price: string) {
 
 function getInventoryStatus(stock: string) {
   return stock.trim() === "" ? "Inventory not configured" : "Ready to track";
+}
+
+function parseRequiredPrice(value: string) {
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue : undefined;
+}
+
+function parseOptionalPrice(value: string) {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const parsedValue = Number(normalizedValue);
+
+  return Number.isFinite(parsedValue) ? parsedValue : undefined;
 }
 
 function getMissingRequiredFields(state: WizardState) {
@@ -228,19 +229,29 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
 }
 
 export default function ProductCreationWizard({
-  mediaImages,
+  mediaAssets,
+  categories,
+  productTypes,
 }: ProductCreationWizardProps) {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [state, setState] = useState<WizardState>(initialState);
   const [message, setMessage] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [mediaQuery, setMediaQuery] = useState("");
   const [mediaCategory, setMediaCategory] = useState("all");
   const [mediaFolder, setMediaFolder] = useState("all");
 
-  const availableProductTypes = state.vendor
-    ? productTypesByVendor[state.vendor]
-    : [];
+  const databaseProductTypes = useMemo(
+    () =>
+      productTypes.filter((productType) =>
+        ["Physical Product", "Handmade Product", "Made to Order"].includes(
+          productType.name,
+        ),
+      ),
+    [productTypes],
+  );
   const previewSku = useMemo(() => getPreviewSku(state), [state]);
   const missingRequiredFields = useMemo(
     () => getMissingRequiredFields(state),
@@ -251,21 +262,21 @@ export default function ProductCreationWizard({
     [state],
   );
   const canPublish = missingRequiredFields.length === 0;
-  const selectedMediaImage = mediaImages.find(
+  const selectedMediaAsset = mediaAssets.find(
     (image) => image.url === state.mainImage,
   );
   const mediaCategories = useMemo(
-    () => ["all", ...Array.from(new Set(mediaImages.map((image) => image.category)))],
-    [mediaImages],
+    () => ["all", ...Array.from(new Set(mediaAssets.map((image) => image.category)))],
+    [mediaAssets],
   );
   const mediaFolders = useMemo(
-    () => ["all", ...Array.from(new Set(mediaImages.map((image) => image.folder)))],
-    [mediaImages],
+    () => ["all", ...Array.from(new Set(mediaAssets.map((image) => image.folder)))],
+    [mediaAssets],
   );
-  const filteredMediaImages = useMemo(() => {
+  const filteredMediaAssets = useMemo(() => {
     const normalizedQuery = mediaQuery.trim().toLowerCase();
 
-    return mediaImages.filter((image) => {
+    return mediaAssets.filter((image) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         image.filename.toLowerCase().includes(normalizedQuery) ||
@@ -277,7 +288,7 @@ export default function ProductCreationWizard({
 
       return matchesQuery && matchesCategory && matchesFolder;
     });
-  }, [mediaCategory, mediaFolder, mediaImages, mediaQuery]);
+  }, [mediaAssets, mediaCategory, mediaFolder, mediaQuery]);
 
   function updateField<FieldName extends keyof WizardState>(
     field: FieldName,
@@ -295,6 +306,7 @@ export default function ProductCreationWizard({
       ...currentState,
       vendor,
       productType: "",
+      category: "",
       collection:
         vendor === "AJAKO ORIGINALS" ? "AJAKO Originals" : "ODIBERE Creations",
     }));
@@ -304,21 +316,104 @@ export default function ProductCreationWizard({
     setCurrentStep(Math.min(Math.max(stepIndex, 0), steps.length - 1));
   }
 
-  function handleVisualSave(action: "draft" | "publish") {
+  async function handleCreateProduct(action: "draft" | "publish") {
     if (action === "publish" && !canPublish) {
       setMessage("Publishing requires the missing required fields first.");
       return;
     }
 
+    const price = parseRequiredPrice(state.price);
+    const compareAtPrice = parseOptionalPrice(state.compareAtPrice);
+    const cost = parseOptionalPrice(state.cost);
+
+    if (price === undefined || price < 0) {
+      setMessage("Creation failed: Price must be a valid non-negative number.");
+      return;
+    }
+
+    if (compareAtPrice === undefined || cost === undefined) {
+      setMessage(
+        "Creation failed: Compare at price and cost must be valid non-negative numbers when provided.",
+      );
+      return;
+    }
+
+    setIsCreating(true);
+    setMessage("Creating...");
+
+    const result = await createProduct({
+      vendor: state.vendor,
+      category: state.category,
+      tradition: state.tradition,
+      productType: state.productType,
+      name: state.name,
+      shortDescription: state.shortDescription,
+      description: state.shortDescription,
+      sku: previewSku,
+      barcode: previewSku,
+      price,
+      compareAtPrice,
+      cost,
+      featured: false,
+      newArrival: action === "publish",
+      availableOnline: state.availableOnline,
+      availableInStore: state.availableInStore,
+      action,
+    });
+
+    setIsCreating(false);
+
+    if (!result.ok) {
+      setMessage(`Creation failed: ${result.error}`);
+      return;
+    }
+
+    if (result.source === "local") {
+      setMessage(
+        action === "draft"
+          ? "Draft saved locally for this session."
+          : "Product published locally for this session.",
+      );
+      return;
+    }
+
+    const createdSlug = result.product.slug;
+
+    if (!createdSlug) {
+      setMessage("Creation failed: Supabase did not return a product slug.");
+      return;
+    }
+
+    if (selectedMediaAsset) {
+      const createdProductId = result.product.id;
+
+      if (!createdProductId || selectedMediaAsset.source !== "supabase") {
+        setMessage("Product created, but image linking failed.");
+        return;
+      }
+
+      const mediaResult = await setPrimaryProductMedia(
+        createdProductId,
+        selectedMediaAsset.id,
+      );
+
+      if (!mediaResult.ok) {
+        setMessage("Product created, but image linking failed.");
+        return;
+      }
+    }
+
     setMessage(
       action === "draft"
-        ? "Draft saved locally for this session. Database persistence will connect later."
-        : "Product marked ready to publish visually. Database persistence will connect later.",
+        ? "Draft saved to Supabase."
+        : "Product published to Supabase.",
     );
+    router.refresh();
+    router.push(`/admin/products/${createdSlug}/edit`);
   }
 
-  function selectMediaImage(image: MediaImage) {
-    updateField("mainImage", image.url);
+  function selectMediaAsset(asset: MediaAsset) {
+    updateField("mainImage", asset.url);
     setIsMediaPickerOpen(false);
   }
 
@@ -364,8 +459,8 @@ export default function ProductCreationWizard({
             </h2>
           </div>
           <p className="max-w-sm text-sm leading-6 text-[#e8dcc8]/58">
-            Fully local wizard foundation. Save and publish actions are visual
-            until database integration.
+            Product creation writes to Supabase when enabled, with local visual
+            fallback available for development.
           </p>
         </div>
 
@@ -409,22 +504,22 @@ export default function ProductCreationWizard({
 
           {currentStep === 1 ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {availableProductTypes.length > 0 ? (
-                availableProductTypes.map((productType) => (
+              {databaseProductTypes.length > 0 ? (
+                databaseProductTypes.map((productType) => (
                   <ChoiceCard
-                    key={productType}
-                    title={productType}
-                    description={`SKU prefix preview: ${getSkuPrefix(
-                      state.vendor,
-                      productType,
-                    )}`}
-                    selected={state.productType === productType}
-                    onClick={() => updateField("productType", productType)}
+                    key={productType.id}
+                    title={productType.name}
+                    description={
+                      productType.description ??
+                      "Commerce handling type for this product."
+                    }
+                    selected={state.productType === productType.name}
+                    onClick={() => updateField("productType", productType.name)}
                   />
                 ))
               ) : (
                 <p className="border border-[#f7ead2]/10 bg-[#0f0b07] p-5 text-sm text-[#e8dcc8]/64">
-                  Select a vendor first to reveal dynamic product types.
+                  Product types will load from the catalog foundation.
                 </p>
               )}
             </div>
@@ -599,10 +694,17 @@ export default function ProductCreationWizard({
                 {state.mainImage.startsWith("/") ? (
                   <Image
                     src={state.mainImage}
-                    alt={selectedMediaImage?.filename ?? "Selected product image"}
+                    alt={selectedMediaAsset?.filename ?? "Selected product image"}
                     fill
                     sizes="18rem"
                     className="object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
+                  />
+                ) : state.mainImage.startsWith("http") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={state.mainImage}
+                    alt={selectedMediaAsset?.filename ?? "Selected product image"}
+                    className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
                   />
                 ) : (
                   <div className="absolute inset-6 flex items-center justify-center border border-[#f7ead2]/8 text-center text-xs uppercase tracking-[0.2em] text-[#e8dcc8]/38">
@@ -631,6 +733,11 @@ export default function ProductCreationWizard({
                     className={`${textareaClass} min-h-28`}
                   />
                 </Field>
+                <p className="text-sm leading-6 text-[#e8dcc8]/58">
+                  Uploaded assets are stored in Supabase. Selecting one asset
+                  will create the primary product media link after the product
+                  is created.
+                </p>
                 <button
                   type="button"
                   onClick={() => setIsMediaPickerOpen(true)}
@@ -709,12 +816,22 @@ export default function ProductCreationWizard({
                         <Image
                           src={state.mainImage}
                           alt={
-                            selectedMediaImage?.filename ??
+                            selectedMediaAsset?.filename ??
                             "Selected product image"
                           }
                           fill
                           sizes="12rem"
                           className="object-contain p-4"
+                        />
+                      ) : state.mainImage.startsWith("http") ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={state.mainImage}
+                          alt={
+                            selectedMediaAsset?.filename ??
+                            "Selected product image"
+                          }
+                          className="absolute inset-0 h-full w-full object-contain p-4"
                         />
                       ) : null}
                     </div>
@@ -729,18 +846,19 @@ export default function ProductCreationWizard({
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => handleVisualSave("draft")}
-                  className="inline-flex min-h-12 items-center justify-center border border-[#f7ead2]/16 px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#f7ead2] transition duration-500 ease-out hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+                  onClick={() => handleCreateProduct("draft")}
+                  disabled={isCreating}
+                  className="inline-flex min-h-12 items-center justify-center border border-[#f7ead2]/16 px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#f7ead2] transition duration-500 ease-out hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  Save Draft
+                  {isCreating ? "Creating..." : "Save Draft"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleVisualSave("publish")}
-                  disabled={!canPublish}
+                  onClick={() => handleCreateProduct("publish")}
+                  disabled={!canPublish || isCreating}
                   className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 ease-out hover:bg-[#f0c062] hover:shadow-[0_20px_48px_rgba(216,163,68,0.24)] disabled:cursor-not-allowed disabled:bg-[#d8a344]/35 disabled:text-[#0f0b07]/60 disabled:shadow-none"
                 >
-                  Publish Product
+                  {isCreating ? "Creating..." : "Publish Product"}
                 </button>
                 <Link
                   href="/admin/products"
@@ -828,11 +946,11 @@ export default function ProductCreationWizard({
             </div>
 
             <p className="mt-5 text-sm text-[#e8dcc8]/58">
-              Showing {filteredMediaImages.length} of {mediaImages.length} images.
+              Showing {filteredMediaAssets.length} of {mediaAssets.length} images.
             </p>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredMediaImages.map((image) => (
+              {filteredMediaAssets.map((image) => (
                 <article
                   key={image.id}
                   className="overflow-hidden border border-[#f7ead2]/10 bg-[#120d08] transition duration-500 hover:-translate-y-1 hover:border-[#d8a344]/55 hover:shadow-[0_26px_80px_rgba(0,0,0,0.32),0_0_36px_rgba(216,163,68,0.1)]"
@@ -859,7 +977,7 @@ export default function ProductCreationWizard({
                     </p>
                     <button
                       type="button"
-                      onClick={() => selectMediaImage(image)}
+                      onClick={() => selectMediaAsset(image)}
                       className="mt-4 inline-flex min-h-10 w-full items-center justify-center bg-[#d8a344] px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
                     >
                       Select

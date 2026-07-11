@@ -3,7 +3,7 @@ import Hero from "@/components/Hero";
 import TraditionsSection from "@/components/home/TraditionsSection";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import Navbar from "@/components/Navbar";
-import FeaturedProductsPreview from "@/components/shop/FeaturedProductsPreview";
+import StorefrontCategoriesPreview from "@/components/shop/StorefrontCategoriesPreview";
 
 export default function Home() {
   return (
@@ -12,7 +12,7 @@ export default function Home() {
       <main>
         <Hero />
         <TraditionsSection />
-        <FeaturedProductsPreview />
+        <StorefrontCategoriesPreview />
       </main>
       <Footer />
     </LanguageProvider>

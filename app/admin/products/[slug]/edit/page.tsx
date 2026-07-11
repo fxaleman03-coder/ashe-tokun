@@ -1,13 +1,19 @@
 import Link from "next/link";
 import AdminShell from "@/components/admin/AdminShell";
 import EditProductForm from "@/components/admin/EditProductForm";
-import { products } from "@/lib/products";
+import {
+  getProductBySlug,
+  getProducts,
+} from "@/lib/data/productsRepository";
+import { getMediaAssets } from "@/lib/data/mediaRepository";
 
 type AdminEditProductPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const products = await getProducts();
+
   return products.map((product) => ({
     slug: product.slug,
   }));
@@ -17,7 +23,8 @@ export default async function AdminEditProductPage({
   params,
 }: AdminEditProductPageProps) {
   const { slug } = await params;
-  const product = products.find((item) => item.slug === slug);
+  const product = await getProductBySlug(slug);
+  const mediaAssets = await getMediaAssets();
 
   if (!product) {
     return (
@@ -40,7 +47,7 @@ export default async function AdminEditProductPage({
       title="Product Studio"
       description={`Refine ${product.name.en} across catalog, media, pricing, inventory, SEO, and publishing.`}
     >
-      <EditProductForm product={product} />
+      <EditProductForm product={product} mediaAssets={mediaAssets} />
     </AdminShell>
   );
 }

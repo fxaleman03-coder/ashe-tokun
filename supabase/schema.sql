@@ -158,7 +158,9 @@ values
   ('Ide', 'ide', true),
   ('Elekes', 'elekes', true),
   ('Sets', 'sets', true),
-  ('Mazos', 'mazos', true)
+  ('Mazos', 'mazos', true),
+  ('Iruke', 'iruke', true),
+  ('Irofa', 'irofa', true)
 on conflict (slug) do update set
   name = excluded.name,
   active = excluded.active,

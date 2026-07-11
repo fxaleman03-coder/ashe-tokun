@@ -1,9 +1,9 @@
 import AdminShell from "@/components/admin/AdminShell";
 import AdminDashboardStats from "@/components/admin/AdminDashboardStats";
-import { getProductMedia } from "@/lib/media";
+import { getMediaAssets } from "@/lib/data/mediaRepository";
 
-export default function AdminDashboardPage() {
-  const mediaCount = getProductMedia().length;
+export default async function AdminDashboardPage() {
+  const mediaCount = (await getMediaAssets()).length;
 
   return (
     <AdminShell

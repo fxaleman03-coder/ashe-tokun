@@ -95,6 +95,87 @@ const es: Translation = {
     shippingPlaceholder:
       "Las opciones de envío y tiempos de manejo se agregarán antes de lanzar el checkout.",
   },
+  storefront: {
+    categorySection: {
+      homeLabel: "Comprar por Categoría",
+      homeHeading: "Explora nuestras colecciones",
+      homeSubtitle:
+        "Entra a la tienda por categorías ceremoniales y devocionales enfocadas, cada una curada para descubrir con claridad.",
+      shopLabel: "Explora ASHE TOKUN",
+      shopHeading: "Tienda",
+      shopSubtitle:
+        "Explora nuestras categorías de artículos espirituales, herramientas ceremoniales, piezas artesanales y elementos devocionales.",
+      viewCategory: "Ver Categoría",
+      productSingular: "Producto",
+      productPlural: "Productos",
+      noCategoriesTitle: "No hay categorías disponibles",
+      noCategoriesAvailable:
+        "Las colecciones por categoría se están preparando para la tienda.",
+      featuredCategory: "Categoría Destacada",
+      availableOnline: "Disponible en Línea",
+      category: "Categoría",
+      categories: "Categorías",
+      genericCategoryDescription:
+        "Explora esta categoría de ASHE TOKUN a medida que nuevos productos estén disponibles.",
+    },
+    categoryPage: {
+      breadcrumbLabel: "Ruta de navegación",
+      breadcrumbHome: "Inicio",
+      breadcrumbShop: "Tienda",
+      label: "Categoría",
+      noProductsTitle: "No hay productos disponibles",
+      noProductsAvailable:
+        "Esta categoría aún no tiene productos disponibles.",
+      backToShop: "Volver a Tienda",
+    },
+    categoryLabels: {
+      keychains: {
+        name: "Llaveros",
+        description:
+          "Coleccionables simbólicos de uso diario de ASHE TOKUN y sus marcas destacadas.",
+      },
+      opele: {
+        name: "Opele",
+        description:
+          "Piezas Opele y selecciones ceremoniales relacionadas para la práctica de Ifá.",
+      },
+      opon: {
+        name: "Opon",
+        description:
+          "Productos Opon y piezas de exhibición conectadas con trabajo ceremonial refinado.",
+      },
+      ide: {
+        name: "Ide",
+        description:
+          "Pulseras y trabajos de cuentas seleccionados para devoción, ceremonia y uso diario.",
+      },
+      elekes: {
+        name: "Elekes",
+        description:
+          "Collares y piezas de cuentas creadas con tradición y trabajo cuidadoso.",
+      },
+      sets: {
+        name: "Sets",
+        description:
+          "Conjuntos espirituales y ceremoniales coordinados para una presentación completa.",
+      },
+      mazos: {
+        name: "Mazos",
+        description:
+          "Bastones ceremoniales y herramientas de cuentas con presencia ritual refinada.",
+      },
+      iruke: {
+        name: "Iruke",
+        description:
+          "Artículos ceremoniales Iruke y piezas espirituales relacionadas preparadas para futura disponibilidad.",
+      },
+      irofa: {
+        name: "Irofa",
+        description:
+          "Artículos ceremoniales Irofa y piezas espirituales relacionadas preparadas para futura disponibilidad.",
+      },
+    },
+  },
   footer: {
     copyright: (year) => `© ${year} ASHE TOKUN. Todos los derechos reservados.`,
   },

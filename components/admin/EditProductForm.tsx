@@ -1,21 +1,35 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import { productVendors, type Product, type ProductVendor } from "@/lib/products";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { USE_SUPABASE } from "@/lib/config";
+import {
+  updateProduct,
+  type ProductPriceTrace,
+} from "@/lib/data/productMutations";
+import { setPrimaryProductMedia } from "@/lib/data/productMediaMutations";
+import type { MediaAsset } from "@/lib/data/mediaRepository";
+import {
+  productVendors,
+  products as localProducts,
+  type Product,
+  type ProductVendor,
+} from "@/lib/products";
 import {
   mergeProductOverride,
   resetProductOverride,
-  saveProductOverride,
   useProductOverride,
 } from "@/lib/productStore";
 
 type EditProductFormProps = {
   product: Product;
+  mediaAssets?: MediaAsset[];
 };
 
 type ProductStatus = "Draft" | "Active" | "Archived";
 type ProductVisibility = "Storefront" | "Hidden";
+type DatabaseProductStatus = "draft" | "active" | "archived";
 
 type EditProductFormState = {
   vendor: ProductVendor;
@@ -120,6 +134,42 @@ function parseOptionalNumber(value: string) {
   return Number.isFinite(parsedValue) ? parsedValue : undefined;
 }
 
+function formatOptionalDatabaseNumber(value: number | string | null | undefined) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const parsedValue = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue.toFixed(2) : "";
+}
+
+function mapStatusToDatabase(status: ProductStatus): DatabaseProductStatus {
+  if (status === "Active") {
+    return "active";
+  }
+
+  if (status === "Archived") {
+    return "archived";
+  }
+
+  return "draft";
+}
+
+function mapStatusFromDatabase(
+  status: DatabaseProductStatus | string | null | undefined,
+): ProductStatus {
+  if (status === "active") {
+    return "Active";
+  }
+
+  if (status === "archived") {
+    return "Archived";
+  }
+
+  return "Draft";
+}
+
 function formatEstimatedMargin(price: string, cost: string) {
   const parsedPrice = Number(price);
   const parsedCost = Number(cost);
@@ -183,18 +233,47 @@ const textareaClass =
 type ProductStudioFormProps = EditProductFormProps & {
   seedProduct: Product;
   stock?: number;
+  customOpeleOverride?: ReturnType<typeof useProductOverride>;
 };
 
 function ProductStudioForm({
   product,
+  mediaAssets = [],
   seedProduct,
   stock,
+  customOpeleOverride,
 }: ProductStudioFormProps) {
+  const router = useRouter();
   const seedFormState = useMemo(() => toFormState(seedProduct), [seedProduct]);
   const [formState, setFormState] = useState(() => toFormState(product, stock));
   const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [priceTrace, setPriceTrace] = useState<ProductPriceTrace | null>(null);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const [mediaQuery, setMediaQuery] = useState("");
+  const [selectedPrimaryMediaAsset, setSelectedPrimaryMediaAsset] =
+    useState<MediaAsset | null>(null);
+  const localCustomOpele = localProducts.find(
+    (localProduct) => localProduct.slug === "custom-opele",
+  );
 
-  const canPreviewImage = formState.image.startsWith("/");
+  const canPreviewImage =
+    formState.image.startsWith("/") || formState.image.startsWith("http");
+  const shouldShowCustomOpeleDiagnostic = product.slug === "custom-opele";
+  const filteredStudioMediaAssets = useMemo(() => {
+    const normalizedQuery = mediaQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return mediaAssets;
+    }
+
+    return mediaAssets.filter(
+      (image) =>
+        image.filename.toLowerCase().includes(normalizedQuery) ||
+        image.folder.toLowerCase().includes(normalizedQuery) ||
+        image.category.toLowerCase().includes(normalizedQuery),
+    );
+  }, [mediaAssets, mediaQuery]);
 
   function updateField<Field extends keyof EditProductFormState>(
     field: Field,
@@ -206,11 +285,25 @@ function ProductStudioForm({
     }));
   }
 
-  function handleSave() {
+  function openMediaPicker() {
+    setIsMediaPickerOpen(true);
+  }
+
+  async function handleSave() {
+    setIsSaving(true);
+    setMessage("Saving...");
+
     const parsedPrice = Number(formState.price);
     const parsedStock = Number(formState.stock);
 
-    saveProductOverride(product.slug, {
+    if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+      setIsSaving(false);
+      setPriceTrace(null);
+      setMessage("Save failed: Price must be a valid non-negative number.");
+      return;
+    }
+
+    const productUpdates = {
       name: formState.name.trim() || seedProduct.name.en,
       vendor: formState.vendor,
       sku: formState.sku.trim() || seedProduct.sku,
@@ -232,24 +325,107 @@ function ProductStudioForm({
       isNew: formState.isNew,
       shortDescription:
         formState.shortDescription.trim() || seedProduct.shortDescription.en,
+      description:
+        formState.fullDescription.trim() ||
+        formState.shortDescription.trim() ||
+        seedProduct.shortDescription.en,
+      status: mapStatusToDatabase(formState.status),
+      active: formState.visibility === "Storefront",
+    };
+
+    console.info("[ASHE TOKUN Product Studio]", "Submitting product update.", {
+      productSlug: product.slug,
+      displayedPriceInputValue: formState.price,
+      formStatePrice: formState.price,
+      payloadPrice: productUpdates.price,
+      payloadPriceType: typeof productUpdates.price,
     });
-    setMessage("Product changes saved locally in this browser.");
+
+    const result = await updateProduct(product.slug, productUpdates);
+
+    setIsSaving(false);
+
+    if (result.ok && result.source === "supabase") {
+      if (selectedPrimaryMediaAsset) {
+        if (selectedPrimaryMediaAsset.source !== "supabase") {
+          setPriceTrace(null);
+          setMessage("Product saved, image linking failed.");
+          return;
+        }
+
+        const mediaResult = await setPrimaryProductMedia(
+          product.id,
+          selectedPrimaryMediaAsset.id,
+        );
+
+        if (!mediaResult.ok) {
+          setPriceTrace(null);
+          setMessage("Product saved, image linking failed.");
+          return;
+        }
+      }
+
+      setPriceTrace(result.priceTrace);
+      setFormState((currentState) => ({
+        ...currentState,
+        name: result.product.name ?? currentState.name,
+        shortDescription:
+          result.product.short_description ?? currentState.shortDescription,
+        fullDescription: result.product.description ?? currentState.fullDescription,
+        price: formatOptionalDatabaseNumber(result.product.price),
+        compareAtPrice: formatOptionalDatabaseNumber(
+          result.product.compare_at_price,
+        ),
+        cost: formatOptionalDatabaseNumber(result.product.cost),
+        sku: result.product.sku ?? currentState.sku,
+        barcode: result.product.barcode ?? currentState.barcode,
+        vendorSku: result.product.vendor_sku ?? currentState.vendorSku,
+        availableOnline:
+          result.product.available_online ?? currentState.availableOnline,
+        availableInStore:
+          result.product.available_in_store ?? currentState.availableInStore,
+        isFeatured: result.product.featured ?? currentState.isFeatured,
+        isNew: result.product.new_arrival ?? currentState.isNew,
+        status: mapStatusFromDatabase(result.product.status),
+        visibility:
+          result.product.active === false ? "Hidden" : "Storefront",
+      }));
+      router.refresh();
+      setMessage("Saved to Supabase.");
+      return;
+    }
+
+    if (result.ok) {
+      setPriceTrace(null);
+      setMessage("Saved locally.");
+      return;
+    }
+
+    setPriceTrace(null);
+    setMessage(`Save failed: ${result.error}`);
   }
 
   function handleReset() {
+    if (USE_SUPABASE) {
+      setMessage("Save failed: Reset local changes is disabled while Supabase mode is active.");
+      return;
+    }
+
     resetProductOverride(product.slug);
     setFormState(seedFormState);
+    setPriceTrace(null);
     setMessage("Local changes reset for this product.");
   }
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        handleSave();
-      }}
-      className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]"
-    >
+    <>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSave();
+        }}
+        className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]"
+      >
       <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
         <div className="border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
           <p className="text-[0.66rem] font-bold uppercase tracking-[0.28em] text-[#d8a344]">
@@ -258,13 +434,22 @@ function ProductStudioForm({
           <div className="relative mt-5 aspect-square overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,rgba(216,163,68,0.18),transparent_32%),linear-gradient(135deg,#171008_0%,#0f0b07_58%,#050302_100%)]" />
             {canPreviewImage ? (
-              <Image
-                src={formState.image}
-                alt={formState.name}
-                fill
-                sizes="22rem"
-                className="object-contain p-6 drop-shadow-[0_26px_34px_rgba(0,0,0,0.62)]"
-              />
+              formState.image.startsWith("http") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={formState.image}
+                  alt={formState.name}
+                  className="absolute inset-0 h-full w-full object-contain p-6 drop-shadow-[0_26px_34px_rgba(0,0,0,0.62)]"
+                />
+              ) : (
+                <Image
+                  src={formState.image}
+                  alt={formState.name}
+                  fill
+                  sizes="22rem"
+                  className="object-contain p-6 drop-shadow-[0_26px_34px_rgba(0,0,0,0.62)]"
+                />
+              )
             ) : (
               <div className="absolute inset-6 flex items-center justify-center border border-[#f7ead2]/8 text-center text-xs uppercase tracking-[0.2em] text-[#e8dcc8]/38">
                 Image Preview
@@ -289,8 +474,9 @@ function ProductStudioForm({
         </div>
 
         <div className="border border-[#d8a344]/20 bg-[#0f0b07] p-5 text-sm leading-6 text-[#e8dcc8]/70">
-          Local changes are saved in this browser only until database
-          integration.
+          {USE_SUPABASE
+            ? "Supabase mode is active. Product Studio saves update the products table using the temporary development policy."
+            : "Local changes are saved in this browser only until database integration."}
         </div>
       </aside>
 
@@ -298,6 +484,33 @@ function ProductStudioForm({
         {message ? (
           <p className="border border-[#d8a344]/35 bg-[#d8a344]/10 px-5 py-4 text-sm font-medium text-[#f7ead2]">
             {message}
+          </p>
+        ) : null}
+
+        {priceTrace ? (
+          <p className="border border-[#f7ead2]/10 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/70">
+            Requested: ${priceTrace.requested.toFixed(2)}
+            <br />
+            Returned: ${priceTrace.returned.toFixed(2)}
+            <br />
+            Verified: ${priceTrace.verified.toFixed(2)}
+          </p>
+        ) : null}
+
+        {shouldShowCustomOpeleDiagnostic ? (
+          <p className="border border-[#f7ead2]/10 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/70">
+            Custom Opele diagnostic
+            <br />
+            Supabase price: ${product.price.toFixed(2)}
+            <br />
+            Local price: ${localCustomOpele?.price.toFixed(2) ?? "Pending"}
+            <br />
+            localStorage price:{" "}
+            {typeof customOpeleOverride?.price === "number"
+              ? `$${customOpeleOverride.price.toFixed(2)}`
+              : "No active price override"}
+            <br />
+            Final repository price: ${product.price.toFixed(2)}
           </p>
         ) : null}
 
@@ -384,13 +597,22 @@ function ProductStudioForm({
             <div className="relative aspect-square overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,rgba(216,163,68,0.16),transparent_32%),linear-gradient(135deg,#171008_0%,#0f0b07_58%,#050302_100%)]" />
               {canPreviewImage ? (
-                <Image
-                  src={formState.image}
-                  alt={formState.name}
-                  fill
-                  sizes="16rem"
-                  className="object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
-                />
+                formState.image.startsWith("http") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={formState.image}
+                    alt={formState.name}
+                    className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
+                  />
+                ) : (
+                  <Image
+                    src={formState.image}
+                    alt={formState.name}
+                    fill
+                    sizes="16rem"
+                    className="object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
+                  />
+                )
               ) : null}
             </div>
             <div>
@@ -405,6 +627,7 @@ function ProductStudioForm({
               <div className="mt-5 flex flex-wrap gap-3">
                 <button
                   type="button"
+                  onClick={openMediaPicker}
                   className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 ease-out hover:bg-[#d8a344] hover:text-[#0f0b07]"
                 >
                   Choose from Media Library
@@ -417,7 +640,8 @@ function ProductStudioForm({
                 </button>
               </div>
               <p className="mt-4 text-sm leading-6 text-[#e8dcc8]/58">
-                Media selection will be connected in a future phase.
+                Uploaded assets are stored in Supabase. Selecting one asset
+                will create the primary product media link when saved.
               </p>
             </div>
           </div>
@@ -670,41 +894,159 @@ function ProductStudioForm({
             </FieldLabel>
           </div>
           <p className="mt-6 border border-[#d8a344]/20 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/70">
-            Local changes are saved in this browser only until database
-            integration.
+            {USE_SUPABASE
+              ? "Reset local changes is disabled while Supabase mode is active."
+              : "Local changes are saved in this browser only until database integration."}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="submit"
-              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 ease-out hover:bg-[#f0c062] hover:shadow-[0_20px_48px_rgba(216,163,68,0.24)]"
+              disabled={isSaving}
+              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 ease-out hover:bg-[#f0c062] hover:shadow-[0_20px_48px_rgba(216,163,68,0.24)] disabled:cursor-not-allowed disabled:bg-[#d8a344]/45 disabled:shadow-none"
             >
-              Save Product
+              {isSaving ? "Saving..." : "Save Product"}
             </button>
             <button
               type="button"
               onClick={handleReset}
-              className="inline-flex min-h-12 items-center justify-center border border-[#f7ead2]/16 px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#f7ead2] transition duration-500 ease-out hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+              disabled={USE_SUPABASE}
+              className="inline-flex min-h-12 items-center justify-center border border-[#f7ead2]/16 px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#f7ead2] transition duration-500 ease-out hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:border-[#f7ead2]/8 disabled:text-[#e8dcc8]/32"
             >
               Reset Local Changes
             </button>
           </div>
         </SectionCard>
       </div>
-    </form>
+      </form>
+
+      {isMediaPickerOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/78 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-6xl overflow-auto border border-[#f7ead2]/10 bg-[#0f0b07] p-5 shadow-[0_34px_120px_rgba(0,0,0,0.54)] sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-5">
+              <div>
+                <p className="text-[0.66rem] font-bold uppercase tracking-[0.28em] text-[#d8a344]">
+                  Media Library
+                </p>
+                <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
+                  Assign Primary Image
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMediaPickerOpen(false)}
+                className="border border-[#f7ead2]/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition hover:border-[#d8a344] hover:text-[#d8a344]"
+              >
+                Close
+              </button>
+            </div>
+
+            <input
+              type="search"
+              value={mediaQuery}
+              onChange={(event) => setMediaQuery(event.target.value)}
+              placeholder="Search uploaded and local media"
+              className={`${inputClass} mt-6`}
+            />
+
+            <p className="mt-5 text-sm text-[#e8dcc8]/58">
+              Showing {filteredStudioMediaAssets.length} images.
+            </p>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredStudioMediaAssets.map((image) => (
+                <article
+                  key={image.id}
+                  className="overflow-hidden border border-[#f7ead2]/10 bg-[#120d08] transition duration-500 hover:-translate-y-1 hover:border-[#d8a344]/55 hover:shadow-[0_26px_80px_rgba(0,0,0,0.32),0_0_36px_rgba(216,163,68,0.1)]"
+                >
+                  <div className="relative aspect-square bg-[#080503]">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(216,163,68,0.16),transparent_34%),linear-gradient(135deg,#171008_0%,#0f0b07_58%,#050302_100%)]" />
+                    {image.url.startsWith("http") ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image.url}
+                        alt={image.filename}
+                        className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
+                      />
+                    ) : (
+                      <Image
+                        src={image.url}
+                        alt={image.filename}
+                        fill
+                        sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
+                      />
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <p className="truncate text-sm font-semibold text-[#f7ead2]">
+                      {image.filename}
+                    </p>
+                    <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                      {image.category}
+                    </p>
+                    <p className="mt-2 truncate text-xs text-[#e8dcc8]/54">
+                      {image.folder}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateField("image", image.url);
+                        setSelectedPrimaryMediaAsset(image);
+                        setIsMediaPickerOpen(false);
+                        setMessage(
+                          "Primary image selected. Save the product to persist this image link.",
+                        );
+                      }}
+                      className="mt-4 inline-flex min-h-10 w-full items-center justify-center bg-[#d8a344] px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
+                    >
+                      Assign as Primary Image
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
-export default function EditProductForm({ product }: EditProductFormProps) {
+export default function EditProductForm({
+  product,
+  mediaAssets = [],
+}: EditProductFormProps) {
   const override = useProductOverride(product.slug);
-  const studioProduct = mergeProductOverride(product, override);
-  const studioKey = override ? `${product.slug}-local` : `${product.slug}-seed`;
+  const shouldClearCustomOpeleOverride =
+    USE_SUPABASE && product.slug === "custom-opele" && Boolean(override);
+  const effectiveOverride = shouldClearCustomOpeleOverride ? undefined : override;
+  const studioProduct = mergeProductOverride(product, effectiveOverride);
+  const studioKey = effectiveOverride
+    ? `${product.slug}-local`
+    : `${product.slug}-seed`;
+
+  useEffect(() => {
+    if (shouldClearCustomOpeleOverride) {
+      console.info(
+        "[ASHE TOKUN Custom Opele diagnostic]",
+        "Removing stale localStorage override for custom-opele only.",
+        {
+          productSlug: product.slug,
+          localStorageOverride: override,
+        },
+      );
+      resetProductOverride(product.slug);
+    }
+  }, [override, product.slug, shouldClearCustomOpeleOverride]);
 
   return (
     <ProductStudioForm
       key={studioKey}
       product={studioProduct}
+      mediaAssets={mediaAssets}
       seedProduct={product}
-      stock={override?.stock}
+      stock={effectiveOverride?.stock}
+      customOpeleOverride={product.slug === "custom-opele" ? override : undefined}
     />
   );
 }

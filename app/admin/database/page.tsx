@@ -3,7 +3,7 @@ import { USE_SUPABASE } from "@/lib/config";
 import { getBrandsResult } from "@/lib/data/brands";
 import {
   getFeaturedProducts,
-  getProductSourceStatus,
+  getProductRepositoryDiagnostics,
   getProducts,
 } from "@/lib/data/productsRepository";
 
@@ -127,10 +127,10 @@ const productMigrationCards = [
 ];
 
 export default async function AdminDatabasePage() {
-  const [brandReadResult, productSourceStatus, repositoryProducts, featuredProducts] =
+  const [brandReadResult, productDiagnostics, repositoryProducts, featuredProducts] =
     await Promise.all([
       getBrandsResult(),
-      getProductSourceStatus(),
+      getProductRepositoryDiagnostics(),
       getProducts(),
       getFeaturedProducts(),
     ]);
@@ -139,11 +139,21 @@ export default async function AdminDatabasePage() {
     brandReadResult.source === "supabase" ? "Supabase" : "Local fallback";
   const sampleProductSku = repositoryProducts[0]?.sku ?? "Pending";
   const productRepositoryCards = [
-    { label: "Product Source Status", value: productSourceStatus },
-    { label: "Total Products", value: String(repositoryProducts.length) },
+    { label: "Source Status", value: productDiagnostics.source },
+    {
+      label: "Supabase Product Count",
+      value: String(productDiagnostics.supabaseProductCount),
+    },
+    {
+      label: "Final Repository Count",
+      value: String(productDiagnostics.finalRepositoryCount),
+    },
+    {
+      label: "Fallback Used",
+      value: productDiagnostics.fallbackUsed ? "Yes" : "No",
+    },
     { label: "Featured Products", value: String(featuredProducts.length) },
     { label: "Sample Product SKU", value: sampleProductSku },
-    { label: "Fallback Available", value: "Yes" },
   ];
 
   return (

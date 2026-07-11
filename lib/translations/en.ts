@@ -95,6 +95,87 @@ const en: Translation = {
     shippingPlaceholder:
       "Shipping options and handling times will be added before checkout functionality launches.",
   },
+  storefront: {
+    categorySection: {
+      homeLabel: "Shop by Category",
+      homeHeading: "Explore our collections",
+      homeSubtitle:
+        "Enter the store through focused ceremonial and devotional categories, each curated for clear discovery.",
+      shopLabel: "Explore ASHE TOKUN",
+      shopHeading: "Shop",
+      shopSubtitle:
+        "Browse our categories across spiritual articles, ceremonial tools, handcrafted pieces, and devotional essentials.",
+      viewCategory: "View Category",
+      productSingular: "Product",
+      productPlural: "Products",
+      noCategoriesTitle: "No categories available",
+      noCategoriesAvailable:
+        "Category collections are being prepared for the storefront.",
+      featuredCategory: "Featured Category",
+      availableOnline: "Available Online",
+      category: "Category",
+      categories: "Categories",
+      genericCategoryDescription:
+        "Explore this ASHE TOKUN category as new products become available.",
+    },
+    categoryPage: {
+      breadcrumbLabel: "Breadcrumb",
+      breadcrumbHome: "Home",
+      breadcrumbShop: "Shop",
+      label: "Category",
+      noProductsTitle: "No products available",
+      noProductsAvailable:
+        "This category does not have available products yet.",
+      backToShop: "Back to Shop",
+    },
+    categoryLabels: {
+      keychains: {
+        name: "Keychains",
+        description:
+          "Symbolic everyday collectibles from ASHE TOKUN and its featured brands.",
+      },
+      opele: {
+        name: "Opele",
+        description:
+          "Opele pieces and related ceremonial selections prepared for Ifá practice.",
+      },
+      opon: {
+        name: "Opon",
+        description:
+          "Opon products and display pieces connected to refined ceremonial work.",
+      },
+      ide: {
+        name: "Ide",
+        description:
+          "Bracelets and beadwork selected for devotion, ceremony, and daily wear.",
+      },
+      elekes: {
+        name: "Elekes",
+        description:
+          "Necklaces and beadwork pieces shaped by tradition and careful handwork.",
+      },
+      sets: {
+        name: "Sets",
+        description:
+          "Coordinated spiritual and ceremonial sets for complete presentation.",
+      },
+      mazos: {
+        name: "Mazos",
+        description:
+          "Ceremonial staffs and beadwork tools with a refined ritual presence.",
+      },
+      iruke: {
+        name: "Iruke",
+        description:
+          "Iruke ceremonial items and related spiritual pieces prepared for future availability.",
+      },
+      irofa: {
+        name: "Irofa",
+        description:
+          "Irofa ceremonial items and related spiritual pieces prepared for future availability.",
+      },
+    },
+  },
   footer: {
     copyright: (year: number) =>
       `© ${year} ASHE TOKUN. All rights reserved.`,

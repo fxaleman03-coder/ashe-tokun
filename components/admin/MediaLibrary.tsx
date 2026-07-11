@@ -1,19 +1,27 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import type { MediaImage } from "@/lib/media";
+import { useMemo, useRef, useState } from "react";
+import { USE_SUPABASE } from "@/lib/config";
+import type { MediaAsset } from "@/lib/data/mediaRepository";
+import {
+  PRODUCT_MEDIA_BUCKET,
+  uploadProductImage,
+} from "@/lib/storage/mediaStorage";
 
 type MediaLibraryProps = {
-  images: MediaImage[];
+  mediaAssets: MediaAsset[];
 };
 
 type ViewMode = "grid" | "list";
+type UploadStatus = "idle" | "uploading" | "complete" | "failed";
+
+type LibraryImage = MediaAsset & { vendor: string };
 
 const inputClass =
   "min-h-12 w-full border border-[#f7ead2]/10 bg-[#120d08] px-4 text-sm text-[#f7ead2] outline-none transition duration-300 placeholder:text-[#e8dcc8]/38 focus:border-[#d8a344]/70";
 
-function detectVendor(image: MediaImage) {
+function detectVendor(image: MediaAsset) {
   const path = `${image.relativePath}/${image.folder}`.toLowerCase();
 
   if (path.includes("ajako-originals")) {
@@ -53,46 +61,64 @@ function StatCard({
   );
 }
 
-function AssetImage({ image, sizes }: { image: MediaImage; sizes: string }) {
+function AssetImage({ image, sizes }: { image: MediaAsset; sizes: string }) {
+  const isRemoteImage = image.url.startsWith("http");
+
   return (
     <div className="relative h-full min-h-0 w-full overflow-hidden bg-[#080503]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(216,163,68,0.16),transparent_34%),linear-gradient(135deg,#171008_0%,#0f0b07_58%,#050302_100%)]" />
-      <Image
-        src={image.url}
-        alt={image.filename}
-        fill
-        sizes={sizes}
-        className="object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
-      />
+      {isRemoteImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={image.url}
+          alt={image.filename}
+          className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
+        />
+      ) : (
+        <Image
+          src={image.url}
+          alt={image.filename}
+          fill
+          sizes={sizes}
+          className="object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
+        />
+      )}
     </div>
   );
 }
 
-export default function MediaLibrary({ images }: MediaLibraryProps) {
+export default function MediaLibrary({
+  mediaAssets,
+}: MediaLibraryProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [assets, setAssets] = useState(mediaAssets);
   const [query, setQuery] = useState("");
   const [vendor, setVendor] = useState("all");
-  const [category, setCategory] = useState("all");
+  const [assetType, setAssetType] = useState("all");
   const [folder, setFolder] = useState("all");
   const [fileType, setFileType] = useState("all");
+  const [uploadBrandSlug, setUploadBrandSlug] = useState("ajako-originals");
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
+  const [uploadMessage, setUploadMessage] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [previewImage, setPreviewImage] = useState<MediaImage | null>(null);
-  const [detailImage, setDetailImage] = useState<MediaImage | null>(null);
+  const [previewImage, setPreviewImage] = useState<MediaAsset | null>(null);
+  const [detailImage, setDetailImage] = useState<MediaAsset | null>(null);
 
   const enrichedImages = useMemo(
     () =>
-      images.map((image) => ({
+      assets.map((image) => ({
         ...image,
         vendor: detectVendor(image),
       })),
-    [images],
+    [assets],
   );
 
   const vendors = useMemo(
     () => ["all", ...Array.from(new Set(enrichedImages.map((image) => image.vendor)))],
     [enrichedImages],
   );
-  const categories = useMemo(
-    () => ["all", ...Array.from(new Set(enrichedImages.map((image) => image.category)))],
+  const assetTypes = useMemo(
+    () => ["all", ...Array.from(new Set(enrichedImages.map((image) => image.asset_type)))],
     [enrichedImages],
   );
   const folders = useMemo(
@@ -113,10 +139,11 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
         image.filename.toLowerCase().includes(normalizedQuery) ||
         image.folder.toLowerCase().includes(normalizedQuery) ||
         image.category.toLowerCase().includes(normalizedQuery) ||
+        image.asset_type.toLowerCase().includes(normalizedQuery) ||
         image.vendor.toLowerCase().includes(normalizedQuery);
       const matchesVendor = vendor === "all" || image.vendor === vendor;
-      const matchesCategory =
-        category === "all" || image.category === category;
+      const matchesAssetType =
+        assetType === "all" || image.asset_type === assetType;
       const matchesFolder = folder === "all" || image.folder === folder;
       const matchesFileType =
         fileType === "all" || image.extension === fileType;
@@ -124,12 +151,12 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
       return (
         matchesQuery &&
         matchesVendor &&
-        matchesCategory &&
+        matchesAssetType &&
         matchesFolder &&
         matchesFileType
       );
     });
-  }, [category, enrichedImages, fileType, folder, query, vendor]);
+  }, [assetType, enrichedImages, fileType, folder, query, vendor]);
 
   const summary = useMemo(
     () => ({
@@ -145,6 +172,8 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
       ).length,
       unassigned: enrichedImages.filter((image) => image.vendor === "Unassigned")
         .length,
+      uploaded: enrichedImages.filter((image) => image.source === "supabase")
+        .length,
     }),
     [enrichedImages],
   );
@@ -153,7 +182,54 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
     await navigator.clipboard.writeText(url);
   }
 
-  function renderActionButtons(image: MediaImage) {
+  async function handleUpload(files: FileList | File[]) {
+    const selectedFiles = Array.from(files);
+
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    if (!USE_SUPABASE) {
+      setUploadStatus("failed");
+      setUploadMessage(
+        "Supabase Storage is disabled. Local media fallback remains active.",
+      );
+      return;
+    }
+
+    setUploadStatus("uploading");
+    setUploadMessage("Uploading...");
+
+    const uploaded: MediaAsset[] = [];
+    const failures: string[] = [];
+
+    for (const file of selectedFiles) {
+      const result = await uploadProductImage(file, {
+        brandSlug: uploadBrandSlug,
+      });
+
+      if (result.ok) {
+        uploaded.push(result.image);
+      } else {
+        failures.push(`${file.name}: ${result.error}`);
+      }
+    }
+
+    if (uploaded.length > 0) {
+      setAssets((currentAssets) => [...uploaded, ...currentAssets]);
+    }
+
+    if (failures.length > 0) {
+      setUploadStatus("failed");
+      setUploadMessage(`Upload Failed. ${failures.join(" ")}`);
+      return;
+    }
+
+    setUploadStatus("complete");
+    setUploadMessage("Upload Complete");
+  }
+
+  function renderActionButtons(image: LibraryImage) {
     return (
       <div className="grid gap-2 sm:grid-cols-3">
         <button
@@ -184,7 +260,16 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
   return (
     <div>
       <section className="mb-6 border border-dashed border-[#d8a344]/35 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
-        <div className="flex flex-wrap items-center justify-between gap-5">
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            handleUpload(event.dataTransfer.files);
+          }}
+          className="flex flex-wrap items-center justify-between gap-5"
+        >
           <div>
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
               Upload Zone
@@ -193,19 +278,81 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
               Drag and drop product images here
             </h2>
             <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/62">
-              Upload will be connected in a future storage phase.
+              PNG, JPG, JPEG, or WEBP. Maximum 20 MB. Supabase Storage writes to
+              the {PRODUCT_MEDIA_BUCKET} bucket when enabled.
             </p>
+            <div className="mt-5 grid max-w-xl gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
+                  Storage Source
+                </span>
+                <input
+                  value={USE_SUPABASE ? "Supabase Storage" : "Local fallback"}
+                  readOnly
+                  className={`${inputClass} mt-2 text-[#f7ead2]/70`}
+                />
+              </label>
+              <label className="block">
+                <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
+                  Bucket
+                </span>
+                <input
+                  value={PRODUCT_MEDIA_BUCKET}
+                  readOnly
+                  className={`${inputClass} mt-2 text-[#f7ead2]/70`}
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
+                  Brand Folder
+                </span>
+                <select
+                  value={uploadBrandSlug}
+                  onChange={(event) => setUploadBrandSlug(event.target.value)}
+                  className={`${inputClass} mt-2`}
+                >
+                  <option value="ajako-originals">AJAKO ORIGINALS</option>
+                  <option value="odibere-creations">ODIBERE CREATIONS</option>
+                </select>
+              </label>
+            </div>
+            {uploadMessage ? (
+              <p
+                className={`mt-4 text-sm font-medium ${
+                  uploadStatus === "failed"
+                    ? "text-red-200"
+                    : "text-[#f7ead2]"
+                }`}
+              >
+                {uploadMessage}
+              </p>
+            ) : null}
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            className="hidden"
+            onChange={(event) => {
+              if (event.target.files) {
+                handleUpload(event.target.files);
+              }
+              event.currentTarget.value = "";
+            }}
+          />
           <button
             type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadStatus === "uploading"}
             className="inline-flex min-h-12 items-center justify-center border border-[#d8a344]/45 px-6 text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
           >
-            Select Files
+            {uploadStatus === "uploading" ? "Uploading..." : "Browse Files"}
           </button>
         </div>
       </section>
 
-      <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <StatCard
           label="Total Assets"
           value={String(summary.total)}
@@ -231,6 +378,11 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
           value={String(summary.unassigned)}
           detail="Awaiting brand mapping."
         />
+        <StatCard
+          label="Uploaded Assets"
+          value={String(summary.uploaded)}
+          detail="Loaded from Supabase media_assets."
+        />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
@@ -241,7 +393,7 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
           <div className="mt-5 space-y-4">
             {[
               ["Vendor / Brand", vendor, setVendor, vendors],
-              ["Category", category, setCategory, categories],
+              ["Asset Type", assetType, setAssetType, assetTypes],
               ["Folder", folder, setFolder, folders],
               ["File Type", fileType, setFileType, fileTypes],
             ].map(([label, value, setter, options]) => (
@@ -298,7 +450,7 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
           </section>
 
           <p className="mb-5 text-sm text-[#e8dcc8]/58">
-            Showing {filteredImages.length} of {images.length} assets.
+            Showing {filteredImages.length} of {enrichedImages.length} assets.
           </p>
 
           {viewMode === "grid" ? (
@@ -321,6 +473,9 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
                     <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
                       {image.vendor}
                     </p>
+                    <p className="mt-2 text-[0.62rem] uppercase tracking-[0.16em] text-[#e8dcc8]/46">
+                      {image.asset_type.replaceAll("_", " ")}
+                    </p>
                     <p className="mt-2 truncate text-xs text-[#e8dcc8]/54">
                       {image.folder}
                     </p>
@@ -341,6 +496,7 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
                     <th className="px-5 py-4">Filename</th>
                     <th className="px-5 py-4">Path</th>
                     <th className="px-5 py-4">Vendor / Brand</th>
+                    <th className="px-5 py-4">Asset Type</th>
                     <th className="px-5 py-4">Folder</th>
                     <th className="px-5 py-4">File Type</th>
                     <th className="px-5 py-4">Actions</th>
@@ -354,13 +510,22 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
                     >
                       <td className="px-5 py-4">
                         <div className="relative h-16 w-16 overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
-                          <Image
-                            src={image.url}
-                            alt={image.filename}
-                            fill
-                            sizes="4rem"
-                            className="object-contain p-2"
-                          />
+                          {image.url.startsWith("http") ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={image.url}
+                              alt={image.filename}
+                              className="h-full w-full object-contain p-2"
+                            />
+                          ) : (
+                            <Image
+                              src={image.url}
+                              alt={image.filename}
+                              fill
+                              sizes="4rem"
+                              className="object-contain p-2"
+                            />
+                          )}
                         </div>
                       </td>
                       <td className="px-5 py-4 font-medium text-[#f7ead2]">
@@ -370,6 +535,9 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
                         {image.url}
                       </td>
                       <td className="px-5 py-4">{image.vendor}</td>
+                      <td className="px-5 py-4 uppercase">
+                        {image.asset_type.replaceAll("_", " ")}
+                      </td>
                       <td className="px-5 py-4">{image.folder}</td>
                       <td className="px-5 py-4 uppercase">{image.extension}</td>
                       <td className="px-5 py-4">{renderActionButtons(image)}</td>
@@ -456,6 +624,7 @@ export default function MediaLibrary({ images }: MediaLibraryProps) {
               ["Public URL path", detailImage.url],
               ["Relative folder", detailImage.folder],
               ["Vendor / Brand", detectVendor(detailImage)],
+              ["Asset Type", detailImage.asset_type.replaceAll("_", " ")],
               ["Category", detailImage.category],
               ["Extension", detailImage.extension],
               [

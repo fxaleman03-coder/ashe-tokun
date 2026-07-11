@@ -8,6 +8,15 @@ type ProductSourceStatus = "Supabase" | "Local fallback";
 type ProductsResult = {
   products: Product[];
   source: ProductSourceStatus;
+  supabaseProductCount: number;
+  fallbackUsed: boolean;
+};
+
+export type ProductRepositoryDiagnostics = {
+  source: ProductSourceStatus;
+  supabaseProductCount: number;
+  finalRepositoryCount: number;
+  fallbackUsed: boolean;
 };
 
 type SupabaseRelation = {
@@ -32,7 +41,6 @@ type SupabaseProductRow = {
   inventory_location?: string | null;
   available_online?: boolean | null;
   available_in_store?: boolean | null;
-  image?: string | null;
   featured?: boolean | null;
   new_arrival?: boolean | null;
   active?: boolean | null;
@@ -42,10 +50,45 @@ type SupabaseProductRow = {
   product_type?: SupabaseRelation;
 };
 
-let cachedProductsResult: Promise<ProductsResult> | null = null;
+type ProductMediaAssetRelation = {
+  public_url?: string | null;
+  storage_path?: string | null;
+  active?: boolean | null;
+} | null;
+
+type ProductMediaRelationRow = {
+  product_id: string;
+  media_asset?: ProductMediaAssetRelation | ProductMediaAssetRelation[];
+};
+
 const localProductsBySku = new Map(
   localProducts.map((product) => [product.sku, product]),
 );
+
+function getSupabaseProjectRef() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    return "missing";
+  }
+
+  try {
+    return new URL(supabaseUrl).hostname.split(".")[0] ?? "unknown";
+  } catch {
+    return "invalid-url";
+  }
+}
+
+function logProductReadDiagnostic(
+  message: string,
+  details: Record<string, unknown>,
+) {
+  console.info("[ASHE TOKUN product repository]", message, {
+    useSupabase: USE_SUPABASE,
+    supabaseProjectRef: getSupabaseProjectRef(),
+    ...details,
+  });
+}
 
 const localized = (value: string): Record<Language, string> => ({
   en: value,
@@ -71,7 +114,36 @@ const normalizeVendor = (brandName?: string | null): ProductVendor => {
   return "AJAKO ORIGINALS";
 };
 
-const mapSupabaseProduct = (row: SupabaseProductRow): Product => {
+const getPrimaryImageUrl = (
+  row: ProductMediaRelationRow,
+): string | undefined => {
+  const relation = Array.isArray(row.media_asset)
+    ? row.media_asset[0]
+    : row.media_asset;
+
+  if (!relation?.active) {
+    return undefined;
+  }
+
+  if (relation.public_url) {
+    return relation.public_url;
+  }
+
+  if (relation.storage_path && supabase) {
+    const { data } = supabase.storage
+      .from("product-media")
+      .getPublicUrl(relation.storage_path);
+
+    return data.publicUrl;
+  }
+
+  return undefined;
+};
+
+const mapSupabaseProduct = (
+  row: SupabaseProductRow,
+  primaryImagesByProductId: Map<string, string>,
+): Product => {
   const stock = row.stock ?? 0;
   const categoryName = row.category?.name ?? "Uncategorized";
   const traditionName = row.tradition?.name ?? "Unassigned";
@@ -80,7 +152,7 @@ const mapSupabaseProduct = (row: SupabaseProductRow): Product => {
   const compareAtPrice = toNumber(row.compare_at_price);
   const cost = toNumber(row.cost);
   const localProduct = localProductsBySku.get(row.sku);
-  const image = row.image?.trim() ? row.image : localProduct?.image ?? null;
+  const image = primaryImagesByProductId.get(row.id) ?? localProduct?.image ?? null;
 
   return {
     id: row.id,
@@ -113,9 +185,18 @@ const mapSupabaseProduct = (row: SupabaseProductRow): Product => {
 
 async function readProducts(): Promise<ProductsResult> {
   if (!USE_SUPABASE || !supabase) {
+    logProductReadDiagnostic("Using local fallback before Supabase query.", {
+      supabaseClientExists: Boolean(supabase),
+      supabaseProductCount: 0,
+      finalRepositoryCount: localProducts.length,
+      fallbackUsed: true,
+    });
+
     return {
       products: localProducts,
       source: "Local fallback",
+      supabaseProductCount: 0,
+      fallbackUsed: true,
     };
   }
 
@@ -131,35 +212,87 @@ async function readProducts(): Promise<ProductsResult> {
       `,
     )
     .eq("active", true)
+    .eq("status", "active")
+    .eq("available_online", true)
     .order("name");
 
+  const supabaseProductCount = data?.length ?? 0;
+
+  logProductReadDiagnostic("Supabase product query completed.", {
+    supabaseProductCount,
+    errorCode: error?.code,
+    errorMessage: error?.message,
+    errorDetails: error?.details,
+    errorHint: error?.hint,
+    fallbackUsed: Boolean(error || !data || data.length === 0),
+  });
+
   if (error || !data || data.length === 0) {
-    console.info("[ASHE TOKUN product repository]", "Using local fallback.", {
-      supabaseUrlExists: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-      supabaseAnonKeyExists: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    logProductReadDiagnostic("Using local fallback after Supabase query.", {
+      supabaseProductCount,
+      finalRepositoryCount: localProducts.length,
       errorMessage: error?.message,
       errorCode: error?.code,
       errorDetails: error?.details,
       errorHint: error?.hint,
-      productCount: data?.length ?? 0,
+      fallbackUsed: true,
     });
 
     return {
       products: localProducts,
       source: "Local fallback",
+      supabaseProductCount,
+      fallbackUsed: true,
     };
   }
 
+  const products = data as SupabaseProductRow[];
+  const productIds = products.map((product) => product.id);
+  const primaryImagesByProductId = new Map<string, string>();
+
+  if (productIds.length > 0) {
+    const mediaResult = await supabase
+      .from("product_media")
+      .select(
+        "product_id, media_asset:media_assets(public_url, storage_path, active)",
+      )
+      .in("product_id", productIds)
+      .eq("is_primary", true);
+
+    if (mediaResult.error) {
+      console.info(
+        "[ASHE TOKUN product repository]",
+        "Primary product media query failed. Using local image fallback where needed.",
+        {
+          errorMessage: mediaResult.error.message,
+          errorCode: mediaResult.error.code,
+          errorDetails: mediaResult.error.details,
+          errorHint: mediaResult.error.hint,
+        },
+      );
+    } else {
+      for (const row of (mediaResult.data ?? []) as ProductMediaRelationRow[]) {
+        const imageUrl = getPrimaryImageUrl(row);
+
+        if (imageUrl) {
+          primaryImagesByProductId.set(row.product_id, imageUrl);
+        }
+      }
+    }
+  }
+
   return {
-    products: (data as SupabaseProductRow[]).map(mapSupabaseProduct),
+    products: products.map((product) =>
+      mapSupabaseProduct(product, primaryImagesByProductId),
+    ),
     source: "Supabase",
+    supabaseProductCount,
+    fallbackUsed: false,
   };
 }
 
 async function getProductsResult(): Promise<ProductsResult> {
-  cachedProductsResult ??= readProducts();
-
-  return cachedProductsResult;
+  return readProducts();
 }
 
 export async function getProducts(): Promise<Product[]> {
@@ -197,4 +330,15 @@ export async function getProductSourceStatus(): Promise<ProductSourceStatus> {
   const result = await getProductsResult();
 
   return result.source;
+}
+
+export async function getProductRepositoryDiagnostics(): Promise<ProductRepositoryDiagnostics> {
+  const result = await getProductsResult();
+
+  return {
+    source: result.source,
+    supabaseProductCount: result.supabaseProductCount,
+    finalRepositoryCount: result.products.length,
+    fallbackUsed: result.fallbackUsed,
+  };
 }

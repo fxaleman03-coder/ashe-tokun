@@ -81,6 +81,8 @@ const categorySeeds: Array<[string, string, string, string | undefined]> = [
   ["opele", "Opele", "AJAKO Originals", "AJAKO Originals"],
   ["opon", "Opon", "AJAKO Originals", "AJAKO Originals"],
   ["mazos", "Mazos", "Ceremonial Tools", "ODIBERE Creations"],
+  ["iruke", "Iruke", "Ceremonial Tools", undefined],
+  ["irofa", "Irofa", "Ceremonial Tools", undefined],
   ["bastones", "Bastones", "Ceremonial Tools", "ODIBERE Creations"],
   ["medallions", "Medallions", "AJAKO Originals", "AJAKO Originals"],
   ["lamps", "Lamps", "AJAKO Originals", "AJAKO Originals"],

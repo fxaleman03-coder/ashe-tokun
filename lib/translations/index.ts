@@ -65,6 +65,42 @@ export type Translation = {
     spiritualNotePlaceholder: string;
     shippingPlaceholder: string;
   };
+  storefront: {
+    categorySection: {
+      homeLabel: string;
+      homeHeading: string;
+      homeSubtitle: string;
+      shopLabel: string;
+      shopHeading: string;
+      shopSubtitle: string;
+      viewCategory: string;
+      productSingular: string;
+      productPlural: string;
+      noCategoriesTitle: string;
+      noCategoriesAvailable: string;
+      featuredCategory: string;
+      availableOnline: string;
+      category: string;
+      categories: string;
+      genericCategoryDescription: string;
+    };
+    categoryPage: {
+      breadcrumbLabel: string;
+      breadcrumbHome: string;
+      breadcrumbShop: string;
+      label: string;
+      noProductsTitle: string;
+      noProductsAvailable: string;
+      backToShop: string;
+    };
+    categoryLabels: Record<
+      string,
+      {
+        name: string;
+        description: string;
+      }
+    >;
+  };
   footer: {
     copyright: (year: number) => string;
   };

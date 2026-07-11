@@ -64,4 +64,20 @@ export const localCategories: Category[] = [
     parent_category_id: null,
     active: true,
   },
+  {
+    id: "local-iruke",
+    name: "Iruke",
+    slug: "iruke",
+    description: "Iruke ceremonial items and related spiritual pieces.",
+    parent_category_id: null,
+    active: true,
+  },
+  {
+    id: "local-irofa",
+    name: "Irofa",
+    slug: "irofa",
+    description: "Irofa ceremonial items and related spiritual pieces.",
+    parent_category_id: null,
+    active: true,
+  },
 ];

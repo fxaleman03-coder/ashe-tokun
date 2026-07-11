@@ -55,6 +55,72 @@ Run the local catalog product migration only after brands, categories, tradition
 Product migration write policy:
 Run `supabase/policies-products-migration-write.sql` only in development before running product migration. This temporary policy allows product upserts for the migration and must be removed or replaced before production.
 
+Product Studio update policy:
+Before testing Product Studio Supabase saves in development, run `supabase/policies-products-admin-update.sql`. This temporary policy must be replaced with authenticated admin role policies before production.
+
+## Phase 7.2 Product Creation
+
+Before testing product creation in development, run `supabase/policies-products-admin-insert.sql`. This temporary policy allows Product Creation Wizard inserts and must be replaced with authenticated admin role policies before production.
+
+## Phase 7.3 Supabase Storage Setup
+
+Before testing Media Library uploads in development, create the Supabase Storage bucket:
+
+- Bucket name: `product-media`
+- Public bucket: enabled
+- Maximum file size: 20 MB
+- Allowed MIME types: `image/png`, `image/jpeg`, `image/jpg`, `image/webp`
+
+Manual execution order:
+
+1. Run `supabase/setup-product-media-bucket.sql`.
+2. Run `supabase/storage-policy-product-media.sql`.
+3. Run `supabase/policies-media-assets-development.sql`.
+4. Restart localhost.
+5. Test one image upload from `/admin/media`.
+
+These temporary development policies allow public reads, Media Library uploads, and `media_assets` record creation. Replace them with authenticated admin role policies before production.
+
+Uploaded product images use this storage shape:
+
+```text
+product-media/
+  brands/
+    ajako-originals/
+      uploads/
+    odibere-creations/
+      uploads/
+```
+
+Public URLs must remain enabled for `product-media` so the storefront and Product Studio can render uploaded assets while Supabase Storage is being introduced.
+
+## Phase 7.3C Product Media Linking
+
+Before testing permanent primary image linking in development:
+
+1. Run `supabase/policies-product-media-development.sql`.
+2. Restart localhost.
+3. Create or edit one product.
+4. Select one Supabase media asset.
+5. Verify the relationship in `product_media`.
+6. Verify the image appears on Homepage and Product Detail through the Product Repository.
+
+This phase uses the existing `products -> product_media -> media_assets` relationship and the existing unique partial index that allows one primary image per product.
+
+## Phase 7.4A Public Product Reads
+
+Before testing public product reads in development, run:
+
+```text
+supabase/policies-products-public-read.sql
+```
+
+Expected result: the Product Repository should return active, online products from Supabase instead of local fallback. The public read query expects:
+
+- `active = true`
+- `status = 'active'`
+- `available_online = true`
+
 ```bash
 npm run migrate:products -- --confirm
 ```

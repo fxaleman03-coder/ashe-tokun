@@ -101,6 +101,87 @@ const yo: Translation = {
     shippingPlaceholder:
       "Àṣàyàn fífi ránṣẹ́ àti àkókò rẹ̀ yóò wá ṣáájú checkout.",
   },
+  storefront: {
+    // Draft Yoruba placeholders only. Storefront category labels need later review.
+    categorySection: {
+      homeLabel: "Ra Nípasẹ̀ Ẹ̀ka",
+      homeHeading: "Wo àwọn àkójọpọ̀ wa",
+      homeSubtitle:
+        "Wọlé sí ọjà nípasẹ̀ àwọn ẹ̀ka tí a ṣètò fún ohun ayẹyẹ, ìbòwọ̀, àti ìṣe ojoojúmọ́.",
+      shopLabel: "Wo ASHE TOKUN",
+      shopHeading: "Ọjà",
+      shopSubtitle:
+        "Wo àwọn ẹ̀ka fún ohun ẹ̀mí, ohun èlò ayẹyẹ, iṣẹ́ ọwọ́, àti àwọn nkan ìbòwọ̀.",
+      viewCategory: "Wo Ẹ̀ka",
+      productSingular: "Ọjà",
+      productPlural: "Àwọn Ọjà",
+      noCategoriesTitle: "Kò sí ẹ̀ka lọ́wọ́lọ́wọ́",
+      noCategoriesAvailable:
+        "A ń ṣètò àwọn ẹ̀ka fún ọjà ASHE TOKUN.",
+      featuredCategory: "Ẹ̀ka Àṣàyàn",
+      availableOnline: "Wà Lórí Ayélujára",
+      category: "Ẹ̀ka",
+      categories: "Àwọn Ẹ̀ka",
+      genericCategoryDescription:
+        "Wo ẹ̀ka ASHE TOKUN yìí bí àwọn ọjà tuntun ṣe ń wá.",
+    },
+    categoryPage: {
+      breadcrumbLabel: "Ọ̀nà ojúewé",
+      breadcrumbHome: "Ilé",
+      breadcrumbShop: "Ọjà",
+      label: "Ẹ̀ka",
+      noProductsTitle: "Kò sí ọjà lọ́wọ́lọ́wọ́",
+      noProductsAvailable: "Ẹ̀ka yìí kò ní ọjà tó wà lọ́wọ́lọ́wọ́.",
+      backToShop: "Padà sí Ọjà",
+    },
+    categoryLabels: {
+      keychains: {
+        name: "Keychains",
+        description:
+          "Àwọn ohun ìrántí ojoojúmọ́ láti ASHE TOKUN àti àwọn brand rẹ̀.",
+      },
+      opele: {
+        name: "Opele",
+        description:
+          "Àwọn nkan Opele àti àwọn ohun ayẹyẹ tó ní ìbáṣepọ̀ pẹ̀lú Ifá.",
+      },
+      opon: {
+        name: "Opon",
+        description:
+          "Àwọn nkan Opon àti àwọn ohun ìfihàn fún ìṣe ayẹyẹ.",
+      },
+      ide: {
+        name: "Ide",
+        description:
+          "Àwọn bracelet àti iṣẹ́ beadwork fún ìbòwọ̀, ayẹyẹ, àti lílò ojoojúmọ́.",
+      },
+      elekes: {
+        name: "Elekes",
+        description:
+          "Àwọn necklace àti beadwork tí a ṣe pẹ̀lú ìtọ́jú.",
+      },
+      sets: {
+        name: "Sets",
+        description:
+          "Àwọn àkójọpọ̀ ẹ̀mí àti ayẹyẹ tí a ṣètò pọ̀.",
+      },
+      mazos: {
+        name: "Mazos",
+        description:
+          "Àwọn staff ayẹyẹ àti ohun èlò beadwork pẹ̀lú ìwòye rírẹwà.",
+      },
+      iruke: {
+        name: "Iruke",
+        description:
+          "Àwọn nkan Iruke àti nkan ẹ̀mí míì tí a ń mura sílẹ̀.",
+      },
+      irofa: {
+        name: "Irofa",
+        description:
+          "Àwọn nkan Irofa àti nkan ẹ̀mí míì tí a ń mura sílẹ̀.",
+      },
+    },
+  },
   footer: {
     copyright: (year) => `© ${year} ASHE TOKUN. All rights reserved.`,
   },
