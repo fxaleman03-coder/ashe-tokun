@@ -24,6 +24,10 @@ type InventoryItemRow = {
   inventory_value: number | string;
 };
 
+type ProductCostRow = {
+  cost: number | string | null;
+};
+
 type InventoryMutationResult =
   | { ok: true; item: InventoryItemRow }
   | { ok: true; source: "local" }
@@ -83,6 +87,30 @@ function availableQuantity(onHand: number, reserved: number) {
   return onHand - reserved;
 }
 
+function toNumber(value: number | string | null | undefined) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const parsedValue = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function createTransferReferenceId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
+    (
+      Number(character) ^
+      (Math.random() * 16) >>
+        (Number(character) / 4)
+    ).toString(16),
+  );
+}
+
 async function readInventoryItem(inventoryItemId: string) {
   if (!supabase) {
     return null;
@@ -118,6 +146,24 @@ async function readInventoryItemForLocation(productId: string, locationId: strin
   }
 
   return data ?? null;
+}
+
+async function readProductCost(productId: string) {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("cost")
+    .eq("id", productId)
+    .maybeSingle<ProductCostRow>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return toNumber(data?.cost);
 }
 
 async function insertTransaction({
@@ -435,6 +481,13 @@ export async function transferInventory(
       };
     }
 
+    if (sourceItem.on_hand_quantity - input.quantity < 0) {
+      return {
+        ok: false,
+        error: "Transfer would create negative source stock.",
+      };
+    }
+
     let destinationItem = await readInventoryItemForLocation(
       input.productId,
       input.toLocationId,
@@ -459,16 +512,35 @@ export async function transferInventory(
     const nextSourceOnHand = sourceItem.on_hand_quantity - input.quantity;
     const nextDestinationOnHand =
       destinationItem.on_hand_quantity + input.quantity;
+    const productCost = await readProductCost(input.productId);
+    const nextSourceAvailable = availableQuantity(
+      nextSourceOnHand,
+      sourceItem.reserved_quantity,
+    );
+    const nextDestinationAvailable = availableQuantity(
+      nextDestinationOnHand,
+      destinationItem.reserved_quantity,
+    );
+    const sourceInventoryUpdate: Partial<InventoryItemRow> = {
+      on_hand_quantity: nextSourceOnHand,
+      available_quantity: nextSourceAvailable,
+    };
+    const destinationInventoryUpdate: Partial<InventoryItemRow> = {
+      on_hand_quantity: nextDestinationOnHand,
+      available_quantity: nextDestinationAvailable,
+    };
+
+    if (productCost !== null) {
+      sourceInventoryUpdate.inventory_value = productCost * nextSourceOnHand;
+      destinationInventoryUpdate.inventory_value =
+        productCost * nextDestinationOnHand;
+    }
+
+    const transferReferenceId = createTransferReferenceId();
 
     const sourceUpdate = await supabase
       .from("inventory_items")
-      .update({
-        on_hand_quantity: nextSourceOnHand,
-        available_quantity: availableQuantity(
-          nextSourceOnHand,
-          sourceItem.reserved_quantity,
-        ),
-      })
+      .update(sourceInventoryUpdate)
       .eq("id", sourceItem.id)
       .select("*")
       .single<InventoryItemRow>();
@@ -484,13 +556,7 @@ export async function transferInventory(
 
     const destinationUpdate = await supabase
       .from("inventory_items")
-      .update({
-        on_hand_quantity: nextDestinationOnHand,
-        available_quantity: availableQuantity(
-          nextDestinationOnHand,
-          destinationItem.reserved_quantity,
-        ),
-      })
+      .update(destinationInventoryUpdate)
       .eq("id", destinationItem.id)
       .select("*")
       .single<InventoryItemRow>();
@@ -510,6 +576,7 @@ export async function transferInventory(
         inventoryItemId: sourceItem.id,
         transactionType: "transfer_out",
         referenceType: "Inventory Transfer",
+        referenceId: transferReferenceId,
         quantityChange: -input.quantity,
         balanceAfter: nextSourceOnHand,
         notes: input.notes,
@@ -518,6 +585,7 @@ export async function transferInventory(
         inventoryItemId: destinationItem.id,
         transactionType: "transfer_in",
         referenceType: "Inventory Transfer",
+        referenceId: transferReferenceId,
         quantityChange: input.quantity,
         balanceAfter: nextDestinationOnHand,
         notes: input.notes,

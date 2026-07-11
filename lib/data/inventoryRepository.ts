@@ -63,6 +63,18 @@ export type InventoryProductSummary = {
   first_inventory_item_id: string | null;
 };
 
+export type InventoryLocationSummary = {
+  location_id: string;
+  location_name: string;
+  location_code: string;
+  location_type: string;
+  active: boolean;
+  total_inventory_items: number;
+  total_on_hand: number;
+  total_available: number;
+  inventory_value: number;
+};
+
 export type InventorySummary = {
   totalInventoryItems: number;
   totalOnHand: number;
@@ -356,10 +368,20 @@ export async function getInventoryItemByProduct(productId: string) {
   return items[0] ?? null;
 }
 
+export async function getInventoryItemsByProduct(productId: string) {
+  return getInventoryForProduct(productId);
+}
+
 export async function getInventoryForProduct(productId: string) {
   const items = await getInventoryItems();
 
   return items.filter((item) => item.product_id === productId);
+}
+
+export async function getInventoryItemsByLocation(locationId: string) {
+  const items = await getInventoryItems();
+
+  return items.filter((item) => item.location_id === locationId);
 }
 
 export async function getInventoryTransactions(inventoryItemId: string) {
@@ -440,5 +462,55 @@ export function summarizeInventoryForProduct(
     ),
     locations_count: items.length,
     first_inventory_item_id: items[0]?.id ?? null,
+  };
+}
+
+export async function getProductInventorySummary(productId: string) {
+  const items = await getInventoryItemsByProduct(productId);
+
+  return summarizeInventoryForProduct(items);
+}
+
+export async function getInventoryLocationSummary(
+  locationId: string,
+): Promise<InventoryLocationSummary | null> {
+  const [locations, items] = await Promise.all([
+    getInventoryLocations(),
+    getInventoryItemsByLocation(locationId),
+  ]);
+  const location = locations.find(
+    (inventoryLocation) => inventoryLocation.id === locationId,
+  );
+
+  if (!location) {
+    return null;
+  }
+
+  return summarizeInventoryForLocation(location, items);
+}
+
+export function summarizeInventoryForLocation(
+  location: InventoryLocation,
+  items: InventoryItem[],
+): InventoryLocationSummary {
+  return {
+    location_id: location.id,
+    location_name: location.name,
+    location_code: location.code,
+    location_type: location.location_type,
+    active: location.active,
+    total_inventory_items: items.length,
+    total_on_hand: items.reduce(
+      (total, item) => total + item.on_hand_quantity,
+      0,
+    ),
+    total_available: items.reduce(
+      (total, item) => total + item.available_quantity,
+      0,
+    ),
+    inventory_value: items.reduce(
+      (total, item) => total + item.inventory_value,
+      0,
+    ),
   };
 }

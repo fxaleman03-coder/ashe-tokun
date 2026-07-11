@@ -4,19 +4,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { USE_SUPABASE } from "@/lib/config";
 import {
   adjustInventory,
   receiveInventory,
   setReorderLevel,
+  transferInventory,
   type InventoryAdjustmentType,
 } from "@/lib/data/inventoryMutations";
 import type {
   InventoryItem,
+  InventoryLocation,
   InventoryTransaction,
 } from "@/lib/data/inventoryRepository";
 
 type InventoryItemDetailProps = {
   item: InventoryItem;
+  locations: InventoryLocation[];
+  productInventoryItems: InventoryItem[];
   transactions: InventoryTransaction[];
 };
 
@@ -32,6 +37,20 @@ function formatCurrency(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function formatTransactionType(transaction: InventoryTransaction) {
+  if (transaction.reference_type === "Inventory Transfer") {
+    if (transaction.transaction_type === "transfer_out") {
+      return "Transfer Out";
+    }
+
+    if (transaction.transaction_type === "transfer_in") {
+      return "Transfer In";
+    }
+  }
+
+  return transaction.transaction_type.replaceAll("_", " ");
 }
 
 function Field({
@@ -70,6 +89,8 @@ function SectionCard({
 
 export default function InventoryItemDetail({
   item,
+  locations,
+  productInventoryItems,
   transactions,
 }: InventoryItemDetailProps) {
   const router = useRouter();
@@ -81,6 +102,24 @@ export default function InventoryItemDetail({
   const [receiveQuantity, setReceiveQuantity] = useState("");
   const [receiveNotes, setReceiveNotes] = useState("");
   const [reorderValue, setReorderValue] = useState(String(item.reorder_level));
+  const transferLocationOptions = locations.filter(
+    (location) => location.id !== item.location_id,
+  );
+  const [toLocationId, setToLocationId] = useState(
+    transferLocationOptions[0]?.id ?? "",
+  );
+  const [transferQuantity, setTransferQuantity] = useState("");
+  const [transferNotes, setTransferNotes] = useState("");
+  const parsedTransferQuantity = Number(transferQuantity);
+  const isTransferQuantityValid =
+    Number.isInteger(parsedTransferQuantity) && parsedTransferQuantity > 0;
+  const isTransferOverAvailable =
+    isTransferQuantityValid && parsedTransferQuantity > item.available_quantity;
+  const canTransfer =
+    USE_SUPABASE &&
+    Boolean(toLocationId) &&
+    isTransferQuantityValid &&
+    !isTransferOverAvailable;
   const stats = [
     ["On Hand", item.on_hand_quantity],
     ["Reserved", item.reserved_quantity],
@@ -162,6 +201,53 @@ export default function InventoryItemDetail({
     router.refresh();
   }
 
+  async function handleTransfer() {
+    if (!USE_SUPABASE) {
+      setMessage("Transfer failed: Inventory transfers require Supabase mode.");
+      return;
+    }
+
+    if (!toLocationId) {
+      setMessage("Transfer failed: select a destination location.");
+      return;
+    }
+
+    if (item.location_id === toLocationId) {
+      setMessage("Source and destination must be different.");
+      return;
+    }
+
+    if (!isTransferQuantityValid) {
+      setMessage("Transfer failed: quantity must be greater than zero.");
+      return;
+    }
+
+    if (parsedTransferQuantity > item.available_quantity) {
+      setMessage("Not enough stock available.");
+      return;
+    }
+
+    setMessage("Transferring...");
+
+    const result = await transferInventory({
+      productId: item.product_id,
+      fromLocationId: item.location_id,
+      toLocationId,
+      quantity: parsedTransferQuantity,
+      notes: transferNotes,
+    });
+
+    if (!result.ok) {
+      setMessage(`Transfer failed: ${result.error}`);
+      return;
+    }
+
+    setMessage("Transfer completed.");
+    setTransferQuantity("");
+    setTransferNotes("");
+    router.refresh();
+  }
+
   return (
     <div className="space-y-6">
       <Link
@@ -230,7 +316,7 @@ export default function InventoryItemDetail({
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-6 xl:grid-cols-4">
         <SectionCard title="Adjust Inventory">
           <div className="grid gap-5">
             <Field label="Quantity Change">
@@ -332,7 +418,129 @@ export default function InventoryItemDetail({
             </button>
           </div>
         </SectionCard>
+
+        <SectionCard title="Transfer Inventory">
+          <div className="grid gap-5">
+            {!USE_SUPABASE ? (
+              <p className="border border-[#d8a344]/20 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#e8dcc8]/70">
+                Inventory transfers require Supabase mode.
+              </p>
+            ) : null}
+            <Field label="From Location">
+              <input
+                type="text"
+                value={item.location_name}
+                readOnly
+                className={`${inputClass} cursor-not-allowed text-[#e8dcc8]/58`}
+              />
+              <p className="mt-2 text-xs text-[#e8dcc8]/52">
+                Available: {item.available_quantity}
+              </p>
+            </Field>
+            <Field label="To Location">
+              <select
+                value={toLocationId}
+                onChange={(event) => setToLocationId(event.target.value)}
+                className={inputClass}
+                disabled={!USE_SUPABASE}
+              >
+                {transferLocationOptions.length > 0 ? (
+                  transferLocationOptions.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No destination locations</option>
+                )}
+              </select>
+            </Field>
+            <Field label="Quantity">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={transferQuantity}
+                onChange={(event) => setTransferQuantity(event.target.value)}
+                className={inputClass}
+                disabled={!USE_SUPABASE}
+              />
+              {isTransferOverAvailable ? (
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d8a344]">
+                  Not enough stock available
+                </p>
+              ) : null}
+            </Field>
+            <Field label="Notes">
+              <textarea
+                value={transferNotes}
+                onChange={(event) => setTransferNotes(event.target.value)}
+                className={`${textareaClass} min-h-28`}
+                disabled={!USE_SUPABASE}
+              />
+            </Field>
+            <button
+              type="button"
+              onClick={handleTransfer}
+              disabled={!canTransfer}
+              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
+            >
+              Transfer Stock
+            </button>
+          </div>
+        </SectionCard>
       </div>
+
+      <SectionCard title="All Product Locations">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
+                <th className="px-4 py-3">Location</th>
+                <th className="px-4 py-3">On Hand</th>
+                <th className="px-4 py-3">Reserved</th>
+                <th className="px-4 py-3">Available</th>
+                <th className="px-4 py-3">Incoming</th>
+                <th className="px-4 py-3">Value</th>
+                <th className="px-4 py-3">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productInventoryItems.map((inventoryItem) => (
+                <tr
+                  key={inventoryItem.id}
+                  className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"
+                >
+                  <td className="px-4 py-3 font-medium text-[#f7ead2]">
+                    {inventoryItem.location_name}
+                  </td>
+                  <td className="px-4 py-3">{inventoryItem.on_hand_quantity}</td>
+                  <td className="px-4 py-3">
+                    {inventoryItem.reserved_quantity}
+                  </td>
+                  <td className="px-4 py-3">
+                    {inventoryItem.available_quantity}
+                  </td>
+                  <td className="px-4 py-3">
+                    {inventoryItem.incoming_quantity}
+                  </td>
+                  <td className="px-4 py-3">
+                    {formatCurrency(inventoryItem.inventory_value)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/inventory/${inventoryItem.id}`}
+                      className="inline-flex min-h-9 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                    >
+                      Manage
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SectionCard>
 
       <SectionCard title="Transaction History">
         <div className="overflow-x-auto">
@@ -357,12 +565,17 @@ export default function InventoryItemDetail({
                     <td className="px-4 py-3">
                       {new Date(transaction.created_at).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3">
-                      {transaction.transaction_type.replaceAll("_", " ")}
-                    </td>
+                    <td className="px-4 py-3">{formatTransactionType(transaction)}</td>
                     <td className="px-4 py-3">{transaction.quantity_change}</td>
                     <td className="px-4 py-3">{transaction.balance_after}</td>
-                    <td className="px-4 py-3">{transaction.reference_type}</td>
+                    <td className="px-4 py-3">
+                      <p>{transaction.reference_type}</p>
+                      {transaction.reference_id ? (
+                        <p className="mt-1 break-all text-xs text-[#e8dcc8]/45">
+                          {transaction.reference_id}
+                        </p>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3">
                       {transaction.notes ?? "No notes"}
                     </td>

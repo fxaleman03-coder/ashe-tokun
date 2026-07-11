@@ -1033,16 +1033,24 @@ function ProductStudioForm({
                     Product Studio keeps product identity and availability flags.
                   </p>
                 </div>
-                <Link
-                  href={
-                    inventorySummary?.first_inventory_item_id
-                      ? `/admin/inventory/${inventorySummary.first_inventory_item_id}`
-                      : "/admin/inventory"
-                  }
-                  className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
-                >
-                  Manage Inventory
-                </Link>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/admin/inventory"
+                    className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                  >
+                    View All Locations
+                  </Link>
+                  <Link
+                    href={
+                      inventorySummary?.first_inventory_item_id
+                        ? `/admin/inventory/${inventorySummary.first_inventory_item_id}`
+                        : "/admin/inventory"
+                    }
+                    className="inline-flex min-h-11 items-center justify-center bg-[#d8a344] px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
+                  >
+                    Manage Inventory
+                  </Link>
+                </div>
               </div>
               <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {[

@@ -166,6 +166,23 @@ Do not test POS deductions yet. POS stock deduction and sale-linked inventory tr
 
 Schema note: the current `inventory_transactions.reference_id` column is UUID, so the migration uses a stable UUID marker for Phase 8.1 and stores the human phase label `phase-8-1` in notes/performed_by.
 
+## Phase 8.2 Inventory Transfers
+
+Test checklist:
+
+1. Open one product inventory item.
+2. Confirm source available stock.
+3. Transfer 1 unit from Main Stockroom to Retail Floor.
+4. Verify source decreases by 1.
+5. Verify destination increases by 1.
+6. Verify the source `transfer_out` transaction.
+7. Verify the destination `transfer_in` transaction.
+8. Confirm both rows share the same transfer reference UUID.
+9. Confirm source stock never becomes negative.
+10. Confirm Product Studio summary reflects all locations.
+
+Transfers are currently implemented through client-side development Supabase writes. A database RPC or transaction should be added before production to guarantee atomic multi-step transfers across the source update, destination update, and both ledger rows.
+
 ## Phase 7.4A Public Product Reads
 
 Before testing public product reads in development, run:

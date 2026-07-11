@@ -89,6 +89,23 @@ export default function AdminInventoryTable({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+            Multi-Location Inventory
+          </p>
+          <p className="mt-2 text-sm leading-6 text-[#e8dcc8]/58">
+            Each row represents one product held at one inventory location.
+          </p>
+        </div>
+        <Link
+          href="/admin/inventory/locations"
+          className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+        >
+          Manage Locations
+        </Link>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           ["Total Inventory Items", summary.totalInventoryItems],

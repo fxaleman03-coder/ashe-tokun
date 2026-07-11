@@ -3,6 +3,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import InventoryItemDetail from "@/components/admin/InventoryItemDetail";
 import {
   getInventoryItems,
+  getInventoryLocations,
   getInventoryTransactions,
 } from "@/lib/data/inventoryRepository";
 
@@ -22,9 +23,15 @@ export default async function InventoryItemPage({
   params,
 }: InventoryItemPageProps) {
   const { id } = await params;
-  const items = await getInventoryItems();
+  const [items, locations] = await Promise.all([
+    getInventoryItems(),
+    getInventoryLocations(),
+  ]);
   const item = items.find((inventoryItem) => inventoryItem.id === id) ?? null;
   const transactions = item ? await getInventoryTransactions(item.id) : [];
+  const productInventoryItems = item
+    ? items.filter((inventoryItem) => inventoryItem.product_id === item.product_id)
+    : [];
 
   if (!item) {
     return (
@@ -47,7 +54,12 @@ export default async function InventoryItemPage({
       title="Inventory Detail"
       description={`Manage stock controls and transaction history for ${item.product.name}.`}
     >
-      <InventoryItemDetail item={item} transactions={transactions} />
+      <InventoryItemDetail
+        item={item}
+        locations={locations}
+        productInventoryItems={productInventoryItems}
+        transactions={transactions}
+      />
     </AdminShell>
   );
 }
