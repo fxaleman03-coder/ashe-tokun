@@ -1,17 +1,22 @@
+import AdminCustomersManager from "@/components/admin/AdminCustomersManager";
 import AdminShell from "@/components/admin/AdminShell";
-import { PlaceholderPage } from "@/components/admin/CatalogViews";
+import {
+  getCustomerMetrics,
+  getCustomers,
+} from "@/lib/data/customersRepository";
 
-export default function AdminCustomersPage() {
+export default async function AdminCustomersPage() {
+  const [customers, metrics] = await Promise.all([
+    getCustomers(),
+    getCustomerMetrics(),
+  ]);
+
   return (
     <AdminShell
       title="Customers"
-      description="Customer management will be connected after authentication and checkout."
+      description="Manage customer records, purchase history, contact information, and POS customer assignment."
     >
-      <PlaceholderPage
-        title="Customer management is visual-only."
-        description="Customer records, profiles, and purchase history will be available in a future phase."
-        href="/admin/catalog"
-      />
+      <AdminCustomersManager customers={customers} metrics={metrics} />
     </AdminShell>
   );
 }

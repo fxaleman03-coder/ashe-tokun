@@ -1,6 +1,8 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import AdminShell from "@/components/admin/AdminShell";
-import { getPosOrderDetail } from "@/lib/data/posRepository";
+import OrderDetailActions from "@/components/admin/OrderDetailActions";
+import { getOrderDetail } from "@/lib/data/ordersRepository";
 
 type OrderDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -30,15 +32,20 @@ function DetailCard({
   );
 }
 
+type HeaderDetail = {
+  label: string;
+  value: ReactNode;
+};
+
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { id } = await params;
-  const order = await getPosOrderDetail(id);
+  const order = await getOrderDetail(id);
 
   if (!order) {
     return (
       <AdminShell
         title="Order Not Found"
-        description="This POS order is not available."
+        description="This order is not available."
       >
         <Link
           href="/admin/orders"
@@ -53,7 +60,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   return (
     <AdminShell
       title={order.order_number}
-      description="Read-only order summary, payment, receipt, and inventory references."
+      description="Manage status, notes, payment visibility, timeline, and inventory impact."
     >
       <div className="space-y-6">
         <Link
@@ -63,28 +70,63 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           Back to Orders
         </Link>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            ["Customer", order.customer_name],
-            ["Sales Channel", order.sales_channel],
-            ["Order Status", order.order_status],
-            ["Payment Status", order.payment_status],
-            ["Subtotal", formatCurrency(order.subtotal)],
-            ["Discount", formatCurrency(order.discount_total)],
-            ["Tax", formatCurrency(order.tax_total)],
-            ["Total", formatCurrency(order.grand_total)],
-          ].map(([label, value]) => (
-            <article
-              key={label}
-              className="border border-[#f7ead2]/10 bg-[#120d08] p-5"
-            >
-              <p className="text-[0.64rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
-                {label}
+        <section className="border border-[#d8a344]/20 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)] sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Order Header
               </p>
-              <p className="mt-2 text-sm text-[#e8dcc8]/74">{value}</p>
-            </article>
-          ))}
-        </div>
+              <h1 className="mt-3 font-serif text-4xl font-semibold text-[#f7ead2]">
+                {order.order_number}
+              </h1>
+              <p className="mt-3 text-sm text-[#e8dcc8]/62">
+                {new Date(order.created_at).toLocaleString()}
+              </p>
+            </div>
+            <div className="grid gap-3 text-sm text-[#e8dcc8]/72 sm:grid-cols-2">
+              {(
+                [
+                  { label: "Channel", value: order.sales_channel },
+                  { label: "Order Status", value: order.order_status },
+                  { label: "Payment Status", value: order.payment_status },
+                  { label: "Fulfillment", value: order.fulfillment_status },
+                  {
+                    label: "Customer",
+                    value: (
+                      <div>
+                        {order.customer_id ? (
+                          <Link
+                            href={`/admin/customers/${order.customer_id}`}
+                            className="text-[#d8a344] transition hover:text-[#f7ead2]"
+                          >
+                            {order.customer}
+                          </Link>
+                        ) : (
+                          order.customer
+                        )}
+                        {order.customer_contact ? (
+                          <p className="mt-1 text-xs text-[#e8dcc8]/50">
+                            Primary Contact: {order.customer_contact}
+                          </p>
+                        ) : null}
+                      </div>
+                    ),
+                  },
+                  { label: "Receipt", value: order.receipt_number ?? "Pending" },
+                ] satisfies HeaderDetail[]
+              ).map(({ label, value }) => (
+                <div key={label} className="border border-[#f7ead2]/10 bg-[#0f0b07] p-3">
+                  <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                    {label}
+                  </p>
+                  <p className="mt-2">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <OrderDetailActions order={order} />
 
         <DetailCard title="Items">
           <div className="overflow-x-auto">
@@ -131,7 +173,28 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         </DetailCard>
 
         <div className="grid gap-6 xl:grid-cols-3">
-          <DetailCard title="Payment">
+          <DetailCard title="Totals">
+            <div className="space-y-3 text-sm text-[#e8dcc8]/72">
+              <p className="flex justify-between gap-4">
+                <span>Subtotal</span>
+                <span>{formatCurrency(order.subtotal)}</span>
+              </p>
+              <p className="flex justify-between gap-4">
+                <span>Discount</span>
+                <span>-{formatCurrency(order.discount_total)}</span>
+              </p>
+              <p className="flex justify-between gap-4">
+                <span>Tax</span>
+                <span>{formatCurrency(order.tax_total)}</span>
+              </p>
+              <p className="flex justify-between gap-4 border-t border-[#f7ead2]/10 pt-3 font-serif text-xl text-[#f7ead2]">
+                <span>Grand Total</span>
+                <span>{formatCurrency(order.grand_total)}</span>
+              </p>
+            </div>
+          </DetailCard>
+
+          <DetailCard title="Payments">
             {order.payments.length > 0 ? (
               <div className="space-y-3 text-sm text-[#e8dcc8]/72">
                 {order.payments.map((payment) => (
@@ -143,6 +206,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                       {payment.payment_method} / {payment.payment_status}
                     </p>
                     <p className="mt-2">{formatCurrency(payment.amount)}</p>
+                    <p className="mt-2 text-xs text-[#e8dcc8]/48">
+                      Received:{" "}
+                      {payment.received_at
+                        ? new Date(payment.received_at).toLocaleString()
+                        : "Pending"}
+                    </p>
                     {payment.reference_number ? (
                       <p className="mt-2 text-xs text-[#d8a344]">
                         {payment.reference_number}
@@ -171,6 +240,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                       Printed: {receipt.printed ? "Yes" : "No"} / Emailed:{" "}
                       {receipt.emailed ? "Yes" : "No"}
                     </p>
+                    <p className="mt-2 text-xs text-[#e8dcc8]/48">
+                      Created: {new Date(receipt.created_at).toLocaleString()}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -178,17 +250,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               <p className="text-sm text-[#e8dcc8]/54">No receipt row found.</p>
             )}
           </DetailCard>
-
-          <DetailCard title="Timeline Ready">
-            <div className="space-y-3 text-sm text-[#e8dcc8]/72">
-              <p>Created: {new Date(order.created_at).toLocaleString()}</p>
-              <p>Receipt: {order.receipt_number ?? "Pending"}</p>
-              <p>Notes: {order.notes ?? "No notes"}</p>
-            </div>
-          </DetailCard>
         </div>
 
-        <DetailCard title="Inventory References">
+        <DetailCard title="Inventory Impact">
           {order.inventoryTransactions.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2">
               {order.inventoryTransactions.map((transaction) => (
@@ -196,7 +260,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                   key={transaction.id}
                   className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4 text-sm text-[#e8dcc8]/72"
                 >
-                  <p className="font-medium text-[#f7ead2]">
+                  <p className="font-medium capitalize text-[#f7ead2]">
                     {transaction.transaction_type.replaceAll("_", " ")}
                   </p>
                   <p className="mt-2">
@@ -206,6 +270,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                   <p className="mt-2 text-xs text-[#d8a344]">
                     {transaction.notes ?? "No notes"}
                   </p>
+                  <p className="mt-2 text-xs text-[#e8dcc8]/42">
+                    {new Date(transaction.created_at).toLocaleString()}
+                  </p>
                 </div>
               ))}
             </div>
@@ -214,6 +281,23 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               No inventory ledger rows found for this order yet.
             </p>
           )}
+        </DetailCard>
+
+        <DetailCard title="Timeline">
+          <div className="space-y-3">
+            {order.timeline.map((event) => (
+              <div
+                key={event.id}
+                className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4 text-sm text-[#e8dcc8]/72"
+              >
+                <p className="font-medium text-[#f7ead2]">{event.label}</p>
+                <p className="mt-2">{event.description}</p>
+                <p className="mt-2 text-xs text-[#d8a344]">
+                  {new Date(event.created_at).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
         </DetailCard>
       </div>
     </AdminShell>

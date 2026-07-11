@@ -4,21 +4,18 @@ import {
   getInventoryLocations,
   type InventoryItem,
 } from "@/lib/data/inventoryRepository";
+import {
+  getCustomers,
+  getWalkInCustomer as getRepositoryWalkInCustomer,
+} from "@/lib/data/customersRepository";
 import { getProducts } from "@/lib/data/productsRepository";
 import { products as localProducts } from "@/lib/products";
 import { supabase } from "@/lib/supabase";
 import type {
-  PosDataSource,
+  PosCustomer,
   PosInventoryLocation,
   PosProduct,
 } from "@/lib/types/pos";
-
-export type PosCustomer = {
-  id: string | null;
-  customerNumber: string;
-  name: string;
-  source: PosDataSource;
-};
 
 export type RecentPosOrder = {
   id: string;
@@ -329,37 +326,78 @@ export async function getWalkInCustomer(): Promise<PosCustomer> {
       id: null,
       customerNumber: "CUST-WALK-IN",
       name: "Walk-in Customer",
+      customerType: "walk_in",
+      firstName: "Walk-in",
+      lastName: "Customer",
+      companyName: null,
+      email: null,
+      phone: null,
+      active: true,
+      orderCount: 0,
+      lifetimeValue: 0,
       source: "Local fallback",
     };
   }
 
-  const { data, error } = await supabase
-    .from("customers")
-    .select("id, customer_number, first_name, last_name, company_name")
-    .eq("customer_number", "CUST-WALK-IN")
-    .maybeSingle<{
-      id: string;
-      customer_number: string;
-      first_name: string | null;
-      last_name: string | null;
-      company_name: string | null;
-    }>();
+  const customer = await getRepositoryWalkInCustomer();
 
-  if (error || !data) {
+  if (!customer) {
     return {
       id: null,
       customerNumber: "CUST-WALK-IN",
       name: "Walk-in Customer",
+      customerType: "walk_in",
+      firstName: "Walk-in",
+      lastName: "Customer",
+      companyName: null,
+      email: null,
+      phone: null,
+      active: true,
+      orderCount: 0,
+      lifetimeValue: 0,
       source: "Local fallback",
     };
   }
 
   return {
-    id: data.id,
-    customerNumber: data.customer_number,
-    name: getCustomerName(data),
+    id: customer.id,
+    customerNumber: customer.customer_number,
+    name: customer.display_name,
+    customerType: customer.customer_type,
+    firstName: customer.first_name,
+    lastName: customer.last_name,
+    companyName: customer.company_name,
+    email: customer.email,
+    phone: customer.phone,
+    active: customer.active,
+    orderCount: customer.order_count,
+    lifetimeValue: customer.lifetime_value,
     source: "Supabase",
   };
+}
+
+export async function getPosCustomers(): Promise<PosCustomer[]> {
+  if (!USE_SUPABASE || !supabase) {
+    return [await getWalkInCustomer()];
+  }
+
+  const customers = await getCustomers({ activeStatus: "active" });
+
+  return customers.map((customer) => ({
+    id: customer.id,
+    customerNumber: customer.customer_number,
+    name: customer.display_name,
+    customerType: customer.customer_type,
+    firstName: customer.first_name,
+    lastName: customer.last_name,
+    companyName: customer.company_name,
+    email: customer.email,
+    phone: customer.phone,
+    active: customer.active,
+    orderCount: customer.order_count,
+    lifetimeValue: customer.lifetime_value,
+    source: "Supabase",
+  }));
 }
 
 export async function getRecentPosOrders(limit = 20): Promise<RecentPosOrder[]> {

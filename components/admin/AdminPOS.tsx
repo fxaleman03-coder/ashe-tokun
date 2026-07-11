@@ -6,19 +6,24 @@ import { useMemo, useState } from "react";
 import { completePosSale } from "@/lib/data/posMutations";
 import type {
   PosCartItem,
+  PosCustomer,
   PosDataSource,
   PosInventoryLocation,
   PosProduct,
   PosSaleResult,
 } from "@/lib/types/pos";
+import {
+  getCustomerContactName,
+  getCustomerDisplaySummary,
+  getCustomerPrimaryName,
+  getCustomerTypeLabel,
+} from "@/lib/utils/customerDisplay";
 
 type AdminPOSProps = {
   products: PosProduct[];
   locations: PosInventoryLocation[];
-  customer: {
-    id: string | null;
-    name: string;
-  };
+  customer: PosCustomer;
+  customers: PosCustomer[];
   nextOrderNumber: string;
   nextReceiptNumber: string;
   source: PosDataSource;
@@ -107,6 +112,7 @@ export default function AdminPOS({
   products,
   locations,
   customer,
+  customers,
   nextOrderNumber,
   nextReceiptNumber,
   source,
@@ -121,6 +127,23 @@ export default function AdminPOS({
   const [lookupValue, setLookupValue] = useState("");
   const [query, setQuery] = useState("");
   const [cartItems, setCartItems] = useState<PosCartItem[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<PosCustomer>({
+    id: customer.id,
+    customerNumber: customer.customerNumber,
+    name: customer.name,
+    customerType: customer.customerType,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    companyName: customer.companyName,
+    email: customer.email,
+    phone: customer.phone,
+    active: customer.active,
+    orderCount: customer.orderCount,
+    lifetimeValue: customer.lifetimeValue,
+    source: customer.source,
+  });
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [discountType, setDiscountType] = useState<DiscountType>("fixed");
   const [discountValue, setDiscountValue] = useState("");
   const [taxRateValue, setTaxRateValue] = useState("7");
@@ -154,6 +177,34 @@ export default function AdminPOS({
       return searchable.includes(normalizedQuery);
     });
   }, [products, query]);
+
+  const filteredCustomers = useMemo(() => {
+    const normalizedQuery = customerQuery.trim().toLowerCase();
+    const activeCustomers = customers.filter((candidate) => candidate.active);
+
+    if (!normalizedQuery) {
+      return activeCustomers.slice(0, 8);
+    }
+
+    return activeCustomers
+      .filter((candidate) => {
+        const searchable = [
+          candidate.name,
+          candidate.customerNumber,
+          candidate.customerType,
+          candidate.companyName,
+          getCustomerContactName(candidate),
+          candidate.email,
+          candidate.phone,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchable.includes(normalizedQuery);
+      })
+      .slice(0, 8);
+  }, [customerQuery, customers]);
 
   const subtotal = cartItems.reduce(
     (total, item) => total + item.unitPrice * item.quantity,
@@ -360,7 +411,7 @@ export default function AdminPOS({
     setSuccess(null);
 
     const result = await completePosSale({
-      customerId: customer.id,
+      customerId: selectedCustomer.id,
       inventoryLocationId: selectedLocationId,
       cartItems,
       discountType,
@@ -388,6 +439,23 @@ export default function AdminPOS({
     setWarning("");
     setLookupValue("");
     setQuery("");
+    setCustomerQuery("");
+    setIsCustomerSearchOpen(false);
+    setSelectedCustomer({
+      id: customer.id,
+      customerNumber: customer.customerNumber,
+      name: customer.name,
+      customerType: customer.customerType,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      companyName: customer.companyName,
+      email: customer.email,
+      phone: customer.phone,
+      active: customer.active,
+      orderCount: customer.orderCount,
+      lifetimeValue: customer.lifetimeValue,
+      source: customer.source,
+    });
   }
 
   const completedSale = success?.ok && success.source === "supabase" ? success : null;
@@ -558,26 +626,142 @@ export default function AdminPOS({
 
       <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
         <div className="border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          {(() => {
+            const selectedCustomerDisplay =
+              getCustomerDisplaySummary(selectedCustomer);
+
+            return (
+              <>
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
             Customer
           </p>
           <div className="mt-4 border border-[#f7ead2]/10 bg-[#0f0b07] p-4">
             <p className="font-serif text-2xl font-semibold text-[#f7ead2]">
-              {customer.name}
+              {selectedCustomerDisplay.primaryName}
             </p>
-            <p className="mt-2 text-xs leading-5 text-[#e8dcc8]/52">
-              Customer search and account history remain prepared for a future
-              phase.
-            </p>
+            {selectedCustomerDisplay.contactName ? (
+              <p className="mt-2 text-sm text-[#e8dcc8]/66">
+                Contact: {selectedCustomerDisplay.contactName}
+              </p>
+            ) : null}
+            <div className="mt-3 grid gap-2 text-xs leading-5 text-[#e8dcc8]/58">
+              <p>
+                <span className="text-[#d8a344]">Number:</span>{" "}
+                {selectedCustomer.customerNumber}
+              </p>
+              <p className="capitalize">
+                <span className="text-[#d8a344]">Type:</span>{" "}
+                {selectedCustomerDisplay.typeLabel}
+              </p>
+              <p>
+                <span className="text-[#d8a344]">Orders:</span>{" "}
+                {selectedCustomer.orderCount}
+              </p>
+              <p>
+                <span className="text-[#d8a344]">Lifetime Value:</span>{" "}
+                {formatCurrency(selectedCustomer.lifetimeValue)}
+              </p>
+            </div>
           </div>
+          <input
+            type="search"
+            value={customerQuery}
+            onFocus={() => setIsCustomerSearchOpen(true)}
+            onChange={(event) => {
+              setCustomerQuery(event.target.value);
+              setIsCustomerSearchOpen(true);
+            }}
+            placeholder="Search customer by name, number, email, or phone"
+            className={`${inputClass} mt-4 min-h-11`}
+          />
+          {isCustomerSearchOpen || customerQuery ? (
+            <div className="mt-3 max-h-64 overflow-y-auto border border-[#f7ead2]/10 bg-[#0f0b07]">
+              {filteredCustomers.length > 0 ? (
+                filteredCustomers.map((candidate) => (
+                  <button
+                    key={candidate.id ?? candidate.customerNumber}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCustomer(candidate);
+                      setCustomerQuery("");
+                      setIsCustomerSearchOpen(false);
+                      clearMessages();
+                    }}
+                    className="block w-full border-b border-[#f7ead2]/8 px-4 py-3 text-left text-sm text-[#e8dcc8]/72 transition last:border-b-0 hover:bg-[#d8a344]/10 hover:text-[#f7ead2]"
+                  >
+                    {(() => {
+                      const candidateDisplay = getCustomerDisplaySummary(candidate);
+
+                      return (
+                        <>
+                    <span className="block font-serif text-lg text-[#f7ead2]">
+                      {candidateDisplay.primaryName}
+                    </span>
+                    {candidateDisplay.contactName ? (
+                      <span className="mt-1 block text-xs text-[#e8dcc8]/58">
+                        Contact: {candidateDisplay.contactName}
+                      </span>
+                    ) : null}
+                    <span className="mt-1 block text-xs text-[#d8a344]">
+                      {candidate.customerNumber} /{" "}
+                      {getCustomerTypeLabel(candidate)}
+                    </span>
+                    <span className="mt-1 block text-xs text-[#e8dcc8]/48">
+                      {candidate.orderCount} orders /{" "}
+                      {formatCurrency(candidate.lifetimeValue)}
+                    </span>
+                        </>
+                      );
+                    })()}
+                  </button>
+                ))
+              ) : (
+                <p className="px-4 py-4 text-sm text-[#e8dcc8]/54">
+                  No active customers found.
+                </p>
+              )}
+            </div>
+          ) : null}
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <button type="button" className={subtleButtonClass}>
-              Add Customer
-            </button>
-            <button type="button" className={subtleButtonClass}>
+            <Link href="/admin/customers/new" className={subtleButtonClass}>
+              New Customer
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsCustomerSearchOpen(true)}
+              className={subtleButtonClass}
+            >
               Search Customer
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCustomer({
+                  id: customer.id,
+                  customerNumber: customer.customerNumber,
+                  name: customer.name,
+                  customerType: customer.customerType,
+                  firstName: customer.firstName,
+                  lastName: customer.lastName,
+                  companyName: customer.companyName,
+                  email: customer.email,
+                  phone: customer.phone,
+                  active: customer.active,
+                  orderCount: customer.orderCount,
+                  lifetimeValue: customer.lifetimeValue,
+                  source: customer.source,
+                });
+                setCustomerQuery("");
+                setIsCustomerSearchOpen(false);
+              }}
+              className="col-span-2 inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+            >
+              Return to Walk-in Customer
+            </button>
           </div>
+              </>
+            );
+          })()}
         </div>
 
         <div className="border border-[#d8a344]/25 bg-[#120d08] p-5 shadow-[0_28px_90px_rgba(0,0,0,0.34),0_0_40px_rgba(216,163,68,0.08)]">
@@ -877,7 +1061,9 @@ export default function AdminPOS({
               </div>
               <div className="flex justify-between gap-3 sm:block">
                 <dt className="text-[#d8a344]">Customer</dt>
-                <dd className="mt-1 text-[#f7ead2]">{customer.name}</dd>
+                <dd className="mt-1 text-[#f7ead2]">
+                  {getCustomerPrimaryName(selectedCustomer)}
+                </dd>
               </div>
             </dl>
             <div className="mt-4 space-y-3">

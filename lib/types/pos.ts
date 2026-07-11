@@ -32,6 +32,22 @@ export type PosProduct = {
   inventoryByLocation: PosInventoryByLocation[];
 };
 
+export type PosCustomer = {
+  id: string | null;
+  customerNumber: string;
+  name: string;
+  customerType: string;
+  firstName: string | null;
+  lastName: string | null;
+  companyName: string | null;
+  email: string | null;
+  phone: string | null;
+  active: boolean;
+  orderCount: number;
+  lifetimeValue: number;
+  source: PosDataSource;
+};
+
 export type PosCartItem = {
   productId: string;
   name: string;

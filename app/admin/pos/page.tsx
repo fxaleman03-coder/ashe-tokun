@@ -4,17 +4,27 @@ import {
   getNextOrderNumber,
   getNextReceiptNumber,
   getPosInventoryLocations,
+  getPosCustomers,
   getPosProducts,
   getWalkInCustomer,
 } from "@/lib/data/posRepository";
 import { getInventorySummary } from "@/lib/data/inventoryRepository";
 
 export default async function AdminPOSPage() {
-  const [products, locations, customer, nextOrderNumber, nextReceiptNumber, summary] =
+  const [
+    products,
+    locations,
+    customer,
+    customers,
+    nextOrderNumber,
+    nextReceiptNumber,
+    summary,
+  ] =
     await Promise.all([
       getPosProducts(),
       getPosInventoryLocations(),
       getWalkInCustomer(),
+      getPosCustomers(),
       getNextOrderNumber(),
       getNextReceiptNumber(),
       getInventorySummary(),
@@ -29,6 +39,7 @@ export default async function AdminPOSPage() {
         products={products}
         locations={locations}
         customer={customer}
+        customers={customers}
         nextOrderNumber={nextOrderNumber}
         nextReceiptNumber={nextReceiptNumber}
         source={summary.source}

@@ -208,6 +208,49 @@ Development warnings:
 - A database RPC/transaction is required before production to guarantee atomic sale completion across order, items, payment, receipt, inventory updates, and inventory ledger rows.
 - If a development sale fails after an order is created, review the returned order number and reconcile manually before more testing.
 
+## Phase 9.2 Orders Management
+
+Manual order:
+
+1. Run `supabase/policies-orders-management-development.sql`.
+2. Restart localhost.
+3. Open `/admin/orders`.
+4. Open the POS test order.
+5. Add a note.
+6. Verify timeline.
+7. Test a held order transition if available.
+8. Cancel one controlled completed POS order.
+9. Verify `order_status = cancelled`.
+10. Verify inventory restored.
+11. Verify return/restoration ledger rows.
+12. Verify original sale ledger rows remain.
+13. Confirm cancelled order is excluded from revenue metrics.
+
+Warning: order cancellation must use a database transaction/RPC before production. The current implementation is safe sequential development logic and must not be treated as production-atomic.
+
+## Phase 9.3 Customer Management
+
+Manual order:
+
+1. Run `supabase/policies-customers-development.sql`.
+2. Restart localhost.
+3. Open `/admin/customers`.
+4. Verify Walk-in Customer exists.
+5. Create one registered test customer.
+6. Add one address.
+7. Set default address.
+8. Edit customer.
+9. Select customer in POS.
+10. Complete one small test sale.
+11. Verify order appears in customer purchase history.
+12. Verify lifetime value and order count update.
+13. Deactivate customer.
+14. Confirm customer disappears from active POS search.
+15. Reactivate customer.
+16. Confirm historical orders remain.
+
+Warning: customer data includes personal information. Development policies use broad anonymous access for local testing only. Before production, restrict customer records to authenticated staff with role-based RLS, audit logging, encrypted transport, secure backups, a privacy policy, and a data retention policy.
+
 ## Phase 7.4A Public Product Reads
 
 Before testing public product reads in development, run:
