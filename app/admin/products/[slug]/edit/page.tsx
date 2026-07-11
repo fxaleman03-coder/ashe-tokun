@@ -7,6 +7,10 @@ import {
 } from "@/lib/data/productsRepository";
 import { getMediaAssets } from "@/lib/data/mediaRepository";
 import { getProductMedia } from "@/lib/data/productMediaRepository";
+import {
+  getInventoryForProduct,
+  summarizeInventoryForProduct,
+} from "@/lib/data/inventoryRepository";
 
 type AdminEditProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -25,10 +29,12 @@ export default async function AdminEditProductPage({
 }: AdminEditProductPageProps) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
-  const [mediaAssets, productMedia] = await Promise.all([
+  const [mediaAssets, productMedia, inventoryItems] = await Promise.all([
     getMediaAssets(),
     product ? getProductMedia(product.id) : Promise.resolve([]),
+    product ? getInventoryForProduct(product.id) : Promise.resolve([]),
   ]);
+  const inventorySummary = summarizeInventoryForProduct(inventoryItems);
 
   if (!product) {
     return (
@@ -55,6 +61,7 @@ export default async function AdminEditProductPage({
         product={product}
         mediaAssets={mediaAssets}
         productMedia={productMedia}
+        inventorySummary={inventorySummary}
       />
     </AdminShell>
   );

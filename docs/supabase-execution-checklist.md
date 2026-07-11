@@ -125,6 +125,47 @@ Warnings:
 - Product linking continues manually through Product Studio or Product Creation Wizard.
 - Manufacturing files such as STL, 3MF, SVG production files, LightBurn, Fusion 360, laser templates, and BOM files are not part of ASHE TOKUN commercial media migration.
 
+## Phase 8.1 Live Inventory Activation
+
+Run the inventory activation steps only after products exist in Supabase:
+
+1. Run the development inventory policies in Supabase SQL Editor:
+
+```text
+supabase/policies-inventory-development.sql
+```
+
+2. Run the inventory migration without confirmation:
+
+```bash
+npm run migrate:inventory
+```
+
+Expected result: the safety warning prints and no writes occur.
+
+3. Run the confirmed inventory migration:
+
+```bash
+npm run migrate:inventory -- --confirm
+```
+
+4. Verify:
+
+- `inventory_items` contains live rows.
+- `inventory_transactions` contains opening balance rows.
+- `/admin/inventory` shows `Data Source: Supabase`.
+
+5. Test:
+
+- One manual adjustment.
+- One receiving transaction.
+- One reorder-level change.
+- Transaction history on `/admin/inventory/[id]`.
+
+Do not test POS deductions yet. POS stock deduction and sale-linked inventory transactions remain reserved for a later phase.
+
+Schema note: the current `inventory_transactions.reference_id` column is UUID, so the migration uses a stable UUID marker for Phase 8.1 and stores the human phase label `phase-8-1` in notes/performed_by.
+
 ## Phase 7.4A Public Product Reads
 
 Before testing public product reads in development, run:

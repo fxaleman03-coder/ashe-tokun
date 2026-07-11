@@ -71,6 +71,19 @@ type ProductMediaRelationRow = {
   media_asset?: ProductMediaAssetRelation | ProductMediaAssetRelation[];
 };
 
+type ProductInventoryRow = {
+  product_id: string;
+  on_hand_quantity?: number | null;
+  reserved_quantity?: number | null;
+  available_quantity?: number | null;
+  reorder_level?: number | null;
+};
+
+type ProductInventorySummary = {
+  stock: number;
+  reorderLevel?: number;
+};
+
 const localProductsBySku = new Map(
   localProducts.map((product) => [product.sku, product]),
 );
@@ -153,8 +166,10 @@ const getMediaImageUrl = (
 const mapSupabaseProduct = (
   row: SupabaseProductRow,
   mediaByProductId: Map<string, ProductGalleryImage[]>,
+  inventoryByProductId: Map<string, ProductInventorySummary>,
 ): Product => {
-  const stock = row.stock ?? 0;
+  const inventorySummary = inventoryByProductId.get(row.id);
+  const stock = inventorySummary?.stock ?? row.stock ?? 0;
   const categoryName = row.category?.name ?? "Uncategorized";
   const traditionName = row.tradition?.name ?? "Unassigned";
   const productTypeName = row.product_type?.name;
@@ -181,7 +196,7 @@ const mapSupabaseProduct = (
     compareAtPrice,
     cost,
     stock,
-    reorderLevel: row.reorder_level ?? undefined,
+    reorderLevel: inventorySummary?.reorderLevel ?? row.reorder_level ?? undefined,
     inventoryLocation: row.inventory_location ?? undefined,
     availableOnline: row.available_online ?? true,
     availableInStore: row.available_in_store ?? true,
@@ -262,6 +277,7 @@ async function readProducts(): Promise<ProductsResult> {
   const products = data as SupabaseProductRow[];
   const productIds = products.map((product) => product.id);
   const mediaByProductId = new Map<string, ProductGalleryImage[]>();
+  const inventoryByProductId = new Map<string, ProductInventorySummary>();
 
   if (productIds.length > 0) {
     const mediaResult = await supabase
@@ -304,11 +320,56 @@ async function readProducts(): Promise<ProductsResult> {
         }
       }
     }
+
+    const inventoryResult = await supabase
+      .from("inventory_items")
+      .select(
+        "product_id, on_hand_quantity, reserved_quantity, available_quantity, reorder_level",
+      )
+      .in("product_id", productIds);
+
+    if (inventoryResult.error) {
+      console.info(
+        "[ASHE TOKUN product repository]",
+        "Inventory item query failed. Product stock will use product fallback values.",
+        {
+          errorMessage: inventoryResult.error.message,
+          errorCode: inventoryResult.error.code,
+          errorDetails: inventoryResult.error.details,
+          errorHint: inventoryResult.error.hint,
+        },
+      );
+    } else {
+      for (const row of (inventoryResult.data ?? []) as ProductInventoryRow[]) {
+        const currentSummary = inventoryByProductId.get(row.product_id) ?? {
+          stock: 0,
+          reorderLevel: undefined,
+        };
+        const onHand = row.on_hand_quantity ?? 0;
+        const reserved = row.reserved_quantity ?? 0;
+        const calculatedAvailable = onHand - reserved;
+        const available =
+          row.available_quantity === calculatedAvailable
+            ? row.available_quantity
+            : calculatedAvailable;
+        const reorderLevel = row.reorder_level ?? undefined;
+
+        inventoryByProductId.set(row.product_id, {
+          stock: currentSummary.stock + available,
+          reorderLevel:
+            currentSummary.reorderLevel === undefined
+              ? reorderLevel
+              : reorderLevel === undefined
+                ? currentSummary.reorderLevel
+                : Math.min(currentSummary.reorderLevel, reorderLevel),
+        });
+      }
+    }
   }
 
   return {
     products: products.map((product) =>
-      mapSupabaseProduct(product, mediaByProductId),
+      mapSupabaseProduct(product, mediaByProductId, inventoryByProductId),
     ),
     source: "Supabase",
     supabaseProductCount,

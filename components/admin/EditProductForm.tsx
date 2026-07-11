@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { USE_SUPABASE } from "@/lib/config";
@@ -8,6 +9,7 @@ import {
   updateProduct,
   type ProductPriceTrace,
 } from "@/lib/data/productMutations";
+import type { InventoryProductSummary } from "@/lib/data/inventoryRepository";
 import {
   addProductMedia,
   removeProductMedia,
@@ -33,6 +35,7 @@ type EditProductFormProps = {
   product: Product;
   mediaAssets?: MediaAsset[];
   productMedia?: ProductMediaRecord[];
+  inventorySummary?: InventoryProductSummary;
 };
 
 type ProductStatus = "Draft" | "Active" | "Archived";
@@ -248,6 +251,7 @@ function ProductStudioForm({
   product,
   mediaAssets = [],
   productMedia = [],
+  inventorySummary,
   seedProduct,
   stock,
   customOpeleOverride,
@@ -977,40 +981,92 @@ function ProductStudioForm({
                 className={inputClass}
               />
             </FieldLabel>
-            <FieldLabel label="Quantity / Stock">
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={formState.stock}
-                onChange={(event) => updateField("stock", event.target.value)}
-                className={inputClass}
-              />
-            </FieldLabel>
-            <FieldLabel label="Reorder Level">
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={formState.reorderLevel}
-                onChange={(event) =>
-                  updateField("reorderLevel", event.target.value)
-                }
-                className={inputClass}
-              />
-            </FieldLabel>
-            <FieldLabel label="Inventory Location">
-              <input
-                type="text"
-                value={formState.inventoryLocation}
-                onChange={(event) =>
-                  updateField("inventoryLocation", event.target.value)
-                }
-                placeholder="Inventory Location"
-                className={inputClass}
-              />
-            </FieldLabel>
+            {!USE_SUPABASE ? (
+              <>
+                <FieldLabel label="Quantity / Stock">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formState.stock}
+                    onChange={(event) =>
+                      updateField("stock", event.target.value)
+                    }
+                    className={inputClass}
+                  />
+                </FieldLabel>
+                <FieldLabel label="Reorder Level">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formState.reorderLevel}
+                    onChange={(event) =>
+                      updateField("reorderLevel", event.target.value)
+                    }
+                    className={inputClass}
+                  />
+                </FieldLabel>
+                <FieldLabel label="Inventory Location">
+                  <input
+                    type="text"
+                    value={formState.inventoryLocation}
+                    onChange={(event) =>
+                      updateField("inventoryLocation", event.target.value)
+                    }
+                    placeholder="Inventory Location"
+                    className={inputClass}
+                  />
+                </FieldLabel>
+              </>
+            ) : null}
           </div>
+          {USE_SUPABASE ? (
+            <div className="mt-6 border border-[#d8a344]/20 bg-[#0f0b07] p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+                    Live Inventory Summary
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/64">
+                    Product stock is managed from inventory_items by location.
+                    Product Studio keeps product identity and availability flags.
+                  </p>
+                </div>
+                <Link
+                  href={
+                    inventorySummary?.first_inventory_item_id
+                      ? `/admin/inventory/${inventorySummary.first_inventory_item_id}`
+                      : "/admin/inventory"
+                  }
+                  className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                >
+                  Manage Inventory
+                </Link>
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                {[
+                  ["Total On Hand", inventorySummary?.total_on_hand ?? 0],
+                  ["Total Reserved", inventorySummary?.total_reserved ?? 0],
+                  ["Total Available", inventorySummary?.total_available ?? 0],
+                  ["Total Incoming", inventorySummary?.total_incoming ?? 0],
+                  ["Locations Count", inventorySummary?.locations_count ?? 0],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="border border-[#f7ead2]/10 bg-[#120d08] p-4"
+                  >
+                    <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-[#f7ead2]">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {[
               ["Available Online", "availableOnline"],
@@ -1266,6 +1322,7 @@ export default function EditProductForm({
   product,
   mediaAssets = [],
   productMedia = [],
+  inventorySummary,
 }: EditProductFormProps) {
   const override = useProductOverride(product.slug);
   const shouldClearCustomOpeleOverride =
@@ -1296,6 +1353,7 @@ export default function EditProductForm({
       product={studioProduct}
       mediaAssets={mediaAssets}
       productMedia={productMedia}
+      inventorySummary={inventorySummary}
       seedProduct={product}
       stock={effectiveOverride?.stock}
       customOpeleOverride={product.slug === "custom-opele" ? override : undefined}
