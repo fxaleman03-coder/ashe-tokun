@@ -6,6 +6,7 @@ import {
   getProducts,
 } from "@/lib/data/productsRepository";
 import { getMediaAssets } from "@/lib/data/mediaRepository";
+import { getProductMedia } from "@/lib/data/productMediaRepository";
 
 type AdminEditProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -24,7 +25,10 @@ export default async function AdminEditProductPage({
 }: AdminEditProductPageProps) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
-  const mediaAssets = await getMediaAssets();
+  const [mediaAssets, productMedia] = await Promise.all([
+    getMediaAssets(),
+    product ? getProductMedia(product.id) : Promise.resolve([]),
+  ]);
 
   if (!product) {
     return (
@@ -47,7 +51,11 @@ export default async function AdminEditProductPage({
       title="Product Studio"
       description={`Refine ${product.name.en} across catalog, media, pricing, inventory, SEO, and publishing.`}
     >
-      <EditProductForm product={product} mediaAssets={mediaAssets} />
+      <EditProductForm
+        product={product}
+        mediaAssets={mediaAssets}
+        productMedia={productMedia}
+      />
     </AdminShell>
   );
 }

@@ -8,7 +8,10 @@ import { collections, traditions, vendors } from "@/lib/catalog";
 import type { Category } from "@/lib/data/localCategories";
 import type { ProductType } from "@/lib/data/localProductTypes";
 import { createProduct } from "@/lib/data/productMutations";
-import { setPrimaryProductMedia } from "@/lib/data/productMediaMutations";
+import {
+  addProductMedia,
+  setPrimaryProductMedia,
+} from "@/lib/data/productMediaMutations";
 import type { MediaAsset } from "@/lib/data/mediaRepository";
 import type { ProductVendor } from "@/lib/products";
 
@@ -33,7 +36,6 @@ type WizardState = {
   availableOnline: boolean;
   availableInStore: boolean;
   mainImage: string;
-  galleryNote: string;
 };
 
 const steps = [
@@ -61,7 +63,6 @@ const initialState: WizardState = {
   availableOnline: true,
   availableInStore: true,
   mainImage: "",
-  galleryNote: "",
 };
 
 const inputClass =
@@ -242,6 +243,12 @@ export default function ProductCreationWizard({
   const [mediaQuery, setMediaQuery] = useState("");
   const [mediaCategory, setMediaCategory] = useState("all");
   const [mediaFolder, setMediaFolder] = useState("all");
+  const [mediaPickerPurpose, setMediaPickerPurpose] = useState<
+    "primary" | "gallery"
+  >("primary");
+  const [selectedGalleryAssets, setSelectedGalleryAssets] = useState<
+    MediaAsset[]
+  >([]);
 
   const databaseProductTypes = useMemo(
     () =>
@@ -316,6 +323,32 @@ export default function ProductCreationWizard({
     setCurrentStep(Math.min(Math.max(stepIndex, 0), steps.length - 1));
   }
 
+  function openMediaPicker(purpose: "primary" | "gallery") {
+    setMediaPickerPurpose(purpose);
+    setIsMediaPickerOpen(true);
+  }
+
+  function moveGalleryAsset(assetIndex: number, direction: -1 | 1) {
+    const nextIndex = assetIndex + direction;
+
+    if (nextIndex < 0 || nextIndex >= selectedGalleryAssets.length) {
+      return;
+    }
+
+    setSelectedGalleryAssets((currentAssets) => {
+      const nextAssets = [...currentAssets];
+      const [movedAsset] = nextAssets.splice(assetIndex, 1);
+      nextAssets.splice(nextIndex, 0, movedAsset);
+      return nextAssets;
+    });
+  }
+
+  function removeGalleryAsset(assetId: string) {
+    setSelectedGalleryAssets((currentAssets) =>
+      currentAssets.filter((asset) => asset.id !== assetId),
+    );
+  }
+
   async function handleCreateProduct(action: "draft" | "publish") {
     if (action === "publish" && !canPublish) {
       setMessage("Publishing requires the missing required fields first.");
@@ -384,6 +417,9 @@ export default function ProductCreationWizard({
       return;
     }
 
+    let linkedCount = 0;
+    let failedCount = 0;
+
     if (selectedMediaAsset) {
       const createdProductId = result.product.id;
 
@@ -401,6 +437,41 @@ export default function ProductCreationWizard({
         setMessage("Product created, but image linking failed.");
         return;
       }
+
+      linkedCount += 1;
+    }
+
+    if (selectedGalleryAssets.length > 0) {
+      const createdProductId = result.product.id;
+
+      if (!createdProductId) {
+        setMessage("Product created, but gallery image linking failed.");
+        return;
+      }
+
+      for (const asset of selectedGalleryAssets) {
+        if (asset.source !== "supabase") {
+          failedCount += 1;
+          continue;
+        }
+
+        const mediaResult = await addProductMedia(createdProductId, asset.id);
+
+        if (mediaResult.ok) {
+          linkedCount += 1;
+        } else {
+          failedCount += 1;
+        }
+      }
+    }
+
+    if (failedCount > 0) {
+      setMessage(
+        `Product created, but image linking partially failed. ${linkedCount} linked, ${failedCount} failed.`,
+      );
+      router.refresh();
+      router.push(`/admin/products/${createdSlug}/edit`);
+      return;
     }
 
     setMessage(
@@ -413,7 +484,28 @@ export default function ProductCreationWizard({
   }
 
   function selectMediaAsset(asset: MediaAsset) {
-    updateField("mainImage", asset.url);
+    if (mediaPickerPurpose === "primary") {
+      updateField("mainImage", asset.url);
+      setSelectedGalleryAssets((currentAssets) =>
+        currentAssets.filter((currentAsset) => currentAsset.id !== asset.id),
+      );
+      setIsMediaPickerOpen(false);
+      return;
+    }
+
+    if (selectedMediaAsset?.id === asset.id) {
+      setMessage("This asset is already selected as the primary image.");
+      setIsMediaPickerOpen(false);
+      return;
+    }
+
+    setSelectedGalleryAssets((currentAssets) => {
+      if (currentAssets.some((currentAsset) => currentAsset.id === asset.id)) {
+        return currentAssets;
+      }
+
+      return [...currentAssets, asset];
+    });
     setIsMediaPickerOpen(false);
   }
 
@@ -723,28 +815,93 @@ export default function ProductCreationWizard({
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Gallery Placeholder">
-                  <textarea
-                    value={state.galleryNote}
-                    onChange={(event) =>
-                      updateField("galleryNote", event.target.value)
-                    }
-                    placeholder="Gallery images will connect to Media Library in a future phase."
-                    className={`${textareaClass} min-h-28`}
-                  />
-                </Field>
                 <p className="text-sm leading-6 text-[#e8dcc8]/58">
                   Uploaded assets are stored in Supabase. Selecting one asset
-                  will create the primary product media link after the product
-                  is created.
+                  as primary and optional gallery assets will create product
+                  media links after the product is created.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setIsMediaPickerOpen(true)}
-                  className="inline-flex min-h-12 w-fit items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 ease-out hover:bg-[#d8a344] hover:text-[#0f0b07]"
-                >
-                  Choose From Media Library
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => openMediaPicker("primary")}
+                    className="inline-flex min-h-12 w-fit items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 ease-out hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                  >
+                    Select Primary Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openMediaPicker("gallery")}
+                    className="inline-flex min-h-12 w-fit items-center justify-center border border-[#f7ead2]/16 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#f7ead2] transition duration-500 ease-out hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+                  >
+                    Add Gallery Images
+                  </button>
+                </div>
+                <div>
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+                    Gallery Images
+                  </p>
+                  {selectedGalleryAssets.length > 0 ? (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {selectedGalleryAssets.map((asset, index) => (
+                        <article
+                          key={asset.id}
+                          className="border border-[#f7ead2]/10 bg-[#0f0b07] p-3"
+                        >
+                          <div className="relative aspect-square overflow-hidden bg-[#080503]">
+                            {asset.url.startsWith("http") ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={asset.url}
+                                alt={asset.filename}
+                                className="absolute inset-0 h-full w-full object-contain p-4"
+                              />
+                            ) : (
+                              <Image
+                                src={asset.url}
+                                alt={asset.filename}
+                                fill
+                                sizes="12rem"
+                                className="object-contain p-4"
+                              />
+                            )}
+                          </div>
+                          <p className="mt-3 truncate text-sm font-semibold text-[#f7ead2]">
+                            {asset.filename}
+                          </p>
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => moveGalleryAsset(index, -1)}
+                              disabled={index === 0}
+                              className="min-h-9 border border-[#f7ead2]/14 px-2 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-[#e8dcc8]/70 disabled:opacity-30"
+                            >
+                              Left
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveGalleryAsset(index, 1)}
+                              disabled={index === selectedGalleryAssets.length - 1}
+                              className="min-h-9 border border-[#f7ead2]/14 px-2 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-[#e8dcc8]/70 disabled:opacity-30"
+                            >
+                              Right
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeGalleryAsset(asset.id)}
+                              className="min-h-9 border border-[#d8a344]/35 px-2 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-[#d8a344]"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 border border-[#f7ead2]/10 bg-[#0f0b07] p-4 text-sm text-[#e8dcc8]/58">
+                      No gallery images selected yet.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           ) : null}
@@ -808,7 +965,7 @@ export default function ProductCreationWizard({
                 />
                 <div className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4 md:col-span-2 xl:col-span-3">
                   <p className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
-                    Selected Image
+                    Primary Image
                   </p>
                   <div className="mt-4 grid gap-4 md:grid-cols-[12rem_minmax(0,1fr)] md:items-center">
                     <div className="relative aspect-square overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
@@ -839,6 +996,41 @@ export default function ProductCreationWizard({
                       {state.mainImage || "Pending"}
                     </p>
                   </div>
+                </div>
+                <div className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4 md:col-span-2 xl:col-span-3">
+                  <p className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+                    Gallery Images
+                  </p>
+                  <p className="mt-3 text-sm text-[#e8dcc8]/70">
+                    {selectedGalleryAssets.length} selected
+                  </p>
+                  {selectedGalleryAssets.length > 0 ? (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+                      {selectedGalleryAssets.map((asset) => (
+                        <div
+                          key={asset.id}
+                          className="relative aspect-square overflow-hidden border border-[#f7ead2]/10 bg-[#080503]"
+                        >
+                          {asset.url.startsWith("http") ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={asset.url}
+                              alt={asset.filename}
+                              className="absolute inset-0 h-full w-full object-contain p-3"
+                            />
+                          ) : (
+                            <Image
+                              src={asset.url}
+                              alt={asset.filename}
+                              fill
+                              sizes="9rem"
+                              className="object-contain p-3"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <ReviewItem label="Preview SKU" value={previewSku} />
                 <ReviewItem label="Preview Barcode" value={previewSku} />
@@ -901,7 +1093,9 @@ export default function ProductCreationWizard({
                   Media Library
                 </p>
                 <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
-                  Choose Product Image
+                  {mediaPickerPurpose === "primary"
+                    ? "Choose Primary Image"
+                    : "Choose Gallery Image"}
                 </h2>
               </div>
               <button
@@ -980,7 +1174,9 @@ export default function ProductCreationWizard({
                       onClick={() => selectMediaAsset(image)}
                       className="mt-4 inline-flex min-h-10 w-full items-center justify-center bg-[#d8a344] px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
                     >
-                      Select
+                      {mediaPickerPurpose === "primary"
+                        ? "Select Primary"
+                        : "Add to Gallery"}
                     </button>
                   </div>
                 </article>

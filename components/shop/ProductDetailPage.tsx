@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { Product } from "@/lib/products";
 import {
@@ -28,6 +29,37 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
   const displayProduct = product
     ? mergeProductOverride(product, productOverride)
     : null;
+  const productName = displayProduct?.name[language] ?? "";
+  const detailImages = useMemo(() => {
+    if (!displayProduct) {
+      return [];
+    }
+
+    if (displayProduct.galleryImages?.length) {
+      return displayProduct.galleryImages.map((image) => ({
+        id: image.id,
+        url: image.public_url,
+        alt: image.alt_text ?? productName,
+      }));
+    }
+
+    if (displayProduct.image) {
+      return [
+        {
+          id: "primary-image",
+          url: displayProduct.image,
+          alt: productName,
+        },
+      ];
+    }
+
+    return [];
+  }, [displayProduct, productName]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const activeImage =
+    detailImages.find((image) => image.url === selectedImageUrl) ??
+    detailImages[0] ??
+    null;
 
   if (!displayProduct) {
     return (
@@ -53,7 +85,6 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
     );
   }
 
-  const productName = displayProduct.name[language];
   const stockLabel = displayProduct.inStock
     ? t.featuredProducts.labels.inStock
     : t.featuredProducts.labels.soldOut;
@@ -82,18 +113,65 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
             <div className="absolute inset-6 border border-[#f7ead2]/8 bg-[#090604]/80 shadow-[inset_0_0_78px_rgba(216,163,68,0.07),inset_0_-44px_64px_rgba(0,0,0,0.54)]" />
             <div className="absolute inset-x-14 bottom-14 h-28 bg-[#d8a344]/10 blur-3xl" />
             <div className="relative aspect-square sm:aspect-[5/4] lg:aspect-square">
-              {displayProduct.image ? (
-                <Image
-                  src={displayProduct.image}
-                  alt={productName}
-                  fill
-                  priority
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  className="object-contain p-7 drop-shadow-[0_34px_44px_rgba(0,0,0,0.64)] sm:p-10"
-                />
-              ) : null}
+              {activeImage ? (
+                activeImage.url.startsWith("http") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={activeImage.url}
+                    alt={activeImage.alt}
+                    className="absolute inset-0 h-full w-full object-contain p-7 drop-shadow-[0_34px_44px_rgba(0,0,0,0.64)] sm:p-10"
+                  />
+                ) : (
+                  <Image
+                    src={activeImage.url}
+                    alt={activeImage.alt}
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    className="object-contain p-7 drop-shadow-[0_34px_44px_rgba(0,0,0,0.64)] sm:p-10"
+                  />
+                )
+              ) : (
+                <div className="absolute inset-8 flex items-center justify-center border border-[#f7ead2]/10 text-center text-xs font-bold uppercase tracking-[0.22em] text-[#e8dcc8]/38">
+                  Image Pending
+                </div>
+              )}
             </div>
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f0b07]/75 via-[#0f0b07]/18 to-transparent" />
+            {detailImages.length > 1 ? (
+              <div className="relative mt-6 grid grid-cols-4 gap-3 sm:grid-cols-5">
+                {detailImages.map((image) => (
+                  <button
+                    key={image.id}
+                    type="button"
+                    onClick={() => setSelectedImageUrl(image.url)}
+                    className={`relative aspect-square overflow-hidden border bg-[#080503] transition duration-500 ${
+                      activeImage?.url === image.url
+                        ? "border-[#d8a344]/70 shadow-[0_0_28px_rgba(216,163,68,0.15)]"
+                        : "border-[#f7ead2]/10 hover:border-[#d8a344]/45"
+                    }`}
+                    aria-label={`View ${image.alt}`}
+                  >
+                    {image.url.startsWith("http") ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image.url}
+                        alt={image.alt}
+                        className="absolute inset-0 h-full w-full object-contain p-2"
+                      />
+                    ) : (
+                      <Image
+                        src={image.url}
+                        alt={image.alt}
+                        fill
+                        sizes="8rem"
+                        className="object-contain p-2"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="border border-[#f7ead2]/10 bg-[#120d08]/86 p-7 shadow-[0_30px_90px_rgba(0,0,0,0.26)] sm:p-9">

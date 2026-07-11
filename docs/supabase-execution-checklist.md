@@ -107,6 +107,24 @@ Before testing permanent primary image linking in development:
 
 This phase uses the existing `products -> product_media -> media_assets` relationship and the existing unique partial index that allows one primary image per product.
 
+## Phase 7.5A Local Media Migration
+
+Run the local commercial product image migration only after Supabase Storage and `media_assets` development policies are configured:
+
+```bash
+npm run migrate:media -- --confirm
+```
+
+This migration scans only `public/products` for `.jpg`, `.jpeg`, `.png`, and `.webp` files. It uploads commercial product images into the `product-media` bucket under `legacy-products/...` and creates or updates matching `media_assets` records by `storage_path`.
+
+Warnings:
+
+- Development migration only.
+- Local files remain unchanged.
+- Product relationships are not created automatically.
+- Product linking continues manually through Product Studio or Product Creation Wizard.
+- Manufacturing files such as STL, 3MF, SVG production files, LightBurn, Fusion 360, laser templates, and BOM files are not part of ASHE TOKUN commercial media migration.
+
 ## Phase 7.4A Public Product Reads
 
 Before testing public product reads in development, run:

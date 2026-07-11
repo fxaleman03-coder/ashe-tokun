@@ -1,23 +1,105 @@
 "use client";
 
 import { USE_SUPABASE } from "@/lib/config";
-import type { MediaAsset } from "@/lib/data/mediaRepository";
 import { supabase } from "@/lib/supabase";
 
 type ProductMediaRow = {
-  id?: string | null;
+  id: string;
   product_id: string;
   media_asset_id: string;
   display_order: number;
   is_primary: boolean;
   alt_text: string | null;
-  media_asset?: MediaAsset | null;
 };
 
 type ProductMediaMutationResult =
   | { ok: true; row: ProductMediaRow }
+  | { ok: true; rows: ProductMediaRow[] }
   | { ok: true; source: "local" }
   | { ok: false; error: string };
+
+type AddProductMediaOptions = {
+  isPrimary?: boolean;
+  altText?: string | null;
+};
+
+function supabaseConfigError(): ProductMediaMutationResult {
+  return {
+    ok: false,
+    error:
+      "Supabase is enabled, but the Supabase client is not configured. Check environment variables.",
+  };
+}
+
+async function getNextDisplayOrder(productId: string) {
+  if (!supabase) {
+    return 0;
+  }
+
+  const { data } = await supabase
+    .from("product_media")
+    .select("display_order")
+    .eq("product_id", productId)
+    .order("display_order", { ascending: false })
+    .limit(1);
+
+  const maxOrder = data?.[0]?.display_order;
+
+  return typeof maxOrder === "number" ? maxOrder + 1 : 0;
+}
+
+async function getExistingProductMedia(productId: string, mediaAssetId: string) {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("product_media")
+    .select("*")
+    .eq("product_id", productId)
+    .eq("media_asset_id", mediaAssetId)
+    .maybeSingle<ProductMediaRow>();
+
+  if (error) {
+    console.info("[ASHE TOKUN product media]", "Existing media lookup failed.", {
+      productId,
+      mediaAssetId,
+      errorMessage: error.message,
+      errorCode: error.code,
+      errorDetails: error.details,
+      errorHint: error.hint,
+    });
+  }
+
+  return data ?? null;
+}
+
+async function getProductMediaRows(productId: string) {
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("product_media")
+    .select("*")
+    .eq("product_id", productId)
+    .order("is_primary", { ascending: false })
+    .order("display_order", { ascending: true });
+
+  if (error) {
+    console.info("[ASHE TOKUN product media]", "Product media row read failed.", {
+      productId,
+      errorMessage: error.message,
+      errorCode: error.code,
+      errorDetails: error.details,
+      errorHint: error.hint,
+    });
+
+    return [];
+  }
+
+  return (data ?? []) as ProductMediaRow[];
+}
 
 export async function setPrimaryProductMedia(
   productId: string,
@@ -31,23 +113,52 @@ export async function setPrimaryProductMedia(
   }
 
   if (!supabase) {
-    return {
-      ok: false,
-      error:
-        "Supabase is enabled, but the Supabase client is not configured. Check environment variables.",
-    };
+    return supabaseConfigError();
   }
 
-  const deleteResult = await supabase
+  const demoteResult = await supabase
     .from("product_media")
-    .delete()
+    .update({ is_primary: false })
     .eq("product_id", productId)
     .eq("is_primary", true);
 
-  if (deleteResult.error) {
+  if (demoteResult.error) {
     return {
       ok: false,
-      error: deleteResult.error.message,
+      error: demoteResult.error.message,
+    };
+  }
+
+  const existingRow = await getExistingProductMedia(productId, mediaAssetId);
+
+  if (existingRow) {
+    const { data, error } = await supabase
+      .from("product_media")
+      .update({
+        is_primary: true,
+        display_order: 0,
+      })
+      .eq("id", existingRow.id)
+      .select("*")
+      .single<ProductMediaRow>();
+
+    if (error) {
+      return {
+        ok: false,
+        error: error.message,
+      };
+    }
+
+    if (!data || !data.is_primary || data.media_asset_id !== mediaAssetId) {
+      return {
+        ok: false,
+        error: "Primary product media relationship was not confirmed.",
+      };
+    }
+
+    return {
+      ok: true,
+      row: data,
     };
   }
 
@@ -83,31 +194,244 @@ export async function setPrimaryProductMedia(
   };
 }
 
-export async function getPrimaryProductMedia(
+export async function addProductMedia(
   productId: string,
-): Promise<ProductMediaRow | null> {
-  if (!USE_SUPABASE || !supabase) {
-    return null;
+  mediaAssetId: string,
+  options: AddProductMediaOptions = {},
+): Promise<ProductMediaMutationResult> {
+  if (!USE_SUPABASE) {
+    return {
+      ok: true,
+      source: "local",
+    };
+  }
+
+  if (!supabase) {
+    return supabaseConfigError();
+  }
+
+  const existingRow = await getExistingProductMedia(productId, mediaAssetId);
+
+  if (existingRow) {
+    return {
+      ok: false,
+      error: "This media asset is already linked to the product.",
+    };
+  }
+
+  if (options.isPrimary) {
+    return setPrimaryProductMedia(productId, mediaAssetId);
+  }
+
+  const displayOrder = await getNextDisplayOrder(productId);
+  const { data, error } = await supabase
+    .from("product_media")
+    .insert({
+      product_id: productId,
+      media_asset_id: mediaAssetId,
+      display_order: displayOrder,
+      is_primary: false,
+      alt_text: options.altText ?? null,
+    })
+    .select("*")
+    .single<ProductMediaRow>();
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message,
+    };
+  }
+
+  if (!data || data.product_id !== productId || data.media_asset_id !== mediaAssetId) {
+    return {
+      ok: false,
+      error: "Product media relationship was not returned.",
+    };
+  }
+
+  return {
+    ok: true,
+    row: data,
+  };
+}
+
+export async function removeProductMedia(
+  productId: string,
+  productMediaId: string,
+): Promise<ProductMediaMutationResult> {
+  if (!USE_SUPABASE) {
+    return {
+      ok: true,
+      source: "local",
+    };
+  }
+
+  if (!supabase) {
+    return supabaseConfigError();
+  }
+
+  const { data: removedRow, error } = await supabase
+    .from("product_media")
+    .delete()
+    .eq("product_id", productId)
+    .eq("id", productMediaId)
+    .select("*")
+    .single<ProductMediaRow>();
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message,
+    };
+  }
+
+  if (!removedRow) {
+    return {
+      ok: false,
+      error: "Product media relationship was not removed.",
+    };
+  }
+
+  if (removedRow.is_primary) {
+    const remainingRows = (await getProductMediaRows(productId)).filter(
+      (row) => row.id !== removedRow.id,
+    );
+    const nextPrimary = remainingRows[0];
+
+    if (nextPrimary) {
+      const primaryResult = await setPrimaryProductMedia(
+        productId,
+        nextPrimary.media_asset_id,
+      );
+
+      if (!primaryResult.ok) {
+        return primaryResult;
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    row: removedRow,
+  };
+}
+
+export async function reorderProductMedia(
+  productId: string,
+  orderedProductMediaIds: string[],
+): Promise<ProductMediaMutationResult> {
+  if (!USE_SUPABASE) {
+    return {
+      ok: true,
+      source: "local",
+    };
+  }
+
+  if (!supabase) {
+    return supabaseConfigError();
+  }
+
+  const updatedRows: ProductMediaRow[] = [];
+
+  for (const [index, productMediaId] of orderedProductMediaIds.entries()) {
+    const { data, error } = await supabase
+      .from("product_media")
+      .update({ display_order: index })
+      .eq("product_id", productId)
+      .eq("id", productMediaId)
+      .select("*")
+      .single<ProductMediaRow>();
+
+    if (error) {
+      return {
+        ok: false,
+        error: error.message,
+      };
+    }
+
+    if (!data) {
+      return {
+        ok: false,
+        error: "Reordered product media row was not returned.",
+      };
+    }
+
+    updatedRows.push(data);
+  }
+
+  const allRows = await getProductMediaRows(productId);
+  const primaryRows = allRows.filter((row) => row.is_primary);
+
+  if (allRows.length > 0 && primaryRows.length === 0) {
+    const primaryResult = await setPrimaryProductMedia(
+      productId,
+      allRows[0].media_asset_id,
+    );
+
+    if (!primaryResult.ok) {
+      return primaryResult;
+    }
+  }
+
+  if (primaryRows.length > 1) {
+    const preferredPrimary = primaryRows[0];
+    const primaryResult = await setPrimaryProductMedia(
+      productId,
+      preferredPrimary.media_asset_id,
+    );
+
+    if (!primaryResult.ok) {
+      return primaryResult;
+    }
+  }
+
+  return {
+    ok: true,
+    rows: updatedRows,
+  };
+}
+
+export async function updateProductMediaAltText(
+  productMediaId: string,
+  altText: string,
+): Promise<ProductMediaMutationResult> {
+  if (!USE_SUPABASE) {
+    return {
+      ok: true,
+      source: "local",
+    };
+  }
+
+  if (!supabase) {
+    return supabaseConfigError();
   }
 
   const { data, error } = await supabase
     .from("product_media")
-    .select("*, media_asset:media_assets(*)")
-    .eq("product_id", productId)
-    .eq("is_primary", true)
-    .maybeSingle<ProductMediaRow>();
+    .update({ alt_text: altText.trim() || null })
+    .eq("id", productMediaId)
+    .select("*")
+    .single<ProductMediaRow>();
 
   if (error) {
-    console.info("[ASHE TOKUN product media]", "Primary media read failed.", {
-      productId,
-      errorMessage: error.message,
-      errorCode: error.code,
-      errorDetails: error.details,
-      errorHint: error.hint,
-    });
+    return {
+      ok: false,
+      error: error.message,
+    };
   }
 
-  return data ?? null;
+  if (!data) {
+    return {
+      ok: false,
+      error: "Updated product media row was not returned.",
+    };
+  }
+
+  return {
+    ok: true,
+    row: data,
+  };
 }
 
 export async function removePrimaryProductMedia(
@@ -121,37 +445,19 @@ export async function removePrimaryProductMedia(
   }
 
   if (!supabase) {
-    return {
-      ok: false,
-      error:
-        "Supabase is enabled, but the Supabase client is not configured. Check environment variables.",
-    };
+    return supabaseConfigError();
   }
 
-  const { data, error } = await supabase
-    .from("product_media")
-    .delete()
-    .eq("product_id", productId)
-    .eq("is_primary", true)
-    .select("*")
-    .maybeSingle<ProductMediaRow>();
+  const primaryRows = (await getProductMediaRows(productId)).filter(
+    (row) => row.is_primary,
+  );
 
-  if (error) {
-    return {
-      ok: false,
-      error: error.message,
-    };
+  if (primaryRows[0]) {
+    return removeProductMedia(productId, primaryRows[0].id);
   }
 
   return {
     ok: true,
-    row:
-      data ?? {
-        product_id: productId,
-        media_asset_id: "",
-        display_order: 0,
-        is_primary: true,
-        alt_text: null,
-      },
+    rows: [],
   };
 }

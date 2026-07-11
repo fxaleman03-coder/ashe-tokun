@@ -8,7 +8,14 @@ import {
   updateProduct,
   type ProductPriceTrace,
 } from "@/lib/data/productMutations";
-import { setPrimaryProductMedia } from "@/lib/data/productMediaMutations";
+import {
+  addProductMedia,
+  removeProductMedia,
+  reorderProductMedia,
+  setPrimaryProductMedia,
+  updateProductMediaAltText,
+} from "@/lib/data/productMediaMutations";
+import type { ProductMediaRecord } from "@/lib/data/productMediaRepository";
 import type { MediaAsset } from "@/lib/data/mediaRepository";
 import {
   productVendors,
@@ -25,6 +32,7 @@ import {
 type EditProductFormProps = {
   product: Product;
   mediaAssets?: MediaAsset[];
+  productMedia?: ProductMediaRecord[];
 };
 
 type ProductStatus = "Draft" | "Active" | "Archived";
@@ -239,6 +247,7 @@ type ProductStudioFormProps = EditProductFormProps & {
 function ProductStudioForm({
   product,
   mediaAssets = [],
+  productMedia = [],
   seedProduct,
   stock,
   customOpeleOverride,
@@ -251,14 +260,15 @@ function ProductStudioForm({
   const [priceTrace, setPriceTrace] = useState<ProductPriceTrace | null>(null);
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [mediaQuery, setMediaQuery] = useState("");
-  const [selectedPrimaryMediaAsset, setSelectedPrimaryMediaAsset] =
-    useState<MediaAsset | null>(null);
+  const [linkedMedia, setLinkedMedia] = useState(productMedia);
   const localCustomOpele = localProducts.find(
     (localProduct) => localProduct.slug === "custom-opele",
   );
 
+  const primaryMedia = linkedMedia.find((media) => media.is_primary) ?? null;
+  const primaryPreviewUrl = primaryMedia?.media_asset.public_url ?? formState.image;
   const canPreviewImage =
-    formState.image.startsWith("/") || formState.image.startsWith("http");
+    primaryPreviewUrl.startsWith("/") || primaryPreviewUrl.startsWith("http");
   const shouldShowCustomOpeleDiagnostic = product.slug === "custom-opele";
   const filteredStudioMediaAssets = useMemo(() => {
     const normalizedQuery = mediaQuery.trim().toLowerCase();
@@ -287,6 +297,148 @@ function ProductStudioForm({
 
   function openMediaPicker() {
     setIsMediaPickerOpen(true);
+  }
+
+  async function handleAddGalleryMedia(asset: MediaAsset) {
+    if (asset.source !== "supabase") {
+      setMessage("Gallery image linking requires a Supabase media asset.");
+      return;
+    }
+
+    const shouldSetPrimary = linkedMedia.length === 0;
+    const result = shouldSetPrimary
+      ? await setPrimaryProductMedia(product.id, asset.id)
+      : await addProductMedia(product.id, asset.id);
+
+    if (!result.ok) {
+      setMessage(`Image linking failed: ${result.error}`);
+      return;
+    }
+
+    const row = "row" in result ? result.row : null;
+
+    if (row) {
+      const linkedRecord = {
+        ...row,
+        media_asset: {
+          id: asset.id,
+          filename: asset.filename,
+          public_url: asset.url,
+          storage_path: asset.storage_path,
+          asset_type: asset.asset_type,
+          width: asset.width,
+          height: asset.height,
+          active: asset.active,
+        },
+      };
+
+      setLinkedMedia((currentMedia) =>
+        shouldSetPrimary
+          ? [
+              linkedRecord,
+              ...currentMedia.map((media) => ({
+                ...media,
+                is_primary: false,
+              })),
+            ]
+          : [...currentMedia, linkedRecord],
+      );
+      updateField("image", asset.url);
+    }
+
+    setIsMediaPickerOpen(false);
+    router.refresh();
+    setMessage(
+      shouldSetPrimary
+        ? "Primary image linked."
+        : "Gallery image linked.",
+    );
+  }
+
+  async function handleSetPrimaryMedia(media: ProductMediaRecord) {
+    const result = await setPrimaryProductMedia(product.id, media.media_asset_id);
+
+    if (!result.ok) {
+      setMessage(`Primary image update failed: ${result.error}`);
+      return;
+    }
+
+    setLinkedMedia((currentMedia) =>
+      currentMedia.map((item) => ({
+        ...item,
+        is_primary: item.id === media.id,
+        display_order: item.id === media.id ? 0 : item.display_order,
+      })),
+    );
+    updateField("image", media.media_asset.public_url ?? "");
+    setMessage("Primary image updated.");
+    router.refresh();
+  }
+
+  async function handleRemoveMedia(media: ProductMediaRecord) {
+    const result = await removeProductMedia(product.id, media.id);
+
+    if (!result.ok) {
+      setMessage(`Image removal failed: ${result.error}`);
+      return;
+    }
+
+    const remainingMedia = linkedMedia.filter((item) => item.id !== media.id);
+    const hasPrimary = remainingMedia.some((item) => item.is_primary);
+    const promotedMedia =
+      !hasPrimary && remainingMedia[0]
+        ? remainingMedia.map((item, index) => ({
+            ...item,
+            is_primary: index === 0,
+          }))
+        : remainingMedia;
+
+    setLinkedMedia(promotedMedia);
+    updateField("image", promotedMedia[0]?.media_asset.public_url ?? "");
+    setMessage("Image removed from product.");
+    router.refresh();
+  }
+
+  async function handleMoveMedia(mediaIndex: number, direction: -1 | 1) {
+    const nextIndex = mediaIndex + direction;
+
+    if (nextIndex < 0 || nextIndex >= linkedMedia.length) {
+      return;
+    }
+
+    const nextMedia = [...linkedMedia];
+    const [movedMedia] = nextMedia.splice(mediaIndex, 1);
+    nextMedia.splice(nextIndex, 0, movedMedia);
+
+    const result = await reorderProductMedia(
+      product.id,
+      nextMedia.map((media) => media.id),
+    );
+
+    if (!result.ok) {
+      setMessage(`Image reorder failed: ${result.error}`);
+      return;
+    }
+
+    setLinkedMedia(
+      nextMedia.map((media, index) => ({
+        ...media,
+        display_order: index,
+      })),
+    );
+    setMessage("Gallery order updated.");
+    router.refresh();
+  }
+
+  async function handleAltTextBlur(media: ProductMediaRecord, altText: string) {
+    const result = await updateProductMediaAltText(media.id, altText);
+
+    if (!result.ok) {
+      setMessage(`Alt text update failed: ${result.error}`);
+      return;
+    }
+
+    setMessage("Alt text updated.");
   }
 
   async function handleSave() {
@@ -346,25 +498,6 @@ function ProductStudioForm({
     setIsSaving(false);
 
     if (result.ok && result.source === "supabase") {
-      if (selectedPrimaryMediaAsset) {
-        if (selectedPrimaryMediaAsset.source !== "supabase") {
-          setPriceTrace(null);
-          setMessage("Product saved, image linking failed.");
-          return;
-        }
-
-        const mediaResult = await setPrimaryProductMedia(
-          product.id,
-          selectedPrimaryMediaAsset.id,
-        );
-
-        if (!mediaResult.ok) {
-          setPriceTrace(null);
-          setMessage("Product saved, image linking failed.");
-          return;
-        }
-      }
-
       setPriceTrace(result.priceTrace);
       setFormState((currentState) => ({
         ...currentState,
@@ -434,16 +567,16 @@ function ProductStudioForm({
           <div className="relative mt-5 aspect-square overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,rgba(216,163,68,0.18),transparent_32%),linear-gradient(135deg,#171008_0%,#0f0b07_58%,#050302_100%)]" />
             {canPreviewImage ? (
-              formState.image.startsWith("http") ? (
+              primaryPreviewUrl.startsWith("http") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={formState.image}
+                  src={primaryPreviewUrl}
                   alt={formState.name}
                   className="absolute inset-0 h-full w-full object-contain p-6 drop-shadow-[0_26px_34px_rgba(0,0,0,0.62)]"
                 />
               ) : (
                 <Image
-                  src={formState.image}
+                  src={primaryPreviewUrl}
                   alt={formState.name}
                   fill
                   sizes="22rem"
@@ -597,16 +730,16 @@ function ProductStudioForm({
             <div className="relative aspect-square overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,rgba(216,163,68,0.16),transparent_32%),linear-gradient(135deg,#171008_0%,#0f0b07_58%,#050302_100%)]" />
               {canPreviewImage ? (
-                formState.image.startsWith("http") ? (
+                primaryPreviewUrl.startsWith("http") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={formState.image}
+                    src={primaryPreviewUrl}
                     alt={formState.name}
                     className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_22px_32px_rgba(0,0,0,0.62)]"
                   />
                 ) : (
                   <Image
-                    src={formState.image}
+                    src={primaryPreviewUrl}
                     alt={formState.name}
                     fill
                     sizes="16rem"
@@ -641,9 +774,131 @@ function ProductStudioForm({
               </div>
               <p className="mt-4 text-sm leading-6 text-[#e8dcc8]/58">
                 Uploaded assets are stored in Supabase. Selecting one asset
-                will create the primary product media link when saved.
+                will add it to this product without deleting the asset itself.
               </p>
             </div>
+          </div>
+
+          <div className="mt-7">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+                  Product Gallery
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[#e8dcc8]/58">
+                  One primary image plus ordered gallery images.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openMediaPicker}
+                className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 ease-out hover:bg-[#d8a344] hover:text-[#0f0b07]"
+              >
+                Add From Media Library
+              </button>
+            </div>
+
+            {linkedMedia.length > 0 ? (
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {linkedMedia.map((media, index) => (
+                  <article
+                    key={media.id}
+                    className={`border bg-[#0f0b07] p-3 transition duration-500 ${
+                      media.is_primary
+                        ? "border-[#d8a344]/60 shadow-[0_0_34px_rgba(216,163,68,0.12)]"
+                        : "border-[#f7ead2]/10 hover:border-[#d8a344]/40"
+                    }`}
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-[#080503]">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(216,163,68,0.14),transparent_34%),linear-gradient(135deg,#171008_0%,#0f0b07_58%,#050302_100%)]" />
+                      {media.media_asset.public_url?.startsWith("http") ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={media.media_asset.public_url}
+                          alt={media.alt_text ?? media.media_asset.filename}
+                          className="absolute inset-0 h-full w-full object-contain p-4 drop-shadow-[0_20px_30px_rgba(0,0,0,0.58)]"
+                        />
+                      ) : media.media_asset.public_url ? (
+                        <Image
+                          src={media.media_asset.public_url}
+                          alt={media.alt_text ?? media.media_asset.filename}
+                          fill
+                          sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 100vw"
+                          className="object-contain p-4 drop-shadow-[0_20px_30px_rgba(0,0,0,0.58)]"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <p className="truncate text-sm font-semibold text-[#f7ead2]">
+                        {media.media_asset.filename}
+                      </p>
+                      {media.is_primary ? (
+                        <span className="shrink-0 text-[0.58rem] font-bold uppercase tracking-[0.16em] text-[#d8a344]">
+                          Primary
+                        </span>
+                      ) : null}
+                    </div>
+                    <input
+                      type="text"
+                      value={media.alt_text ?? ""}
+                      onChange={(event) => {
+                        const altText = event.target.value;
+                        setLinkedMedia((currentMedia) =>
+                          currentMedia.map((item) =>
+                            item.id === media.id
+                              ? { ...item, alt_text: altText }
+                              : item,
+                          ),
+                        );
+                      }}
+                      onBlur={(event) =>
+                        handleAltTextBlur(media, event.target.value)
+                      }
+                      placeholder="Alt text"
+                      className={`${inputClass} mt-3 min-h-10`}
+                    />
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveMedia(index, -1)}
+                        disabled={index === 0}
+                        className="inline-flex min-h-9 items-center justify-center border border-[#f7ead2]/14 px-3 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#e8dcc8]/72 transition hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        Move Left
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveMedia(index, 1)}
+                        disabled={index === linkedMedia.length - 1}
+                        className="inline-flex min-h-9 items-center justify-center border border-[#f7ead2]/14 px-3 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#e8dcc8]/72 transition hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        Move Right
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetPrimaryMedia(media)}
+                        disabled={media.is_primary}
+                        className="inline-flex min-h-9 items-center justify-center border border-[#d8a344]/35 px-3 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#d8a344] transition hover:bg-[#d8a344] hover:text-[#0f0b07] disabled:cursor-not-allowed disabled:border-[#f7ead2]/10 disabled:text-[#e8dcc8]/36"
+                      >
+                        Set as Primary
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMedia(media)}
+                        className="inline-flex min-h-9 items-center justify-center border border-[#f7ead2]/14 px-3 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#e8dcc8]/72 transition hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-5 border border-[#f7ead2]/10 bg-[#0f0b07] p-5 text-sm leading-6 text-[#e8dcc8]/60">
+                No product images linked yet. Add an asset from the Media Library
+                to create the primary image.
+              </p>
+            )}
           </div>
         </SectionCard>
 
@@ -928,7 +1183,7 @@ function ProductStudioForm({
                   Media Library
                 </p>
                 <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
-                  Assign Primary Image
+                  Add Product Image
                 </h2>
               </div>
               <button
@@ -990,16 +1245,11 @@ function ProductStudioForm({
                     <button
                       type="button"
                       onClick={() => {
-                        updateField("image", image.url);
-                        setSelectedPrimaryMediaAsset(image);
-                        setIsMediaPickerOpen(false);
-                        setMessage(
-                          "Primary image selected. Save the product to persist this image link.",
-                        );
+                        handleAddGalleryMedia(image);
                       }}
                       className="mt-4 inline-flex min-h-10 w-full items-center justify-center bg-[#d8a344] px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
                     >
-                      Assign as Primary Image
+                      Add to Product
                     </button>
                   </div>
                 </article>
@@ -1015,6 +1265,7 @@ function ProductStudioForm({
 export default function EditProductForm({
   product,
   mediaAssets = [],
+  productMedia = [],
 }: EditProductFormProps) {
   const override = useProductOverride(product.slug);
   const shouldClearCustomOpeleOverride =
@@ -1044,6 +1295,7 @@ export default function EditProductForm({
       key={studioKey}
       product={studioProduct}
       mediaAssets={mediaAssets}
+      productMedia={productMedia}
       seedProduct={product}
       stock={effectiveOverride?.stock}
       customOpeleOverride={product.slug === "custom-opele" ? override : undefined}

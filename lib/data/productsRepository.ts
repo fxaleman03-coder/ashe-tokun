@@ -1,5 +1,10 @@
 import { USE_SUPABASE } from "@/lib/config";
-import { products as localProducts, type Product, type ProductVendor } from "@/lib/products";
+import {
+  products as localProducts,
+  type Product,
+  type ProductGalleryImage,
+  type ProductVendor,
+} from "@/lib/products";
 import { supabase } from "@/lib/supabase";
 import type { Language } from "@/lib/translations";
 
@@ -51,13 +56,18 @@ type SupabaseProductRow = {
 };
 
 type ProductMediaAssetRelation = {
+  id?: string | null;
   public_url?: string | null;
   storage_path?: string | null;
   active?: boolean | null;
 } | null;
 
 type ProductMediaRelationRow = {
+  id: string;
   product_id: string;
+  display_order?: number | null;
+  is_primary?: boolean | null;
+  alt_text?: string | null;
   media_asset?: ProductMediaAssetRelation | ProductMediaAssetRelation[];
 };
 
@@ -114,7 +124,7 @@ const normalizeVendor = (brandName?: string | null): ProductVendor => {
   return "AJAKO ORIGINALS";
 };
 
-const getPrimaryImageUrl = (
+const getMediaImageUrl = (
   row: ProductMediaRelationRow,
 ): string | undefined => {
   const relation = Array.isArray(row.media_asset)
@@ -142,7 +152,7 @@ const getPrimaryImageUrl = (
 
 const mapSupabaseProduct = (
   row: SupabaseProductRow,
-  primaryImagesByProductId: Map<string, string>,
+  mediaByProductId: Map<string, ProductGalleryImage[]>,
 ): Product => {
   const stock = row.stock ?? 0;
   const categoryName = row.category?.name ?? "Uncategorized";
@@ -152,7 +162,9 @@ const mapSupabaseProduct = (
   const compareAtPrice = toNumber(row.compare_at_price);
   const cost = toNumber(row.cost);
   const localProduct = localProductsBySku.get(row.sku);
-  const image = primaryImagesByProductId.get(row.id) ?? localProduct?.image ?? null;
+  const productMedia = mediaByProductId.get(row.id) ?? [];
+  const primaryImage = productMedia[0]?.public_url;
+  const image = primaryImage ?? localProduct?.image ?? null;
 
   return {
     id: row.id,
@@ -174,6 +186,7 @@ const mapSupabaseProduct = (
     availableOnline: row.available_online ?? true,
     availableInStore: row.available_in_store ?? true,
     image,
+    galleryImages: productMedia,
     inStock: stock > 0,
     isFeatured: row.featured ?? false,
     isNew: row.new_arrival ?? false,
@@ -248,16 +261,17 @@ async function readProducts(): Promise<ProductsResult> {
 
   const products = data as SupabaseProductRow[];
   const productIds = products.map((product) => product.id);
-  const primaryImagesByProductId = new Map<string, string>();
+  const mediaByProductId = new Map<string, ProductGalleryImage[]>();
 
   if (productIds.length > 0) {
     const mediaResult = await supabase
       .from("product_media")
       .select(
-        "product_id, media_asset:media_assets(public_url, storage_path, active)",
+        "id, product_id, display_order, is_primary, alt_text, media_asset:media_assets(id, public_url, storage_path, active)",
       )
       .in("product_id", productIds)
-      .eq("is_primary", true);
+      .order("is_primary", { ascending: false })
+      .order("display_order", { ascending: true });
 
     if (mediaResult.error) {
       console.info(
@@ -272,10 +286,21 @@ async function readProducts(): Promise<ProductsResult> {
       );
     } else {
       for (const row of (mediaResult.data ?? []) as ProductMediaRelationRow[]) {
-        const imageUrl = getPrimaryImageUrl(row);
+        const imageUrl = getMediaImageUrl(row);
+        const mediaAsset = Array.isArray(row.media_asset)
+          ? row.media_asset[0]
+          : row.media_asset;
 
-        if (imageUrl) {
-          primaryImagesByProductId.set(row.product_id, imageUrl);
+        if (imageUrl && mediaAsset?.id) {
+          const productMedia = mediaByProductId.get(row.product_id) ?? [];
+
+          productMedia.push({
+            id: row.id,
+            public_url: imageUrl,
+            alt_text: row.alt_text ?? null,
+            display_order: row.display_order ?? 0,
+          });
+          mediaByProductId.set(row.product_id, productMedia);
         }
       }
     }
@@ -283,7 +308,7 @@ async function readProducts(): Promise<ProductsResult> {
 
   return {
     products: products.map((product) =>
-      mapSupabaseProduct(product, primaryImagesByProductId),
+      mapSupabaseProduct(product, mediaByProductId),
     ),
     source: "Supabase",
     supabaseProductCount,

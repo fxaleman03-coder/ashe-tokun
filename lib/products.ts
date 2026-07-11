@@ -30,10 +30,18 @@ export type Product = {
   availableOnline: boolean;
   availableInStore: boolean;
   image: string | null;
+  galleryImages?: ProductGalleryImage[];
   inStock: boolean;
   isFeatured: boolean;
   isNew: boolean;
   shortDescription: LocalizedText;
+};
+
+export type ProductGalleryImage = {
+  id: string;
+  public_url: string;
+  alt_text: string | null;
+  display_order: number;
 };
 
 const category = {
