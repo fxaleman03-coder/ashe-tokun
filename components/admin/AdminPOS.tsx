@@ -1,20 +1,37 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
-import type { Product } from "@/lib/products";
-import { useProductCatalog } from "@/lib/productStore";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { completePosSale } from "@/lib/data/posMutations";
+import type {
+  PosCartItem,
+  PosDataSource,
+  PosInventoryLocation,
+  PosProduct,
+  PosSaleResult,
+} from "@/lib/types/pos";
 
-type CartItem = {
-  product: Product;
-  quantity: number;
+type AdminPOSProps = {
+  products: PosProduct[];
+  locations: PosInventoryLocation[];
+  customer: {
+    id: string | null;
+    name: string;
+  };
+  nextOrderNumber: string;
+  nextReceiptNumber: string;
+  source: PosDataSource;
 };
 
-type DiscountType = "amount" | "percent";
+type DiscountType = "fixed" | "percentage";
+type PaymentMethod = "cash" | "card" | "other";
 
-const paymentMethods = ["Cash", "Card", "Zelle", "Other", "Split Payment"];
-const defaultCustomer = "Walk-in Customer";
-const receiptNumber = "Receipt #100001";
+const paymentMethods: { label: string; value: PaymentMethod }[] = [
+  { label: "Cash", value: "cash" },
+  { label: "Card", value: "card" },
+  { label: "Other", value: "other" },
+];
 
 const inputClass =
   "min-h-14 w-full border border-[#f7ead2]/10 bg-[#120d08] px-4 text-sm text-[#f7ead2] outline-none transition duration-300 placeholder:text-[#e8dcc8]/38 focus:border-[#d8a344]/70";
@@ -32,55 +49,87 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function getProductLabel(product: Product) {
-  return product.name.en;
-}
-
-function getLocalizedLabel(value: Product["category"]) {
-  return value.en;
-}
-
 function parsePositiveNumber(value: string) {
   const parsedValue = Number(value);
 
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 0;
 }
 
-export default function AdminPOS() {
-  const products = useProductCatalog();
+function getAvailableAtLocation(product: PosProduct, locationId: string) {
+  return (
+    product.inventoryByLocation.find((item) => item.locationId === locationId)
+      ?.availableQuantity ?? 0
+  );
+}
+
+function makeCartItem(
+  product: PosProduct,
+  quantity: number,
+  locationId: string,
+): PosCartItem {
+  const lineSubtotal = product.price * quantity;
+
+  return {
+    productId: product.id,
+    name: product.name,
+    sku: product.sku,
+    barcode: product.barcode,
+    image: product.image,
+    unitPrice: product.price,
+    quantity,
+    lineSubtotal,
+    discountAmount: 0,
+    taxAmount: 0,
+    lineTotal: lineSubtotal,
+    availableQuantity: getAvailableAtLocation(product, locationId),
+    locationId,
+    brand: product.brand,
+  };
+}
+
+function getReceiptDateTime() {
+  const now = new Date();
+
+  return {
+    date: now.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
+    time: now.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  };
+}
+
+export default function AdminPOS({
+  products,
+  locations,
+  customer,
+  nextOrderNumber,
+  nextReceiptNumber,
+  source,
+}: AdminPOSProps) {
+  const defaultLocation =
+    locations.find((location) => location.name === "Retail Floor") ??
+    locations.find((location) => location.name === "Main Stockroom") ??
+    locations[0];
+  const [selectedLocationId, setSelectedLocationId] = useState(
+    defaultLocation?.id ?? "",
+  );
   const [lookupValue, setLookupValue] = useState("");
   const [query, setQuery] = useState("");
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [discountType, setDiscountType] = useState<DiscountType>("amount");
+  const [cartItems, setCartItems] = useState<PosCartItem[]>([]);
+  const [discountType, setDiscountType] = useState<DiscountType>("fixed");
   const [discountValue, setDiscountValue] = useState("");
-  const [taxRateValue, setTaxRateValue] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [taxRateValue, setTaxRateValue] = useState("7");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [amountTendered, setAmountTendered] = useState("");
   const [warning, setWarning] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [receiptDateTime, setReceiptDateTime] = useState({
-    date: "Pending",
-    time: "Pending",
-  });
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const now = new Date();
-
-      setReceiptDateTime({
-        date: now.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-        time: now.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-      });
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
+  const [success, setSuccess] = useState<PosSaleResult | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [receiptDateTime] = useState(getReceiptDateTime);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -91,13 +140,12 @@ export default function AdminPOS() {
 
     return products.filter((product) => {
       const searchable = [
-        product.name.en,
-        product.vendor,
+        product.name,
+        product.brand,
         product.sku,
         product.barcode,
         product.vendorSku,
-        product.category.en,
-        product.tradition.en,
+        product.category,
       ]
         .filter(Boolean)
         .join(" ")
@@ -108,7 +156,7 @@ export default function AdminPOS() {
   }, [products, query]);
 
   const subtotal = cartItems.reduce(
-    (total, item) => total + item.product.price * item.quantity,
+    (total, item) => total + item.unitPrice * item.quantity,
     0,
   );
   const cartItemCount = cartItems.reduce(
@@ -117,44 +165,76 @@ export default function AdminPOS() {
   );
   const discountInput = parsePositiveNumber(discountValue);
   const rawDiscount =
-    discountType === "percent"
+    discountType === "percentage"
       ? subtotal * (Math.min(discountInput, 100) / 100)
       : discountInput;
   const discount = Math.min(rawDiscount, subtotal);
   const taxableAmount = Math.max(subtotal - discount, 0);
-  const tax = taxableAmount * (parsePositiveNumber(taxRateValue) / 100);
+  const taxRate = parsePositiveNumber(taxRateValue);
+  const tax = taxableAmount * (taxRate / 100);
   const total = taxableAmount + tax;
+  const tendered = amountTendered ? parsePositiveNumber(amountTendered) : total;
+  const changeDue =
+    paymentMethod === "cash" ? Math.max(tendered - total, 0) : 0;
 
-  function addProduct(product: Product) {
-    if (product.stock <= 0) {
+  function clearMessages() {
+    setWarning("");
+    setSuccess(null);
+  }
+
+  function revalidateCartForLocation(locationId: string) {
+    setCartItems((currentItems) =>
+      currentItems
+        .map((item) => {
+          const product = products.find(
+            (candidate) => candidate.id === item.productId,
+          );
+          const availableQuantity = product
+            ? getAvailableAtLocation(product, locationId)
+            : 0;
+
+          return {
+            ...item,
+            locationId,
+            availableQuantity,
+            quantity: Math.min(item.quantity, Math.max(availableQuantity, 1)),
+          };
+        })
+        .filter((item) => item.availableQuantity > 0),
+    );
+  }
+
+  function addProduct(product: PosProduct) {
+    const availableQuantity = getAvailableAtLocation(product, selectedLocationId);
+
+    if (availableQuantity <= 0) {
       setWarning("Not enough stock available.");
-      setSuccessMessage("");
+      setSuccess(null);
       return;
     }
 
     setCartItems((currentItems) => {
       const existingItem = currentItems.find(
-        (item) => item.product.slug === product.slug,
+        (item) => item.productId === product.id,
       );
 
       if (existingItem) {
-        if (existingItem.quantity >= product.stock) {
+        if (existingItem.quantity >= availableQuantity) {
           setWarning("Not enough stock available.");
-          setSuccessMessage("");
+          setSuccess(null);
           return currentItems;
         }
 
         return currentItems.map((item) =>
-          item.product.slug === product.slug
-            ? { ...item, quantity: item.quantity + 1 }
+          item.productId === product.id
+            ? makeCartItem(product, item.quantity + 1, selectedLocationId)
             : item,
         );
       }
 
-      return [...currentItems, { product, quantity: 1 }];
+      return [...currentItems, makeCartItem(product, 1, selectedLocationId)];
     });
-    setWarning("");
-    setSuccessMessage("");
+    clearMessages();
   }
 
   function addLookupItem() {
@@ -162,7 +242,7 @@ export default function AdminPOS() {
 
     if (!normalizedLookup) {
       setWarning("Product not found.");
-      setSuccessMessage("");
+      setSuccess(null);
       return;
     }
 
@@ -174,7 +254,7 @@ export default function AdminPOS() {
 
     if (!matchedProduct) {
       setWarning("Product not found.");
-      setSuccessMessage("");
+      setSuccess(null);
       return;
     }
 
@@ -182,39 +262,41 @@ export default function AdminPOS() {
     setLookupValue("");
   }
 
-  function updateQuantity(slug: string, nextQuantity: number) {
+  function updateQuantity(productId: string, nextQuantity: number) {
     setCartItems((currentItems) =>
       currentItems.map((item) => {
-        if (item.product.slug !== slug) {
+        if (item.productId !== productId) {
           return item;
         }
 
-        if (nextQuantity > item.product.stock) {
+        if (nextQuantity > item.availableQuantity) {
           setWarning("Not enough stock available.");
-          setSuccessMessage("");
+          setSuccess(null);
           return item;
         }
 
-        return { ...item, quantity: Math.max(1, nextQuantity) };
+        const product = products.find((candidate) => candidate.id === productId);
+
+        return product
+          ? makeCartItem(product, Math.max(1, nextQuantity), selectedLocationId)
+          : item;
       }),
     );
   }
 
-  function removeItem(slug: string) {
+  function removeItem(productId: string) {
     setCartItems((currentItems) =>
-      currentItems.filter((item) => item.product.slug !== slug),
+      currentItems.filter((item) => item.productId !== productId),
     );
   }
 
-  function completeSalePreview() {
-    if (cartItems.length === 0 || !paymentMethod) {
-      return;
-    }
-
-    setSuccessMessage(
-      "Sale preview completed locally. Inventory deduction and payment processing will be connected in a future phase.",
-    );
-    setWarning("");
+  function resetSale() {
+    setCartItems([]);
+    setDiscountType("fixed");
+    setDiscountValue("");
+    setTaxRateValue("7");
+    setPaymentMethod("");
+    setAmountTendered("");
   }
 
   function holdSale() {
@@ -222,18 +304,13 @@ export default function AdminPOS() {
       return;
     }
 
-    setSuccessMessage(
-      "Sale held locally. Resume sale will be connected in a future database phase.",
-    );
+    setSuccess({
+      ok: true,
+      source: "local",
+      message:
+        "Sale held locally. Resume sale will be connected in a future database phase.",
+    });
     setWarning("");
-  }
-
-  function resetSale() {
-    setCartItems([]);
-    setDiscountType("amount");
-    setDiscountValue("");
-    setTaxRateValue("");
-    setPaymentMethod("");
   }
 
   function cancelSale() {
@@ -241,32 +318,111 @@ export default function AdminPOS() {
       return;
     }
 
-    const shouldCancel = window.confirm("Cancel this local sale preview?");
+    const shouldCancel = window.confirm("Cancel this POS sale?");
 
     if (!shouldCancel) {
       return;
     }
 
     resetSale();
-    setSuccessMessage("Sale canceled.");
+    setSuccess({
+      ok: true,
+      source: "local",
+      message: "Sale canceled.",
+    });
     setWarning("");
+  }
+
+  async function completeSale() {
+    if (cartItems.length === 0 || !paymentMethod) {
+      return;
+    }
+
+    if (tendered < total) {
+      setWarning("Amount tendered must cover the sale total.");
+      setSuccess(null);
+      return;
+    }
+
+    if (source === "Local fallback") {
+      setSuccess({
+        ok: true,
+        source: "local",
+        message:
+          "Sale preview completed locally. Live order writes require Supabase inventory data.",
+      });
+      setWarning("");
+      return;
+    }
+
+    setIsCompleting(true);
+    setWarning("");
+    setSuccess(null);
+
+    const result = await completePosSale({
+      customerId: customer.id,
+      inventoryLocationId: selectedLocationId,
+      cartItems,
+      discountType,
+      discountValue: discountInput,
+      taxRate,
+      paymentMethod,
+      amountTendered: tendered,
+      cashierName: "Admin",
+      notes: "POS sale completed from ASHE TOKUN Control Center.",
+    });
+
+    setIsCompleting(false);
+
+    if (!result.ok) {
+      setWarning(result.error);
+      return;
+    }
+
+    setSuccess(result);
   }
 
   function startNewSale() {
     resetSale();
-    setSuccessMessage("");
+    setSuccess(null);
     setWarning("");
     setLookupValue("");
     setQuery("");
   }
 
+  const completedSale = success?.ok && success.source === "supabase" ? success : null;
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(26rem,0.85fr)]">
       <section className="space-y-6">
         <div className="border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-            Barcode / SKU
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
+                Barcode / SKU
+              </p>
+              <p className="mt-2 text-sm text-[#e8dcc8]/58">
+                Data Source: {source}
+              </p>
+            </div>
+            <select
+              value={selectedLocationId}
+              onChange={(event) => {
+                const nextLocationId = event.target.value;
+
+                setSelectedLocationId(nextLocationId);
+                revalidateCartForLocation(nextLocationId);
+                clearMessages();
+              }}
+              className="min-h-12 border border-[#f7ead2]/10 bg-[#0f0b07] px-4 text-sm text-[#f7ead2] outline-none transition focus:border-[#d8a344]/70"
+            >
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
             <input
               type="text"
@@ -302,7 +458,7 @@ export default function AdminPOS() {
                 Product Lookup
               </p>
               <h2 className="mt-3 font-serif text-2xl font-semibold text-[#f7ead2]">
-                Local Catalog
+                Live POS Catalog
               </h2>
             </div>
             <p className="text-sm text-[#e8dcc8]/58">
@@ -314,71 +470,88 @@ export default function AdminPOS() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by product name, SKU, vendor, or barcode"
+            placeholder="Search by product name, SKU, barcode, brand, or category"
             className={`${inputClass} mt-5`}
           />
 
           <div className="mt-5 grid gap-3">
-            {filteredProducts.map((product) => (
-              <article
-                key={product.id}
-                className="grid gap-4 border border-[#f7ead2]/10 bg-[#0f0b07] p-3 transition duration-500 hover:border-[#d8a344]/50 hover:shadow-[0_24px_60px_rgba(0,0,0,0.28),0_0_28px_rgba(216,163,68,0.09)] lg:grid-cols-[5.25rem_1fr_auto]"
-              >
-                <div className="relative h-20 w-20 overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
-                  {product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={getProductLabel(product)}
-                      fill
-                      sizes="5rem"
-                      className="object-contain p-2 drop-shadow-[0_14px_20px_rgba(0,0,0,0.54)]"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(216,163,68,0.2),transparent_38%),linear-gradient(135deg,#171008,#050302)]" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-serif text-lg font-semibold text-[#f7ead2]">
-                      {getProductLabel(product)}
-                    </h3>
-                    <span className="border border-[#d8a344]/25 px-2 py-1 text-[0.58rem] font-bold uppercase tracking-[0.16em] text-[#d8a344]">
-                      {getLocalizedLabel(product.category)}
-                    </span>
+            {filteredProducts.map((product) => {
+              const locationAvailable = getAvailableAtLocation(
+                product,
+                selectedLocationId,
+              );
+
+              return (
+                <article
+                  key={product.id}
+                  className="grid gap-4 border border-[#f7ead2]/10 bg-[#0f0b07] p-3 transition duration-500 hover:border-[#d8a344]/50 hover:shadow-[0_24px_60px_rgba(0,0,0,0.28),0_0_28px_rgba(216,163,68,0.09)] lg:grid-cols-[5.25rem_1fr_auto]"
+                >
+                  <div className="relative h-20 w-20 overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
+                    {product.image ? (
+                      product.image.startsWith("http") ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="absolute inset-0 h-full w-full object-contain p-2 drop-shadow-[0_14px_20px_rgba(0,0,0,0.54)]"
+                        />
+                      ) : (
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          fill
+                          sizes="5rem"
+                          className="object-contain p-2 drop-shadow-[0_14px_20px_rgba(0,0,0,0.54)]"
+                        />
+                      )
+                    ) : (
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(216,163,68,0.2),transparent_38%),linear-gradient(135deg,#171008,#050302)]" />
+                    )}
                   </div>
-                  <div className="mt-2 grid gap-1 text-xs text-[#e8dcc8]/58 sm:grid-cols-2 xl:grid-cols-4">
-                    <p>
-                      <span className="text-[#d8a344]">Vendor:</span>{" "}
-                      {product.vendor}
-                    </p>
-                    <p>
-                      <span className="text-[#d8a344]">SKU:</span>{" "}
-                      {product.sku}
-                    </p>
-                    <p>
-                      <span className="text-[#d8a344]">Barcode:</span>{" "}
-                      {product.barcode}
-                    </p>
-                    <p>
-                      <span className="text-[#d8a344]">Stock:</span>{" "}
-                      {product.stock}
-                    </p>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-serif text-lg font-semibold text-[#f7ead2]">
+                        {product.name}
+                      </h3>
+                      <span className="border border-[#d8a344]/25 px-2 py-1 text-[0.58rem] font-bold uppercase tracking-[0.16em] text-[#d8a344]">
+                        {product.category}
+                      </span>
+                    </div>
+                    <div className="mt-2 grid gap-1 text-xs text-[#e8dcc8]/58 sm:grid-cols-2 xl:grid-cols-4">
+                      <p>
+                        <span className="text-[#d8a344]">Brand:</span>{" "}
+                        {product.brand}
+                      </p>
+                      <p>
+                        <span className="text-[#d8a344]">SKU:</span>{" "}
+                        {product.sku}
+                      </p>
+                      <p>
+                        <span className="text-[#d8a344]">Barcode:</span>{" "}
+                        {product.barcode}
+                      </p>
+                      <p>
+                        <span className="text-[#d8a344]">Available:</span>{" "}
+                        {locationAvailable}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 lg:justify-end">
-                  <p className="font-serif text-xl font-semibold text-[#f7ead2]">
-                    {formatCurrency(product.price)}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => addProduct(product)}
-                    className={subtleButtonClass}
-                  >
-                    Add to Cart
-                  </button>
-                </div>
-              </article>
-            ))}
+                  <div className="flex items-center gap-3 lg:justify-end">
+                    <p className="font-serif text-xl font-semibold text-[#f7ead2]">
+                      {formatCurrency(product.price)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => addProduct(product)}
+                      disabled={locationAvailable <= 0}
+                      className={`${subtleButtonClass} disabled:cursor-not-allowed disabled:border-[#f7ead2]/8 disabled:text-[#e8dcc8]/28`}
+                    >
+                      Add to Cart
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -390,10 +563,11 @@ export default function AdminPOS() {
           </p>
           <div className="mt-4 border border-[#f7ead2]/10 bg-[#0f0b07] p-4">
             <p className="font-serif text-2xl font-semibold text-[#f7ead2]">
-              {defaultCustomer}
+              {customer.name}
             </p>
             <p className="mt-2 text-xs leading-5 text-[#e8dcc8]/52">
-              Customer profiles and sale history will connect in a future phase.
+              Customer search and account history remain prepared for a future
+              phase.
             </p>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -416,9 +590,14 @@ export default function AdminPOS() {
                 Items: {cartItemCount}
               </h2>
             </div>
-            <span className="flex h-10 w-10 items-center justify-center border border-[#d8a344]/25 font-serif text-sm text-[#d8a344]">
-              {cartItemCount}
-            </span>
+            <button
+              type="button"
+              onClick={resetSale}
+              disabled={cartItems.length === 0}
+              className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/45 transition hover:text-[#d8a344] disabled:cursor-not-allowed disabled:text-[#e8dcc8]/24"
+            >
+              Clear Cart
+            </button>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -428,28 +607,28 @@ export default function AdminPOS() {
                   Cart is empty
                 </p>
                 <p className="mt-2">
-                  Scan a SKU, enter a barcode, or add an item from the local
-                  catalog to begin a sale preview.
+                  Scan a SKU, enter a barcode, or add an in-stock item to begin
+                  an in-store sale.
                 </p>
               </div>
             ) : (
               cartItems.map((item) => (
                 <article
-                  key={item.product.slug}
+                  key={item.productId}
                   className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="font-serif text-lg font-semibold text-[#f7ead2]">
-                        {getProductLabel(item.product)}
+                        {item.name}
                       </h3>
                       <p className="mt-1 text-xs text-[#e8dcc8]/50">
-                        SKU {item.product.sku}
+                        SKU {item.sku} / Available {item.availableQuantity}
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => removeItem(item.product.slug)}
+                      onClick={() => removeItem(item.productId)}
                       className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/45 transition hover:text-[#d8a344]"
                     >
                       Remove
@@ -457,16 +636,16 @@ export default function AdminPOS() {
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-4">
                     <p className="text-sm text-[#e8dcc8]/62">
-                      {formatCurrency(item.product.price)}
+                      {formatCurrency(item.unitPrice)}
                     </p>
                     <div className="flex items-center border border-[#f7ead2]/10">
                       <button
                         type="button"
                         onClick={() =>
-                          updateQuantity(item.product.slug, item.quantity - 1)
+                          updateQuantity(item.productId, item.quantity - 1)
                         }
                         disabled={item.quantity <= 1}
-                        className="h-9 w-9 text-[#f7ead2] transition hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                        className="h-9 w-9 text-[#f7ead2] transition hover:bg-[#d8a344] hover:text-[#0f0b07] disabled:text-[#e8dcc8]/24"
                       >
                         -
                       </button>
@@ -476,16 +655,16 @@ export default function AdminPOS() {
                       <button
                         type="button"
                         onClick={() =>
-                          updateQuantity(item.product.slug, item.quantity + 1)
+                          updateQuantity(item.productId, item.quantity + 1)
                         }
-                        disabled={item.quantity >= item.product.stock}
-                        className="h-9 w-9 text-[#f7ead2] transition hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                        disabled={item.quantity >= item.availableQuantity}
+                        className="h-9 w-9 text-[#f7ead2] transition hover:bg-[#d8a344] hover:text-[#0f0b07] disabled:text-[#e8dcc8]/24"
                       >
                         +
                       </button>
                     </div>
                     <p className="font-serif text-lg font-semibold text-[#f7ead2]">
-                      {formatCurrency(item.product.price * item.quantity)}
+                      {formatCurrency(item.unitPrice * item.quantity)}
                     </p>
                   </div>
                 </article>
@@ -510,8 +689,8 @@ export default function AdminPOS() {
                   }
                   className="mt-2 min-h-10 w-full border border-[#f7ead2]/10 bg-[#0f0b07] px-3 text-sm text-[#f7ead2] outline-none transition focus:border-[#d8a344]/70"
                 >
-                  <option value="amount">Amount</option>
-                  <option value="percent">Percent</option>
+                  <option value="fixed">Amount</option>
+                  <option value="percentage">Percent</option>
                 </select>
               </label>
               <label>
@@ -524,7 +703,7 @@ export default function AdminPOS() {
                   step="0.01"
                   value={discountValue}
                   onChange={(event) => setDiscountValue(event.target.value)}
-                  placeholder={discountType === "percent" ? "0%" : "0.00"}
+                  placeholder={discountType === "percentage" ? "0%" : "0.00"}
                   className="mt-2 min-h-10 w-full border border-[#f7ead2]/10 bg-[#0f0b07] px-3 text-right text-sm text-[#f7ead2] outline-none transition focus:border-[#d8a344]/70"
                 />
               </label>
@@ -560,37 +739,55 @@ export default function AdminPOS() {
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
             Payment
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-3">
             {paymentMethods.map((method) => (
               <button
-                key={method}
+                key={method.value}
                 type="button"
                 onClick={() => {
-                  setPaymentMethod(method);
-                  setSuccessMessage("");
+                  setPaymentMethod(method.value);
+                  setSuccess(null);
                 }}
                 className={`inline-flex min-h-12 items-center justify-center border px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] transition duration-500 ${
-                  paymentMethod === method
+                  paymentMethod === method.value
                     ? "border-[#d8a344] bg-[#d8a344] text-[#0f0b07] shadow-[0_0_30px_rgba(216,163,68,0.22)]"
                     : "border-[#f7ead2]/12 text-[#f7ead2] hover:border-[#d8a344]/70 hover:text-[#d8a344]"
                 }`}
               >
-                {method}
+                {method.label}
               </button>
             ))}
           </div>
-          {paymentMethod === "Split Payment" ? (
-            <p className="mt-4 border border-[#d8a344]/25 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#d8a344]">
-              Split payment will be connected in a future phase.
-            </p>
-          ) : null}
+          <label className="mt-4 block">
+            <span className="text-xs uppercase tracking-[0.16em] text-[#d8a344]">
+              Amount Tendered
+            </span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amountTendered}
+              onChange={(event) => setAmountTendered(event.target.value)}
+              placeholder={total.toFixed(2)}
+              className={`${inputClass} mt-2 text-right`}
+            />
+          </label>
+          <div className="mt-3 flex justify-between gap-4 text-sm text-[#e8dcc8]/62">
+            <span>Change Due</span>
+            <span>{formatCurrency(changeDue)}</span>
+          </div>
           <button
             type="button"
-            onClick={completeSalePreview}
-            disabled={cartItems.length === 0 || !paymentMethod}
+            onClick={completeSale}
+            disabled={
+              cartItems.length === 0 ||
+              !paymentMethod ||
+              isCompleting ||
+              tendered < total
+            }
             className="mt-5 inline-flex min-h-13 w-full items-center justify-center border border-[#d8a344]/45 bg-[#d8a344] px-5 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:shadow-[0_0_36px_rgba(216,163,68,0.26)] disabled:cursor-not-allowed disabled:border-[#f7ead2]/10 disabled:bg-[#f7ead2]/8 disabled:text-[#e8dcc8]/34 disabled:shadow-none"
           >
-            Complete Sale
+            {isCompleting ? "Completing..." : "Complete Sale"}
           </button>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <button
@@ -610,22 +807,42 @@ export default function AdminPOS() {
               Cancel Sale
             </button>
           </div>
-          {successMessage ? (
-            <p className="mt-4 border border-[#d8a344]/30 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#d8a344]">
-              {successMessage}
-            </p>
+          {success ? (
+            <div className="mt-4 border border-[#d8a344]/30 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#d8a344]">
+              {success.ok && success.source === "supabase" ? (
+                <div className="space-y-1">
+                  <p>Sale completed.</p>
+                  <p>Order: {success.orderNumber}</p>
+                  <p>Receipt: {success.receiptNumber}</p>
+                  <p>Payment status: {success.paymentStatus}</p>
+                  <p>Total paid: {formatCurrency(success.total)}</p>
+                  <p>Change due: {formatCurrency(success.changeDue)}</p>
+                  <p>Inventory updated.</p>
+                </div>
+              ) : success.ok ? (
+                <p>{success.message}</p>
+              ) : null}
+            </div>
           ) : null}
-          {successMessage.includes("Sale preview completed locally") ? (
-            <button
-              type="button"
-              onClick={startNewSale}
-              className="mt-4 inline-flex min-h-11 w-full items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
-            >
-              Start New Sale
-            </button>
+          {completedSale ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <button type="button" onClick={startNewSale} className={buttonClass}>
+                New Sale
+              </button>
+              <Link
+                href={`/admin/orders/${completedSale.orderId}`}
+                className={buttonClass}
+              >
+                View Order
+              </Link>
+              <button type="button" className={subtleButtonClass}>
+                Print Receipt
+              </button>
+            </div>
           ) : null}
           <p className="mt-4 text-xs leading-5 text-[#e8dcc8]/50">
-            Inventory deduction will be connected after database integration.
+            Sale completion uses development Supabase writes. A production
+            database RPC is required before live operational use.
           </p>
         </div>
 
@@ -639,7 +856,10 @@ export default function AdminPOS() {
                 ASHE TOKUN
               </p>
               <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
-                {receiptNumber}
+                {completedSale?.receiptNumber ?? nextReceiptNumber ?? "Pending"}
+              </p>
+              <p className="mt-1 text-xs text-[#e8dcc8]/46">
+                Order {completedSale?.orderNumber ?? nextOrderNumber ?? "Pending"}
               </p>
             </div>
             <dl className="mt-4 grid gap-2 border-b border-[#f7ead2]/10 pb-4 text-xs sm:grid-cols-2">
@@ -657,7 +877,7 @@ export default function AdminPOS() {
               </div>
               <div className="flex justify-between gap-3 sm:block">
                 <dt className="text-[#d8a344]">Customer</dt>
-                <dd className="mt-1 text-[#f7ead2]">{defaultCustomer}</dd>
+                <dd className="mt-1 text-[#f7ead2]">{customer.name}</dd>
               </div>
             </dl>
             <div className="mt-4 space-y-3">
@@ -667,25 +887,18 @@ export default function AdminPOS() {
                 </p>
               ) : (
                 cartItems.map((item) => (
-                  <div
-                    key={item.product.slug}
-                    className="grid grid-cols-[1fr_auto] gap-4"
-                  >
+                  <div key={item.productId} className="grid grid-cols-[1fr_auto] gap-4">
                     <div>
-                      <p className="text-[#f7ead2]">
-                        {getProductLabel(item.product)}
-                      </p>
-                      <p className="mt-1 text-xs text-[#d8a344]">
-                        {item.product.vendor}
+                      <p className="text-[#f7ead2]">{item.name}</p>
+                      <p className="mt-1 text-xs text-[#d8a344]">{item.brand}</p>
+                      <p className="mt-1 text-xs text-[#e8dcc8]/42">
+                        SKU {item.sku}
                       </p>
                       <p className="mt-1 text-xs text-[#e8dcc8]/42">
-                        SKU {item.product.sku}
-                      </p>
-                      <p className="mt-1 text-xs text-[#e8dcc8]/42">
-                        {item.quantity} x {formatCurrency(item.product.price)}
+                        {item.quantity} x {formatCurrency(item.unitPrice)}
                       </p>
                     </div>
-                    <p>{formatCurrency(item.product.price * item.quantity)}</p>
+                    <p>{formatCurrency(item.unitPrice * item.quantity)}</p>
                   </div>
                 ))
               )}
@@ -693,23 +906,35 @@ export default function AdminPOS() {
             <div className="mt-5 space-y-2 border-t border-[#f7ead2]/10 pt-4">
               <div className="flex justify-between gap-4">
                 <span>Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>{formatCurrency(completedSale?.subtotal ?? subtotal)}</span>
               </div>
               <div className="flex justify-between gap-4">
                 <span>Discount</span>
-                <span>-{formatCurrency(discount)}</span>
+                <span>
+                  -{formatCurrency(completedSale?.discountAmount ?? discount)}
+                </span>
               </div>
               <div className="flex justify-between gap-4">
                 <span>Tax</span>
-                <span>{formatCurrency(tax)}</span>
+                <span>{formatCurrency(completedSale?.taxAmount ?? tax)}</span>
               </div>
               <div className="flex justify-between gap-4 border-t border-[#f7ead2]/10 pt-3 font-serif text-xl font-semibold text-[#f7ead2]">
                 <span>Total</span>
-                <span>{formatCurrency(total)}</span>
+                <span>{formatCurrency(completedSale?.total ?? total)}</span>
               </div>
               <div className="flex justify-between gap-4 pt-2">
                 <span>Payment</span>
                 <span>{paymentMethod || "Pending"}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Amount Tendered</span>
+                <span>
+                  {formatCurrency(completedSale?.amountTendered ?? tendered)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Change Due</span>
+                <span>{formatCurrency(completedSale?.changeDue ?? changeDue)}</span>
               </div>
             </div>
             <p className="mt-5 border-t border-[#f7ead2]/10 pt-4 text-xs leading-5 text-[#e8dcc8]/46">

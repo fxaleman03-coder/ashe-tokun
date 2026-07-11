@@ -183,6 +183,31 @@ Test checklist:
 
 Transfers are currently implemented through client-side development Supabase writes. A database RPC or transaction should be added before production to guarantee atomic multi-step transfers across the source update, destination update, and both ledger rows.
 
+## Phase 9.1 Live POS
+
+Manual order:
+
+1. Run `supabase/policies-pos-development.sql`.
+2. Restart localhost.
+3. Open `/admin/pos`.
+4. Select Retail Floor.
+5. Add one product with available stock.
+6. Complete a small cash sale.
+7. Verify one order.
+8. Verify order items.
+9. Verify one payment.
+10. Verify one receipt.
+11. Verify inventory decreased.
+12. Verify the sale inventory transaction.
+13. Verify the order appears in `/admin/orders`.
+
+Development warnings:
+
+- Do not test online checkout in this phase.
+- Do not test refunds or returns in this phase.
+- A database RPC/transaction is required before production to guarantee atomic sale completion across order, items, payment, receipt, inventory updates, and inventory ledger rows.
+- If a development sale fails after an order is created, review the returned order number and reconcile manually before more testing.
+
 ## Phase 7.4A Public Product Reads
 
 Before testing public product reads in development, run:
