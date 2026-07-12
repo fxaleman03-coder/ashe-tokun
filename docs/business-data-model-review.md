@@ -8,7 +8,7 @@ ASHE TOKUN is the store and retailer. It is the business that presents products,
 
 AJAKO ORIGINALS is a brand sold inside ASHE TOKUN. It is the in-house brand for original handcrafted spiritual goods.
 
-ODIBERE CREATIONS is a brand sold inside ASHE TOKUN. It is the artisan partner brand for handcrafted beadwork and related products.
+EDIBERE CREATION is a brand sold inside ASHE TOKUN. It is the artisan partner brand for handcrafted beadwork and related products.
 
 Future brands and artisans can be added without changing the store identity. The store remains ASHE TOKUN, while products can carry their own customer-facing brand.
 
@@ -18,7 +18,7 @@ Store:
 The retailer and seller of record. For this project, the store is ASHE TOKUN.
 
 Brand:
-The customer-facing product brand. Examples include AJAKO ORIGINALS and ODIBERE CREATIONS. Product pages, product cards, and receipts can show the brand.
+The customer-facing product brand. Examples include AJAKO ORIGINALS and EDIBERE CREATION. Product pages, product cards, and receipts can show the brand.
 
 Supplier:
 An operational source for purchasing, receiving, consignment, or vendor management. Suppliers may or may not be customer-facing.
@@ -30,7 +30,7 @@ Product:
 A sellable item in ASHE TOKUN. Products should reference `brand_id` and may optionally reference `supplier_id` or a future `maker_id`.
 
 Inventory Item:
-A product quantity at a specific inventory location. This allows the same product to exist in Main Stockroom, AJAKO Studio, ODIBERE Beadwork, and future locations.
+A product quantity at a specific inventory location. This allows the same product to exist in Main Stockroom, AJAKO Studio, EDIBERE Beadwork, and future locations.
 
 Order:
 A sale record created through POS, online checkout, manual entry, or future channels.
@@ -71,7 +71,7 @@ The person or account buying from ASHE TOKUN. The model must support walk-in cus
 ## 5. Risks To Avoid
 
 - Hardcoding AJAKO as the whole store.
-- Treating ODIBERE as only a category.
+- Treating EDIBERE CREATION as only a category.
 - Putting manufacturing files inside the ASHE TOKUN commerce product.
 - Duplicating vendor names as text everywhere.
 - Building POS inventory separate from online inventory.

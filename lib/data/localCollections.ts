@@ -33,9 +33,9 @@ export const localCollections: Collection[] = [
     active: true,
   },
   {
-    id: "local-odibere-creations",
-    name: "ODIBERE Creations",
-    slug: "odibere-creations",
+    id: "local-edibere-creation",
+    name: "EDIBERE Creation",
+    slug: "edibere-creation",
     description: "Partner artisan beadwork collection.",
     featured: false,
     active: true,

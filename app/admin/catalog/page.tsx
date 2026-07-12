@@ -12,7 +12,7 @@ const catalogMap = [
   "│   ├── Odu Tablets",
   "│   ├── Lamps",
   "│   └── Sacred Arts",
-  "└── ODIBERE CREATIONS",
+  "└── EDIBERE CREATION",
   "    ├── Ide",
   "    ├── Elekes",
   "    ├── Sets",

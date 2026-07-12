@@ -130,8 +130,8 @@ const toNumber = (value: number | string | null | undefined): number | undefined
 };
 
 const normalizeVendor = (brandName?: string | null): ProductVendor => {
-  if (brandName?.toUpperCase().includes("ODIBERE")) {
-    return "ODIBERE CREATIONS";
+  if (brandName?.toUpperCase().includes("EDIBERE")) {
+    return "EDIBERE CREATION";
   }
 
   return "AJAKO ORIGINALS";

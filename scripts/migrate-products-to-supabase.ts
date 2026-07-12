@@ -98,7 +98,7 @@ function productTypeCandidates(product: Product) {
   return [
     product.productType?.en,
     product.slug === "custom-opele" ? "Made to Order" : undefined,
-    product.vendor === "ODIBERE CREATIONS" ? "Handmade Product" : undefined,
+    product.vendor === "EDIBERE CREATION" ? "Handmade Product" : undefined,
     product.vendor === "AJAKO ORIGINALS" ? "Handmade Product" : undefined,
     "Physical Product",
   ];

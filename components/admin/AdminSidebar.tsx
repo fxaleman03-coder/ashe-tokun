@@ -27,6 +27,7 @@ const navigationGroups = [
       { href: "/admin/pos", label: "POS" },
       { href: "/admin/inventory", label: "Inventory" },
       { href: "/admin/orders", label: "Orders" },
+      { href: "/admin/shipping", label: "Shipping" },
       { href: "/admin/returns", label: "Returns" },
       { href: "/admin/customers", label: "Customers" },
       { href: "/admin/analytics", label: "Analytics" },

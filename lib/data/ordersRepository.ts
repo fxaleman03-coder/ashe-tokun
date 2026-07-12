@@ -141,7 +141,7 @@ type OrderRow = {
     last_name?: string | null;
     company_name?: string | null;
   } | null;
-  order_items?: { id: string }[] | null;
+  order_items?: { id: string; quantity?: number | null }[] | null;
   payments?: { payment_method: string | null }[] | null;
   receipts?: { receipt_number: string | null }[] | null;
 };
@@ -178,6 +178,86 @@ function getDerivedFulfillmentStatus(order: OrderRow) {
   }
 
   return "pending";
+}
+
+type ShipmentQuantityRow = {
+  order_id: string;
+  shipment_status: string;
+  fulfillment_type: string;
+  shipment_items?: { quantity: number | null }[] | null;
+};
+
+async function getShipmentFulfillmentSummaries(orders: OrderRow[]) {
+  const summaries = new Map<string, string>();
+
+  if (!USE_SUPABASE || !supabase || orders.length === 0) {
+    return summaries;
+  }
+
+  const orderIds = orders.map((order) => order.id);
+  const orderedQuantities = new Map(
+    orders.map((order) => [
+      order.id,
+      (order.order_items ?? []).reduce(
+        (total, item) => total + Number(item.quantity ?? 0),
+        0,
+      ),
+    ]),
+  );
+
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("order_id, shipment_status, fulfillment_type, shipment_items(quantity)")
+    .in("order_id", orderIds);
+
+  if (error) {
+    return summaries;
+  }
+
+  const shipmentsByOrder = new Map<string, ShipmentQuantityRow[]>();
+
+  for (const row of (data ?? []) as ShipmentQuantityRow[]) {
+    shipmentsByOrder.set(row.order_id, [
+      ...(shipmentsByOrder.get(row.order_id) ?? []),
+      row,
+    ]);
+  }
+
+  for (const order of orders) {
+    const shipments = (shipmentsByOrder.get(order.id) ?? []).filter(
+      (shipment) => shipment.shipment_status !== "cancelled",
+    );
+    const totalOrdered = orderedQuantities.get(order.id) ?? 0;
+    const totalFulfilled = shipments.reduce(
+      (total, shipment) =>
+        total +
+        (shipment.shipment_items ?? []).reduce(
+          (shipmentTotal, item) => shipmentTotal + Number(item.quantity ?? 0),
+          0,
+        ),
+      0,
+    );
+
+    if (shipments.some((shipment) => shipment.shipment_status === "ready")) {
+      summaries.set(order.id, "Local Pickup Ready");
+    } else if (
+      shipments.some((shipment) => shipment.shipment_status === "delivered")
+    ) {
+      summaries.set(
+        order.id,
+        totalFulfilled >= totalOrdered ? "Delivered" : "Partially Fulfilled",
+      );
+    } else if (totalOrdered === 0 || totalFulfilled === 0) {
+      summaries.set(order.id, "Unfulfilled");
+    } else {
+      summaries.set(
+        order.id,
+        totalFulfilled >= totalOrdered ? "Fulfilled" : "Partially Fulfilled",
+      );
+    }
+  }
+
+  return summaries;
 }
 
 function normalizeOrder(row: OrderRow): AdminOrder {
@@ -291,7 +371,7 @@ async function readOrders(): Promise<AdminOrder[]> {
         updated_at,
         customer_id,
         customer:customers(customer_number, first_name, last_name, company_name),
-        order_items(id),
+        order_items(id, quantity),
         payments(payment_method),
         receipts(receipt_number)
       `,
@@ -309,7 +389,14 @@ async function readOrders(): Promise<AdminOrder[]> {
     return [];
   }
 
-  return ((data ?? []) as OrderRow[]).map(normalizeOrder);
+  const rows = (data ?? []) as OrderRow[];
+  const fulfillmentSummaries = await getShipmentFulfillmentSummaries(rows);
+
+  return rows.map((row) => ({
+    ...normalizeOrder(row),
+    fulfillment_status:
+      fulfillmentSummaries.get(row.id) ?? getDerivedFulfillmentStatus(row),
+  }));
 }
 
 export async function getOrders(filters?: OrderFilters) {

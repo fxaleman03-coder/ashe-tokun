@@ -43,8 +43,8 @@ export const vendors: Vendor[] = [
     status: "Active",
   },
   {
-    id: "odibere-creations",
-    name: "ODIBERE CREATIONS",
+    id: "edibere-creation",
+    name: "EDIBERE CREATION",
     role: "Official artisan partner",
     description: "Handcrafted beadwork, sets, and ceremonial bead pieces.",
     status: "Active",
@@ -53,7 +53,7 @@ export const vendors: Vendor[] = [
 
 const collectionSeeds: Array<[string, string, string]> = [
   ["ajako-originals", "AJAKO Originals", "In-house original product line."],
-  ["odibere-creations", "ODIBERE Creations", "Partner artisan beadwork collection."],
+  ["edibere-creation", "EDIBERE Creation", "Partner artisan beadwork collection."],
   ["new-arrivals", "New Arrivals", "Recently added products and seasonal additions."],
   ["best-sellers", "Best Sellers", "High-interest products for merchandising."],
   ["limited-edition", "Limited Edition", "Scarce or limited production pieces."],
@@ -74,16 +74,16 @@ export const collections: CatalogEntry[] = collectionSeeds.map(
 );
 
 const categorySeeds: Array<[string, string, string, string | undefined]> = [
-  ["ide", "Ide", "Beadwork", "ODIBERE Creations"],
-  ["elekes", "Elekes", "Beadwork", "ODIBERE Creations"],
-  ["sets", "Sets", "Beadwork", "ODIBERE Creations"],
+  ["ide", "Ide", "Beadwork", "EDIBERE Creation"],
+  ["elekes", "Elekes", "Beadwork", "EDIBERE Creation"],
+  ["sets", "Sets", "Beadwork", "EDIBERE Creation"],
   ["keychains", "Keychains", "AJAKO Originals", "AJAKO Originals"],
   ["opele", "Opele", "AJAKO Originals", "AJAKO Originals"],
   ["opon", "Opon", "AJAKO Originals", "AJAKO Originals"],
-  ["mazos", "Mazos", "Ceremonial Tools", "ODIBERE Creations"],
+  ["mazos", "Mazos", "Ceremonial Tools", "EDIBERE Creation"],
   ["iruke", "Iruke", "Ceremonial Tools", undefined],
   ["irofa", "Irofa", "Ceremonial Tools", undefined],
-  ["bastones", "Bastones", "Ceremonial Tools", "ODIBERE Creations"],
+  ["bastones", "Bastones", "Ceremonial Tools", "EDIBERE Creation"],
   ["medallions", "Medallions", "AJAKO Originals", "AJAKO Originals"],
   ["lamps", "Lamps", "AJAKO Originals", "AJAKO Originals"],
   ["books", "Books", "Devotional Articles", undefined],
@@ -158,7 +158,7 @@ const traditionSeeds: Array<[string, string, string]> = [
   ["espiritismo", "Espiritismo", "Spiritual supply and devotional products."],
   ["christian", "Christian", "Christian devotional articles and gifts."],
   ["ajako-originals", "AJAKO Originals", "In-house ASHE TOKUN original line."],
-  ["odibere-creations", "ODIBERE Creations", "Official artisan partner line."],
+  ["edibere-creation", "EDIBERE Creation", "Official artisan partner line."],
 ];
 
 export const traditions: Tradition[] = traditionSeeds.map(

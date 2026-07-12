@@ -19,6 +19,7 @@ import type {
   CustomerOrderSummary,
 } from "@/lib/types/customer";
 import type { ReturnRecord } from "@/lib/types/return";
+import type { Shipment } from "@/lib/types/shipping";
 import {
   getCustomerContactName,
   getCustomerDisplaySummary,
@@ -30,6 +31,7 @@ type CustomerDetailManagerProps = {
   addresses: CustomerAddress[];
   orders: CustomerOrderSummary[];
   returns: ReturnRecord[];
+  shipments: Shipment[];
 };
 
 type AddressFormState = {
@@ -110,6 +112,7 @@ export default function CustomerDetailManager({
   addresses,
   orders,
   returns,
+  shipments,
 }: CustomerDetailManagerProps) {
   const router = useRouter();
   const isWalkInCustomer = customer.customer_type === "walk_in";
@@ -635,6 +638,66 @@ export default function CustomerDetailManager({
         ) : (
           <p className="text-sm text-[#e8dcc8]/54">
             No returns or exchanges are linked to this customer yet.
+          </p>
+        )}
+      </DetailCard>
+
+      <DetailCard title="Recent Shipments">
+        {shipments.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
+                  <th className="px-4 py-3">Shipment</th>
+                  <th className="px-4 py-3">Order</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Tracking</th>
+                  <th className="px-4 py-3">Fulfillment</th>
+                  <th className="px-4 py-3">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shipments.slice(0, 8).map((shipment) => (
+                  <tr
+                    key={shipment.id}
+                    className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/shipping/${shipment.id}`}
+                        className="font-medium text-[#d8a344] transition hover:text-[#f7ead2]"
+                      >
+                        {shipment.shipment_number}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/orders/${shipment.order_id}`}
+                        className="text-[#d8a344] transition hover:text-[#f7ead2]"
+                      >
+                        {shipment.order_number ?? "Pending"}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 capitalize">
+                      {shipment.shipment_status.replace("_", " ")}
+                    </td>
+                    <td className="px-4 py-3">
+                      {shipment.tracking_number ?? "Pending"}
+                    </td>
+                    <td className="px-4 py-3 capitalize">
+                      {shipment.fulfillment_type.replace("_", " ")}
+                    </td>
+                    <td className="px-4 py-3">
+                      {new Date(shipment.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-[#e8dcc8]/54">
+            No shipments are linked to this customer yet.
           </p>
         )}
       </DetailCard>

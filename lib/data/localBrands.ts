@@ -17,9 +17,9 @@ export const localBrands: Brand[] = [
     active: true,
   },
   {
-    id: "local-odibere-creations",
-    name: "ODIBERE CREATIONS",
-    slug: "odibere-creations",
+    id: "local-edibere-creation",
+    name: "EDIBERE CREATION",
+    slug: "edibere-creation",
     description: "Artisan partner brand sold inside ASHE TOKUN.",
     logo_url: null,
     active: true,

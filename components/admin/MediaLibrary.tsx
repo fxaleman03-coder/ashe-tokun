@@ -29,11 +29,11 @@ function detectVendor(image: MediaAsset) {
   }
 
   if (
-    path.includes("odibere-creations") ||
+    path.includes("edibere-creation") ||
     path.includes("products/ide") ||
     path.includes("tools/irofa")
   ) {
-    return "ODIBERE CREATIONS";
+    return "EDIBERE CREATION";
   }
 
   return "Unassigned";
@@ -167,8 +167,8 @@ export default function MediaLibrary({
       ajako: enrichedImages.filter(
         (image) => image.vendor === "AJAKO ORIGINALS",
       ).length,
-      odibere: enrichedImages.filter(
-        (image) => image.vendor === "ODIBERE CREATIONS",
+      edibere: enrichedImages.filter(
+        (image) => image.vendor === "EDIBERE CREATION",
       ).length,
       unassigned: enrichedImages.filter((image) => image.vendor === "Unassigned")
         .length,
@@ -312,7 +312,7 @@ export default function MediaLibrary({
                   className={`${inputClass} mt-2`}
                 >
                   <option value="ajako-originals">AJAKO ORIGINALS</option>
-                  <option value="odibere-creations">ODIBERE CREATIONS</option>
+                  <option value="edibere-creation">EDIBERE CREATION</option>
                 </select>
               </label>
             </div>
@@ -369,8 +369,8 @@ export default function MediaLibrary({
           detail="Detected from AJAKO paths."
         />
         <StatCard
-          label="ODIBERE Creations"
-          value={String(summary.odibere)}
+          label="EDIBERE Creation"
+          value={String(summary.edibere)}
           detail="Detected beadwork assets."
         />
         <StatCard

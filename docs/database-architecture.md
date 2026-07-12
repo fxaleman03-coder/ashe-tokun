@@ -6,7 +6,7 @@ This document defines the long-term database direction for ASHE TOKUN before liv
 
 ASHE TOKUN is the store and retailer. It is the customer-facing place where products are merchandised, sold, receipted, and fulfilled.
 
-Brands are customer-facing product brands sold inside ASHE TOKUN. The first two official brands are AJAKO ORIGINALS and ODIBERE CREATIONS. Product pages, POS receipts, and merchandising can show the product brand while the transaction remains an ASHE TOKUN sale.
+Brands are customer-facing product brands sold inside ASHE TOKUN. The first two official brands are AJAKO ORIGINALS and EDIBERE CREATION. Product pages, POS receipts, and merchandising can show the product brand while the transaction remains an ASHE TOKUN sale.
 
 Suppliers are optional operational sources. A supplier can be a manufacturer, artisan partner, wholesaler, or fulfillment source. Suppliers are not always customer-facing, and some products may not need a supplier record at all.
 
@@ -19,13 +19,13 @@ The earlier local model used `vendor` for both customer-facing brand and operati
 - `brand_id` powers storefront merchandising, product detail pages, product cards, POS item lines, and receipts.
 - `supplier_id` supports purchase orders, receiving, vendor costs, and internal operations.
 
-This lets ASHE TOKUN remain the store while still presenting brands such as AJAKO ORIGINALS and ODIBERE CREATIONS clearly.
+This lets ASHE TOKUN remain the store while still presenting brands such as AJAKO ORIGINALS and EDIBERE CREATION clearly.
 
 ## Shared Inventory for POS and Online Store
 
 Inventory is modeled around `inventory_locations`, `inventory_items`, and `inventory_transactions`.
 
-`inventory_locations` supports Main Stockroom, AJAKO Studio, ODIBERE Beadwork, and future store, studio, or partner locations.
+`inventory_locations` supports Main Stockroom, AJAKO Studio, EDIBERE Beadwork, and future store, studio, or partner locations.
 
 `inventory_items` stores product quantity per location. This allows one product to have stock in multiple places.
 
@@ -107,9 +107,9 @@ Core Catalog is responsible for customer-facing product structure before invento
 
 Relationships:
 
-- `brands` stores customer-facing product brands sold inside ASHE TOKUN, such as AJAKO ORIGINALS and ODIBERE CREATIONS.
+- `brands` stores customer-facing product brands sold inside ASHE TOKUN, such as AJAKO ORIGINALS and EDIBERE CREATION.
 - `categories` stores product category taxonomy and supports nested categories through `parent_category_id`.
-- `collections` stores merchandising groupings such as New Arrivals, Best Sellers, AJAKO Originals, and ODIBERE Creations.
+- `collections` stores merchandising groupings such as New Arrivals, Best Sellers, AJAKO Originals, and EDIBERE Creation.
 - `traditions` stores tradition-based grouping such as Ifá, Orisha, Abakuá, Palo, Espiritismo, and Christian.
 - `product_types` stores commerce handling types such as Physical Product, Handmade Product, and Made to Order.
 - `products` stores sellable catalog items. Each product belongs to one brand, one category, and one product type. A product may optionally belong to one tradition.
@@ -157,7 +157,7 @@ Inventory is transaction based. The system should never rely on a single stock n
 
 Core inventory concepts:
 
-- `inventory_locations` stores physical and operational locations such as Main Stockroom, Retail Floor, AJAKO Studio, ODIBERE Workshop, and future warehouses.
+- `inventory_locations` stores physical and operational locations such as Main Stockroom, Retail Floor, AJAKO Studio, EDIBERE Workshop, and future warehouses.
 - `inventory_items` stores a product balance at a specific location.
 - `inventory_transactions` is the inventory ledger. It records sales, returns, receiving, adjustments, transfers, damage, loss, cycle counts, and opening balances.
 
@@ -169,7 +169,7 @@ Current quantity is derived from inventory records:
 - `incoming_quantity` tracks expected stock.
 - `inventory_value` is informational and supports reporting and valuation.
 
-Inventory supports multiple locations and future warehouses. The same product can exist in the Retail Floor, Main Stockroom, AJAKO Studio, ODIBERE Workshop, and future locations. This keeps the physical store and online store aligned around the same inventory model.
+Inventory supports multiple locations and future warehouses. The same product can exist in the Retail Floor, Main Stockroom, AJAKO Studio, EDIBERE Workshop, and future locations. This keeps the physical store and online store aligned around the same inventory model.
 
 POS and online sales should use the same inventory. A future POS sale or online order will create an inventory transaction with a sale reference. Returns, manual adjustments, transfers, receiving, and damage/loss events will also create ledger entries, preserving full inventory history.
 

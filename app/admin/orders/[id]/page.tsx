@@ -7,6 +7,11 @@ import {
   getReturnItems,
   getReturnsByOrder,
 } from "@/lib/data/returnsRepository";
+import {
+  getFulfillableOrderItems,
+  getShipmentEvents,
+  getShipmentsByOrder,
+} from "@/lib/data/shippingRepository";
 
 type OrderDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -62,6 +67,18 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   }
 
   const linkedReturns = await getReturnsByOrder(order.id);
+  const [linkedShipments, fulfillableItems] = await Promise.all([
+    getShipmentsByOrder(order.id),
+    getFulfillableOrderItems(order.id),
+  ]);
+  const linkedShipmentEvents = Object.fromEntries(
+    await Promise.all(
+      linkedShipments.map(async (shipment) => [
+        shipment.id,
+        await getShipmentEvents(shipment.id),
+      ] as const),
+    ),
+  );
   const linkedReturnItems = Object.fromEntries(
     await Promise.all(
       linkedReturns.map(async (returnRecord) => [
@@ -133,7 +150,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                   <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
                     {label}
                   </p>
-                  <p className="mt-2">{value}</p>
+                  <div className="mt-2">{value}</div>
                 </div>
               ))}
             </div>
@@ -362,6 +379,99 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           )}
         </DetailCard>
 
+        <DetailCard title="Shipping & Fulfillment">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-[#e8dcc8]/58">
+              Fulfillment summary: {order.fulfillment_status}
+            </p>
+            {fulfillableItems.some(
+              (item) => item.remaining_fulfillable_quantity > 0,
+            ) ? (
+              <Link
+                href="/admin/shipping/new"
+                className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+              >
+                Create Shipment
+              </Link>
+            ) : null}
+          </div>
+          {linkedShipments.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
+                    <th className="px-4 py-3">Shipment</th>
+                    <th className="px-4 py-3">Fulfillment</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Carrier</th>
+                    <th className="px-4 py-3">Tracking</th>
+                    <th className="px-4 py-3">Shipped</th>
+                    <th className="px-4 py-3">Delivered</th>
+                    <th className="px-4 py-3">View</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linkedShipments.map((shipment) => (
+                    <tr
+                      key={shipment.id}
+                      className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"
+                    >
+                      <td className="px-4 py-3 font-medium text-[#f7ead2]">
+                        {shipment.shipment_number}
+                      </td>
+                      <td className="px-4 py-3 capitalize">
+                        {shipment.fulfillment_type.replace("_", " ")}
+                      </td>
+                      <td className="px-4 py-3 capitalize">
+                        {shipment.shipment_status.replace("_", " ")}
+                      </td>
+                      <td className="px-4 py-3">
+                        {shipment.carrier ?? "Pending"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {shipment.tracking_url ? (
+                          <a
+                            href={shipment.tracking_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[#d8a344] transition hover:text-[#f7ead2]"
+                          >
+                            {shipment.tracking_number ?? "Track"}
+                          </a>
+                        ) : (
+                          shipment.tracking_number ?? "Pending"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {shipment.shipped_at
+                          ? new Date(shipment.shipped_at).toLocaleDateString()
+                          : "Pending"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {shipment.delivered_at
+                          ? new Date(shipment.delivered_at).toLocaleDateString()
+                          : "Pending"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/shipping/${shipment.id}`}
+                          className="text-[#d8a344] transition hover:text-[#f7ead2]"
+                        >
+                          View Shipment
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-[#e8dcc8]/54">
+              No shipments are linked to this order yet.
+            </p>
+          )}
+        </DetailCard>
+
         <DetailCard title="Timeline">
           <div className="space-y-3">
             {[
@@ -372,6 +482,20 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 description: `${returnRecord.return_number} / ${returnRecord.return_type.replace("_", " ")} / ${returnRecord.status}`,
                 created_at: returnRecord.created_at,
               })),
+              ...linkedShipments.flatMap((shipment) => [
+                {
+                  id: `shipment-${shipment.id}`,
+                  label: "Shipment Created",
+                  description: `${shipment.shipment_number} / ${shipment.fulfillment_type.replace("_", " ")} / ${shipment.shipment_status}`,
+                  created_at: shipment.created_at,
+                },
+                ...(linkedShipmentEvents[shipment.id] ?? []).map((event) => ({
+                  id: `shipment-event-${event.id}`,
+                  label: "Shipment Event",
+                  description: `${shipment.shipment_number} / ${event.event_type.replaceAll("_", " ")} / ${event.status.replace("_", " ")}. ${event.description ?? ""}`,
+                  created_at: event.event_time,
+                })),
+              ]),
             ]
               .sort(
                 (first, second) =>

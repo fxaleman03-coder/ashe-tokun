@@ -27,7 +27,7 @@ This checklist is for the first future manual execution of `supabase/schema.sql`
 - Confirm tables exist.
 - Confirm seed data exists:
   - AJAKO ORIGINALS
-  - ODIBERE CREATIONS
+  - EDIBERE CREATION
   - Inventory locations
   - Florida Sales Tax Placeholder
   - Admin staff placeholder
@@ -88,7 +88,7 @@ product-media/
   brands/
     ajako-originals/
       uploads/
-    odibere-creations/
+    edibere-creation/
       uploads/
 ```
 
@@ -273,6 +273,60 @@ Manual order:
 16. Verify order detail and customer detail show linked returns.
 
 Warning: refunds are administrative records only. Card, bank, Stripe, Square, PayPal, and external payment refunds must be processed manually outside the app in this phase. Return completion currently uses sequential development writes; before production, move return status, inventory restoration, payment records, store credit, and audit logging into a database RPC/transaction so partial failures cannot leave records out of sync.
+
+## Phase 9.5 Shipping & Fulfillment
+
+Manual order:
+
+1. Run `supabase/migrations/phase-9-5-shipping.sql`.
+2. Run `supabase/policies-shipping-development.sql`.
+3. Add local shipping-from variables to `.env.local`.
+4. Restart localhost.
+5. Open one eligible order.
+6. Create one shipment.
+7. Select one item.
+8. Add one package.
+9. Add manual tracking.
+10. Mark ready.
+11. Mark packed.
+12. Mark shipped.
+13. Mark in transit.
+14. Mark delivered.
+15. Verify order fulfillment summary.
+16. Verify customer shipment history.
+17. Test one local pickup.
+18. Test one partial shipment.
+19. Confirm over-fulfillment is blocked.
+20. Confirm cancelled shipment quantities become fulfillable again.
+
+Warning: real carrier rates, label purchase, label printing, external refund-like shipping adjustments, and tracking webhooks remain deferred. Shipment creation currently uses strict sequential development logic across shipments, items, address snapshots, packages, events, and audit logs. Before production, move shipment creation and fulfillment status changes into database RPCs/transactions so partial failures cannot leave records out of sync. Shipment number generation is application-side in this phase; use a database sequence or RPC before production concurrency.
+
+## Phase 9.5A Multi-Origin Shipping
+
+Manual order:
+
+1. Run `supabase/migrations/phase-9-5a-shipping-origins.sql`.
+2. Run `supabase/policies-shipping-origins-development.sql`.
+3. Run `supabase/migrations/phase-9-5a-correct-edibere-name.sql` if live Supabase still has prior EDIBERE naming variants.
+4. Restart localhost.
+5. Open `/admin/settings/shipping-origins`.
+6. Complete ASHE TOKUN origin.
+7. Complete AJAKO ORIGINALS origin.
+8. Complete EDIBERE CREATION origin.
+9. Mark one origin as default.
+10. Open shipment wizard.
+11. Select one origin.
+12. Confirm fields auto-populate.
+13. Select Ship To separately.
+14. Confirm quantity input accepts `1` cleanly.
+15. Create shipment.
+16. Verify `shipping_origin_id`.
+17. Verify ship_from snapshot.
+18. Edit origin afterward.
+19. Confirm historical shipment snapshot does not change.
+20. Test local pickup.
+
+Warning: shipping origins and addresses require authenticated role-based access before production. The seeded official origins intentionally do not include private address data and must be completed manually before activation.
 
 ## Phase 7.4A Public Product Reads
 

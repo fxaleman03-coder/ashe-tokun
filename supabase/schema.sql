@@ -143,7 +143,7 @@ create index if not exists products_product_type_id_idx on public.products(produ
 insert into public.brands (name, slug, description, active)
 values
   ('AJAKO ORIGINALS', 'ajako-originals', 'In-house brand sold inside ASHE TOKUN.', true),
-  ('ODIBERE CREATIONS', 'odibere-creations', 'Artisan partner brand sold inside ASHE TOKUN.', true)
+  ('EDIBERE CREATION', 'edibere-creation', 'Artisan partner brand sold inside ASHE TOKUN.', true)
 on conflict (slug) do update set
   name = excluded.name,
   description = excluded.description,
@@ -171,7 +171,7 @@ values
   ('New Arrivals', 'new-arrivals', true, true),
   ('Best Sellers', 'best-sellers', true, true),
   ('AJAKO Originals', 'ajako-originals', false, true),
-  ('ODIBERE Creations', 'odibere-creations', false, true)
+  ('EDIBERE Creation', 'edibere-creation', false, true)
 on conflict (slug) do update set
   name = excluded.name,
   featured = excluded.featured,
@@ -401,7 +401,7 @@ values
   ('Main Stockroom', 'MAIN-STOCKROOM', 'Primary ASHE TOKUN stockroom for shared store inventory.', 'stockroom', true),
   ('Retail Floor', 'RETAIL-FLOOR', 'Physical store sales floor inventory location.', 'retail_floor', true),
   ('AJAKO Studio', 'AJAKO-STUDIO', 'AJAKO Originals studio and production holding location.', 'studio', true),
-  ('ODIBERE Workshop', 'ODIBERE-WORKSHOP', 'ODIBERE Creations workshop and beadwork holding location.', 'workshop', true),
+  ('EDIBERE Workshop', 'EDIBERE-WORKSHOP', 'EDIBERE Creation workshop and beadwork holding location.', 'workshop', true),
   ('Future Warehouse', 'FUTURE-WAREHOUSE', 'Reserved location for future warehouse expansion.', 'warehouse', true)
 on conflict (code) do update set
   name = excluded.name,

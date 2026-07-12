@@ -7,8 +7,8 @@ values
     true
   ),
   (
-    'ODIBERE CREATIONS',
-    'odibere-creations',
+    'EDIBERE CREATION',
+    'edibere-creation',
     'Traditional handcrafted beadwork.',
     true
   )

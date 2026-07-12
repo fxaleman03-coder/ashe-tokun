@@ -7,6 +7,7 @@ import {
   getCustomerOrders,
 } from "@/lib/data/customersRepository";
 import { getReturns } from "@/lib/data/returnsRepository";
+import { getShipments } from "@/lib/data/shippingRepository";
 
 type CustomerDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -34,10 +35,11 @@ export default async function CustomerDetailPage({
     );
   }
 
-  const [addresses, orders, returns] = await Promise.all([
+  const [addresses, orders, returns, shipments] = await Promise.all([
     getCustomerAddresses(customer.id),
     getCustomerOrders(customer.id),
     getReturns(),
+    getShipments(),
   ]);
 
   return (
@@ -51,6 +53,9 @@ export default async function CustomerDetailPage({
         orders={orders}
         returns={returns.filter(
           (returnRecord) => returnRecord.customer_id === customer.id,
+        )}
+        shipments={shipments.filter(
+          (shipment) => shipment.customer_id === customer.id,
         )}
       />
     </AdminShell>

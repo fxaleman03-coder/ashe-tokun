@@ -82,7 +82,7 @@ function getSkuPrefix(vendor: ProductVendor | "", category: string) {
     if (normalizedCategory.includes("odu")) return "AJO-ODU";
   }
 
-  if (vendor === "ODIBERE CREATIONS") {
+  if (vendor === "EDIBERE CREATION") {
     if (normalizedCategory.includes("ide") && !normalizedCategory.includes("set")) {
       return "ODI-IDE";
     }
@@ -315,7 +315,7 @@ export default function ProductCreationWizard({
       productType: "",
       category: "",
       collection:
-        vendor === "AJAKO ORIGINALS" ? "AJAKO Originals" : "ODIBERE Creations",
+        vendor === "AJAKO ORIGINALS" ? "AJAKO Originals" : "EDIBERE Creation",
     }));
   }
 

@@ -239,6 +239,7 @@ export default function AdminOrdersManager({
               <th className="px-5 py-4">Items</th>
               <th className="px-5 py-4">Payment</th>
               <th className="px-5 py-4">Order Status</th>
+              <th className="px-5 py-4">Fulfillment</th>
               <th className="px-5 py-4">Total</th>
               <th className="px-5 py-4">Receipt</th>
               <th className="px-5 py-4">Action</th>
@@ -282,6 +283,7 @@ export default function AdminOrdersManager({
                   <td className="px-5 py-4">{order.item_count}</td>
                   <td className="px-5 py-4">{order.payment_status}</td>
                   <td className="px-5 py-4">{order.order_status}</td>
+                  <td className="px-5 py-4">{order.fulfillment_status}</td>
                   <td className="px-5 py-4">
                     {formatCurrency(order.grand_total)}
                   </td>
@@ -321,7 +323,7 @@ export default function AdminOrdersManager({
             ) : (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={11}
                   className="px-5 py-14 text-center text-sm text-[#e8dcc8]/54"
                 >
                   No orders match the current filters.

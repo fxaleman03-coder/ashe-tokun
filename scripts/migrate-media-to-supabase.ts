@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 type BrandLookup = {
   ajakoOriginals: string | null;
-  odibereCreations: string | null;
+  edibereCreation: string | null;
 };
 
 type MediaAssetRow = {
@@ -208,7 +208,7 @@ async function fetchBrandLookup(supabase: SupabaseClient): Promise<BrandLookup> 
   const { data, error } = await supabase
     .from("brands")
     .select("id, slug")
-    .in("slug", ["ajako-originals", "odibere-creations"]);
+    .in("slug", ["ajako-originals", "edibere-creation"]);
 
   if (error) {
     throw new Error(`Brand lookup failed: ${error.message}`);
@@ -223,7 +223,7 @@ async function fetchBrandLookup(supabase: SupabaseClient): Promise<BrandLookup> 
 
   return {
     ajakoOriginals: lookup.get("ajako-originals") ?? null,
-    odibereCreations: lookup.get("odibere-creations") ?? null,
+    edibereCreation: lookup.get("edibere-creation") ?? null,
   };
 }
 
@@ -240,7 +240,7 @@ function detectBrandId(relativePath: string, brands: BrandLookup) {
     normalizedPath.includes("tools/irofa") ||
     normalizedPath.includes("tools\\irofa")
   ) {
-    return brands.odibereCreations;
+    return brands.edibereCreation;
   }
 
   return null;
@@ -416,8 +416,8 @@ async function main() {
     stats.warnings.push("AJAKO ORIGINALS brand id was not found.");
   }
 
-  if (!brands.odibereCreations) {
-    stats.warnings.push("ODIBERE CREATIONS brand id was not found.");
+  if (!brands.edibereCreation) {
+    stats.warnings.push("EDIBERE CREATION brand id was not found.");
   }
 
   for (const imagePath of images) {

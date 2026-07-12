@@ -4,7 +4,7 @@ type LocalizedText = Record<Language, string>;
 
 export const productVendors = [
   "AJAKO ORIGINALS",
-  "ODIBERE CREATIONS",
+  "EDIBERE CREATION",
 ] as const;
 
 export type ProductVendor = (typeof productVendors)[number];
@@ -103,7 +103,7 @@ const productType = {
 
 const vendor = {
   ajako: "AJAKO ORIGINALS",
-  odibere: "ODIBERE CREATIONS",
+  edibere: "EDIBERE CREATION",
 } satisfies Record<string, ProductVendor>;
 
 export const products: Product[] = [
@@ -237,10 +237,10 @@ export const products: Product[] = [
   {
     id: "prod-ide-orunmila-swarovski",
     slug: "ide-orunmila-swarovski",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-IDE-001",
     barcode: "ODI-IDE-001",
-    vendorSku: "ODIBERE-IDE-001",
+    vendorSku: "EDIBERE-IDE-001",
     name: {
       en: "Orunmila Swarovski Bracelet",
       es: "Orunmila Swarovski Bracelet",
@@ -252,7 +252,7 @@ export const products: Product[] = [
     cost: 38,
     stock: 12,
     reorderLevel: 3,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/bracelet/ide-orunmila-swarovski-01.jpeg",
@@ -268,10 +268,10 @@ export const products: Product[] = [
   {
     id: "prod-ide-orunmila-madera",
     slug: "ide-orunmila-madera",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-IDE-002",
     barcode: "ODI-IDE-002",
-    vendorSku: "ODIBERE-IDE-002",
+    vendorSku: "EDIBERE-IDE-002",
     name: {
       en: "Ide Orunmila Madera",
       es: "Ide Orunmila Madera",
@@ -283,7 +283,7 @@ export const products: Product[] = [
     cost: 27,
     stock: 10,
     reorderLevel: 3,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/bracelet/ide-orunmila-madera-01.jpeg",
@@ -299,10 +299,10 @@ export const products: Product[] = [
   {
     id: "prod-ide-orunmila-oro",
     slug: "ide-orunmila-oro",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-IDE-003",
     barcode: "ODI-IDE-003",
-    vendorSku: "ODIBERE-IDE-003",
+    vendorSku: "EDIBERE-IDE-003",
     name: {
       en: "Ide Orunmila Oro",
       es: "Ide Orunmila Oro",
@@ -315,7 +315,7 @@ export const products: Product[] = [
     cost: 34,
     stock: 8,
     reorderLevel: 3,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/bracelet/ide-orunmila-oro-01.jpeg",
@@ -331,10 +331,10 @@ export const products: Product[] = [
   {
     id: "prod-ide-oshun-yemaya",
     slug: "ide-oshun-yemaya",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-IDE-004",
     barcode: "ODI-IDE-004",
-    vendorSku: "ODIBERE-IDE-004",
+    vendorSku: "EDIBERE-IDE-004",
     name: {
       en: "Oshun & Yemaya Bracelet",
       es: "Oshun & Yemaya Bracelet",
@@ -346,7 +346,7 @@ export const products: Product[] = [
     cost: 31,
     stock: 14,
     reorderLevel: 3,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/bracelet/ide-oshun-yemaya-01.jpeg",
@@ -362,10 +362,10 @@ export const products: Product[] = [
   {
     id: "prod-ide-oshun-sencillo",
     slug: "ide-oshun-sencillo",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-IDE-005",
     barcode: "ODI-IDE-005",
-    vendorSku: "ODIBERE-IDE-005",
+    vendorSku: "EDIBERE-IDE-005",
     name: {
       en: "Ide Oshun Sencillo",
       es: "Ide Oshun Sencillo",
@@ -377,7 +377,7 @@ export const products: Product[] = [
     cost: 22,
     stock: 9,
     reorderLevel: 3,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/bracelet/ide-oshun-sencillo-01.jpeg",
@@ -393,10 +393,10 @@ export const products: Product[] = [
   {
     id: "prod-ide-shango-corona",
     slug: "ide-shango-corona",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-IDE-006",
     barcode: "ODI-IDE-006",
-    vendorSku: "ODIBERE-IDE-006",
+    vendorSku: "EDIBERE-IDE-006",
     name: {
       en: "Ide Shango Corona",
       es: "Ide Shango Corona",
@@ -408,7 +408,7 @@ export const products: Product[] = [
     cost: 36,
     stock: 6,
     reorderLevel: 3,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/bracelet/ide-shango-corona-01.jpeg",
@@ -424,10 +424,10 @@ export const products: Product[] = [
   {
     id: "prod-set-ide-collar-obatala",
     slug: "juego-ide-collar-obatala",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-SET-001",
     barcode: "ODI-SET-001",
-    vendorSku: "ODIBERE-SET-001",
+    vendorSku: "EDIBERE-SET-001",
     name: {
       en: "Obatala Ide and Collar Set",
       es: "Juego de Ide y Collar Obatala",
@@ -439,7 +439,7 @@ export const products: Product[] = [
     cost: 54,
     stock: 5,
     reorderLevel: 2,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/sets/juego-de-ide-y-collar-obatala-01.jpeg",
@@ -455,10 +455,10 @@ export const products: Product[] = [
   {
     id: "prod-set-ide-collar-shango",
     slug: "juego-ide-collar-shango",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-SET-002",
     barcode: "ODI-SET-002",
-    vendorSku: "ODIBERE-SET-002",
+    vendorSku: "EDIBERE-SET-002",
     name: {
       en: "Shango Ide and Collar Set",
       es: "Juego de Ide y Collar Shango",
@@ -470,7 +470,7 @@ export const products: Product[] = [
     cost: 58,
     stock: 4,
     reorderLevel: 2,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/sets/juego-de-ide-y-collar-shango-01.jpeg",
@@ -486,10 +486,10 @@ export const products: Product[] = [
   {
     id: "prod-set-ide-collar-olokun",
     slug: "juego-ide-collar-olokun",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-SET-003",
     barcode: "ODI-SET-003",
-    vendorSku: "ODIBERE-SET-003",
+    vendorSku: "EDIBERE-SET-003",
     name: {
       en: "Olokun Ide and Collar Set",
       es: "Juego de Ide y Collar Olokun",
@@ -501,7 +501,7 @@ export const products: Product[] = [
     cost: 60,
     stock: 3,
     reorderLevel: 2,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/ide/sets/juego-de-ide-y-collar-olokun-01.jpeg",
@@ -517,10 +517,10 @@ export const products: Product[] = [
   {
     id: "prod-mazo-elegua",
     slug: "mazo-elegua",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-MAZ-001",
     barcode: "ODI-MAZ-001",
-    vendorSku: "ODIBERE-MAZ-001",
+    vendorSku: "EDIBERE-MAZ-001",
     name: {
       en: "Elegua Ceremonial Staff",
       es: "Elegua Ceremonial Staff",
@@ -533,7 +533,7 @@ export const products: Product[] = [
     cost: 62,
     stock: 6,
     reorderLevel: 2,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/tools/irofa/mazo-elegua-01.jpeg",
@@ -549,10 +549,10 @@ export const products: Product[] = [
   {
     id: "prod-mazo-obatala",
     slug: "mazo-obatala",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-MAZ-002",
     barcode: "ODI-MAZ-002",
-    vendorSku: "ODIBERE-MAZ-002",
+    vendorSku: "EDIBERE-MAZ-002",
     name: {
       en: "Mazo Obatala",
       es: "Mazo Obatala",
@@ -564,7 +564,7 @@ export const products: Product[] = [
     cost: 64,
     stock: 5,
     reorderLevel: 2,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/tools/irofa/mazo-obatala-01.jpeg",
@@ -580,10 +580,10 @@ export const products: Product[] = [
   {
     id: "prod-mazo-shango",
     slug: "mazo-shango",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-MAZ-003",
     barcode: "ODI-MAZ-003",
-    vendorSku: "ODIBERE-MAZ-003",
+    vendorSku: "EDIBERE-MAZ-003",
     name: {
       en: "Mazo Shango",
       es: "Mazo Shango",
@@ -595,7 +595,7 @@ export const products: Product[] = [
     cost: 66,
     stock: 4,
     reorderLevel: 2,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/tools/irofa/mazo-shango-01.jpeg",
@@ -611,10 +611,10 @@ export const products: Product[] = [
   {
     id: "prod-mazo-ogun",
     slug: "mazo-ogun",
-    vendor: vendor.odibere,
+    vendor: vendor.edibere,
     sku: "ODI-MAZ-004",
     barcode: "ODI-MAZ-004",
-    vendorSku: "ODIBERE-MAZ-004",
+    vendorSku: "EDIBERE-MAZ-004",
     name: {
       en: "Mazo Ogun",
       es: "Mazo Ogun",
@@ -626,7 +626,7 @@ export const products: Product[] = [
     cost: 63,
     stock: 4,
     reorderLevel: 2,
-    inventoryLocation: "ODIBERE Beadwork",
+    inventoryLocation: "EDIBERE Beadwork",
     availableOnline: true,
     availableInStore: true,
     image: "/products/tools/irofa/mazo-ogun-01.jpeg",

@@ -115,7 +115,7 @@ function toFormState(product: Product, stock?: number): EditProductFormState {
     isLimitedEdition: false,
     isHandcrafted: true,
     collectionAjako: product.vendor === "AJAKO ORIGINALS",
-    collectionOdibere: product.vendor === "ODIBERE CREATIONS",
+    collectionOdibere: product.vendor === "EDIBERE CREATION",
     seoTitle: "",
     seoDescription: "",
     status: "Draft",
@@ -1112,7 +1112,7 @@ function ProductStudioForm({
               ["Limited Edition", "isLimitedEdition"],
               ["Handcrafted", "isHandcrafted"],
               ["AJAKO Originals", "collectionAjako"],
-              ["ODIBERE Creations", "collectionOdibere"],
+              ["EDIBERE Creation", "collectionOdibere"],
             ].map(([label, field]) => (
               <label
                 key={field}
