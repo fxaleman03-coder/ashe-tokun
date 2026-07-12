@@ -251,6 +251,29 @@ Manual order:
 
 Warning: customer data includes personal information. Development policies use broad anonymous access for local testing only. Before production, restrict customer records to authenticated staff with role-based RLS, audit logging, encrypted transport, secure backups, a privacy policy, and a data retention policy.
 
+## Phase 9.4 Returns, Exchanges, and Refund Foundation
+
+Manual order:
+
+1. Run `supabase/policies-returns-development.sql`.
+2. Confirm `supabase/policies-pos-development.sql` has already been run for orders, order items, payments, and receipts.
+3. Confirm `supabase/policies-inventory-development.sql` has already been run for inventory items and inventory transactions.
+4. Restart localhost.
+5. Complete one small POS test sale.
+6. Open `/admin/returns/new`.
+7. Select the original order.
+8. Select returnable items and quantities.
+9. Create a return request.
+10. Approve the return.
+11. Receive the return and mark each item condition.
+12. Complete the return as refund, exchange, or store credit.
+13. Verify completed return quantities reduce future returnable quantity.
+14. Verify restockable conditions create `inventory_transactions` rows with `transaction_type = 'return'` and `reference_type = 'Customer Return'`.
+15. Verify non-restockable conditions do not increase sellable inventory.
+16. Verify order detail and customer detail show linked returns.
+
+Warning: refunds are administrative records only. Card, bank, Stripe, Square, PayPal, and external payment refunds must be processed manually outside the app in this phase. Return completion currently uses sequential development writes; before production, move return status, inventory restoration, payment records, store credit, and audit logging into a database RPC/transaction so partial failures cannot leave records out of sync.
+
 ## Phase 7.4A Public Product Reads
 
 Before testing public product reads in development, run:

@@ -733,6 +733,9 @@ export default function AdminPOS({
             >
               Search Customer
             </button>
+            <Link href="/admin/returns/new" className={subtleButtonClass}>
+              Start Return
+            </Link>
             <button
               type="button"
               onClick={() => {
@@ -754,7 +757,7 @@ export default function AdminPOS({
                 setCustomerQuery("");
                 setIsCustomerSearchOpen(false);
               }}
-              className="col-span-2 inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+              className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
             >
               Return to Walk-in Customer
             </button>

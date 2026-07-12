@@ -18,6 +18,7 @@ import type {
   CustomerAddressType,
   CustomerOrderSummary,
 } from "@/lib/types/customer";
+import type { ReturnRecord } from "@/lib/types/return";
 import {
   getCustomerContactName,
   getCustomerDisplaySummary,
@@ -28,6 +29,7 @@ type CustomerDetailManagerProps = {
   customer: Customer;
   addresses: CustomerAddress[];
   orders: CustomerOrderSummary[];
+  returns: ReturnRecord[];
 };
 
 type AddressFormState = {
@@ -107,11 +109,19 @@ export default function CustomerDetailManager({
   customer,
   addresses,
   orders,
+  returns,
 }: CustomerDetailManagerProps) {
   const router = useRouter();
   const isWalkInCustomer = customer.customer_type === "walk_in";
   const customerDisplay = getCustomerDisplaySummary(customer);
   const customerContactName = getCustomerContactName(customer);
+  const completedReturns = returns.filter(
+    (returnRecord) => returnRecord.status === "completed",
+  );
+  const totalReturnedValue = completedReturns.reduce(
+    (total, returnRecord) => total + returnRecord.refund_total,
+    0,
+  );
   const [message, setMessage] = useState("");
   const [note, setNote] = useState("");
   const [addressForm, setAddressForm] =
@@ -286,6 +296,8 @@ export default function CustomerDetailManager({
           ],
           ["Favorite Brand", "Pending"],
           ["Favorite Category", "Pending"],
+          ["Completed Returns", completedReturns.length],
+          ["Returned Value", formatCurrency(totalReturnedValue)],
         ].map(([label, value]) => (
           <article
             key={label}
@@ -559,6 +571,72 @@ export default function CustomerDetailManager({
             </tbody>
           </table>
         </div>
+      </DetailCard>
+
+      <DetailCard title="Returns & Exchanges">
+        <p className="mb-5 text-sm leading-6 text-[#e8dcc8]/58">
+          Lifetime Value currently shows gross completed order revenue. Returned
+          value is displayed separately until net revenue reporting is finalized.
+        </p>
+        {returns.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
+                  <th className="px-4 py-3">Return</th>
+                  <th className="px-4 py-3">Original Order</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Value</th>
+                  <th className="px-4 py-3">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {returns.map((returnRecord) => (
+                  <tr
+                    key={returnRecord.id}
+                    className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/returns/${returnRecord.id}`}
+                        className="font-medium text-[#d8a344] transition hover:text-[#f7ead2]"
+                      >
+                        {returnRecord.return_number}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      {returnRecord.order_id ? (
+                        <Link
+                          href={`/admin/orders/${returnRecord.order_id}`}
+                          className="text-[#d8a344] transition hover:text-[#f7ead2]"
+                        >
+                          {returnRecord.order_number}
+                        </Link>
+                      ) : (
+                        "Pending"
+                      )}
+                    </td>
+                    <td className="px-4 py-3 capitalize">
+                      {returnRecord.return_type.replace("_", " ")}
+                    </td>
+                    <td className="px-4 py-3">{returnRecord.status}</td>
+                    <td className="px-4 py-3">
+                      {formatCurrency(returnRecord.refund_total)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {new Date(returnRecord.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-[#e8dcc8]/54">
+            No returns or exchanges are linked to this customer yet.
+          </p>
+        )}
       </DetailCard>
 
       <DetailCard title="Notes">

@@ -3,6 +3,10 @@ import type { ReactNode } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 import OrderDetailActions from "@/components/admin/OrderDetailActions";
 import { getOrderDetail } from "@/lib/data/ordersRepository";
+import {
+  getReturnItems,
+  getReturnsByOrder,
+} from "@/lib/data/returnsRepository";
 
 type OrderDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -56,6 +60,16 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
       </AdminShell>
     );
   }
+
+  const linkedReturns = await getReturnsByOrder(order.id);
+  const linkedReturnItems = Object.fromEntries(
+    await Promise.all(
+      linkedReturns.map(async (returnRecord) => [
+        returnRecord.id,
+        await getReturnItems(returnRecord.id),
+      ] as const),
+    ),
+  );
 
   return (
     <AdminShell
@@ -283,9 +297,88 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           )}
         </DetailCard>
 
+        <DetailCard title="Returns & Exchanges">
+          <div className="mb-5 flex justify-end">
+            {order.order_status !== "draft" && order.order_status !== "cancelled" ? (
+              <Link
+                href="/admin/returns/new"
+                className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+              >
+                Create Return
+              </Link>
+            ) : null}
+          </div>
+          {linkedReturns.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
+                    <th className="px-4 py-3">Return</th>
+                    <th className="px-4 py-3">Type</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Items</th>
+                    <th className="px-4 py-3">Value</th>
+                    <th className="px-4 py-3">View</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linkedReturns.map((returnRecord) => (
+                    <tr
+                      key={returnRecord.id}
+                      className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"
+                    >
+                      <td className="px-4 py-3 font-medium text-[#f7ead2]">
+                        {returnRecord.return_number}
+                      </td>
+                      <td className="px-4 py-3 capitalize">
+                        {returnRecord.return_type.replace("_", " ")}
+                      </td>
+                      <td className="px-4 py-3">{returnRecord.status}</td>
+                      <td className="px-4 py-3">
+                        {(linkedReturnItems[returnRecord.id] ?? [])
+                          .map((item) => `${item.quantity} x ${item.product_name}`)
+                          .join(", ")}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatCurrency(returnRecord.refund_total)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/returns/${returnRecord.id}`}
+                          className="text-[#d8a344] transition hover:text-[#f7ead2]"
+                        >
+                          View Return
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-[#e8dcc8]/54">
+              No returns or exchanges are linked to this order yet.
+            </p>
+          )}
+        </DetailCard>
+
         <DetailCard title="Timeline">
           <div className="space-y-3">
-            {order.timeline.map((event) => (
+            {[
+              ...order.timeline,
+              ...linkedReturns.map((returnRecord) => ({
+                id: `return-${returnRecord.id}`,
+                label: "Linked Return",
+                description: `${returnRecord.return_number} / ${returnRecord.return_type.replace("_", " ")} / ${returnRecord.status}`,
+                created_at: returnRecord.created_at,
+              })),
+            ]
+              .sort(
+                (first, second) =>
+                  new Date(first.created_at).getTime() -
+                  new Date(second.created_at).getTime(),
+              )
+              .map((event) => (
               <div
                 key={event.id}
                 className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4 text-sm text-[#e8dcc8]/72"
