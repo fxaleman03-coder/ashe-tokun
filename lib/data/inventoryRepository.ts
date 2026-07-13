@@ -281,14 +281,6 @@ async function readInventoryItems(): Promise<InventoryItem[]> {
     .order("updated_at", { ascending: false });
 
   if (error || !data || data.length === 0) {
-    console.info("[ASHE TOKUN inventory repository]", "Using local fallback.", {
-      errorMessage: error?.message,
-      errorCode: error?.code,
-      errorDetails: error?.details,
-      errorHint: error?.hint,
-      inventoryItemCount: data?.length ?? 0,
-    });
-
     return getLocalFallbackInventoryItems();
   }
 

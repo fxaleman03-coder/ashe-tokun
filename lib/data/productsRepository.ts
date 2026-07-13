@@ -88,31 +88,6 @@ const localProductsBySku = new Map(
   localProducts.map((product) => [product.sku, product]),
 );
 
-function getSupabaseProjectRef() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return "missing";
-  }
-
-  try {
-    return new URL(supabaseUrl).hostname.split(".")[0] ?? "unknown";
-  } catch {
-    return "invalid-url";
-  }
-}
-
-function logProductReadDiagnostic(
-  message: string,
-  details: Record<string, unknown>,
-) {
-  console.info("[ASHE TOKUN product repository]", message, {
-    useSupabase: USE_SUPABASE,
-    supabaseProjectRef: getSupabaseProjectRef(),
-    ...details,
-  });
-}
-
 const localized = (value: string): Record<Language, string> => ({
   en: value,
   es: value,
@@ -213,13 +188,6 @@ const mapSupabaseProduct = (
 
 async function readProducts(): Promise<ProductsResult> {
   if (!USE_SUPABASE || !supabase) {
-    logProductReadDiagnostic("Using local fallback before Supabase query.", {
-      supabaseClientExists: Boolean(supabase),
-      supabaseProductCount: 0,
-      finalRepositoryCount: localProducts.length,
-      fallbackUsed: true,
-    });
-
     return {
       products: localProducts,
       source: "Local fallback",
@@ -246,26 +214,7 @@ async function readProducts(): Promise<ProductsResult> {
 
   const supabaseProductCount = data?.length ?? 0;
 
-  logProductReadDiagnostic("Supabase product query completed.", {
-    supabaseProductCount,
-    errorCode: error?.code,
-    errorMessage: error?.message,
-    errorDetails: error?.details,
-    errorHint: error?.hint,
-    fallbackUsed: Boolean(error || !data || data.length === 0),
-  });
-
   if (error || !data || data.length === 0) {
-    logProductReadDiagnostic("Using local fallback after Supabase query.", {
-      supabaseProductCount,
-      finalRepositoryCount: localProducts.length,
-      errorMessage: error?.message,
-      errorCode: error?.code,
-      errorDetails: error?.details,
-      errorHint: error?.hint,
-      fallbackUsed: true,
-    });
-
     return {
       products: localProducts,
       source: "Local fallback",

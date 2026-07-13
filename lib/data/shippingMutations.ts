@@ -327,7 +327,7 @@ export async function createShipment(
     const shipmentNumber = await getNextShipmentNumber();
     const shippingOrigin = await resolveShippingOrigin(input);
     const packageCount =
-      input.fulfillment_type === "shipping" ? input.packages?.length ?? 1 : 1;
+      input.fulfillment_type === "shipping" ? input.packages?.length ?? 1 : 0;
     const { data: shipment, error: shipmentError } = await supabase
       .from("shipments")
       .insert({

@@ -348,6 +348,58 @@ npm run migrate:products -- --confirm
 
 This writes products to Supabase with SKU conflict protection. Do not run it until the lookup tables are ready and the migration output can be reviewed.
 
+## Phase 10.2 Staff PIN Authentication
+
+Manual setup order:
+
+1. Run `supabase/migrations/phase-10-1-staff-foundation.sql` if it has not already been executed.
+2. Run `supabase/migrations/phase-10-2-staff-auth.sql`.
+3. Configure the server-only service role key in `.env.local`:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY=
+STAFF_SESSION_HOURS=10
+STAFF_INACTIVITY_MINUTES=30
+STAFF_MAX_FAILED_ATTEMPTS=5
+STAFF_LOCKOUT_MINUTES=15
+```
+
+4. Run `supabase/policies-staff-auth-development.sql`.
+5. Run the owner bootstrap without confirmation and verify it refuses to write:
+
+```bash
+npm run bootstrap:owner
+```
+
+6. Run the confirmed owner bootstrap only when ready:
+
+```bash
+npm run bootstrap:owner -- --confirm
+```
+
+7. Restart localhost.
+8. Open `/staff/login`.
+9. Sign in with the temporary Owner PIN.
+10. Change PIN.
+11. Verify `/staff`.
+12. Open `/admin/staff`.
+13. Create one test employee.
+14. Test incorrect PIN attempts.
+15. Test lockout.
+16. Unlock employee.
+17. Reset PIN.
+18. Confirm old sessions are revoked.
+19. Archive employee.
+20. Confirm the historical record remains.
+21. Reactivate the employee and require a new PIN.
+
+Warnings:
+
+- `SUPABASE_SERVICE_ROLE_KEY` must remain server-only and must never be exposed to browser code.
+- Staff PIN hashes, session token hashes, and detailed auth events must not be readable by anonymous clients.
+- Real customer, staff, financial, and address data must not be protected by unrestricted anon development policies in production.
+- Complete `/admin/*` route protection is reserved for Phase 10.3; Phase 10.2 protects `/admin/staff` and `/staff`.
+
 ## 4. Rollback Notes
 
 - This execution is for development only.

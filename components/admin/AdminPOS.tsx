@@ -30,11 +30,12 @@ type AdminPOSProps = {
 };
 
 type DiscountType = "fixed" | "percentage";
-type PaymentMethod = "cash" | "card" | "other";
+type PaymentMethod = "cash" | "card" | "zelle" | "other";
 
 const paymentMethods: { label: string; value: PaymentMethod }[] = [
   { label: "Cash", value: "cash" },
   { label: "Card", value: "card" },
+  { label: "Zelle", value: "zelle" },
   { label: "Other", value: "other" },
 ];
 

@@ -32,6 +32,7 @@ type InventoryItemRow = {
 const validPaymentMethods = new Set<PosPaymentInput["method"]>([
   "cash",
   "card",
+  "zelle",
   "other",
 ]);
 

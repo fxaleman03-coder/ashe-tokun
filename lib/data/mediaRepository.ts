@@ -170,16 +170,6 @@ export async function getMediaAssets(): Promise<MediaAsset[]> {
     .order("created_at", { ascending: false });
 
   if (error || !data || data.length === 0) {
-    console.info("[ASHE TOKUN media repository]", "Using local fallback.", {
-      supabaseUrlExists: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-      supabaseAnonKeyExists: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-      errorMessage: error?.message,
-      errorCode: error?.code,
-      errorDetails: error?.details,
-      errorHint: error?.hint,
-      mediaCount: data?.length ?? 0,
-    });
-
     return getLocalFallbackMediaAssets();
   }
 

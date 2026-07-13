@@ -9,28 +9,8 @@ export type ProductTypeReadResult = {
   source: ProductTypeReadSource;
 };
 
-function logProductTypeReadDiagnostic(
-  message: string,
-  details?: Record<string, unknown>,
-) {
-  console.info("[ASHE TOKUN product type read]", message, {
-    supabaseUrlExists: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-    supabaseAnonKeyExists: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-    ...details,
-  });
-}
-
 export async function getProductTypesResult(): Promise<ProductTypeReadResult> {
   if (!USE_SUPABASE || !supabase) {
-    logProductTypeReadDiagnostic(
-      "Using local fallback before Supabase query.",
-      {
-        useSupabase: USE_SUPABASE,
-        supabaseClientExists: Boolean(supabase),
-        fallbackUsed: true,
-      },
-    );
-
     return {
       productTypes: localProductTypes,
       source: "local-fallback",
@@ -44,17 +24,6 @@ export async function getProductTypesResult(): Promise<ProductTypeReadResult> {
     .order("name");
 
   if (error || !data) {
-    logProductTypeReadDiagnostic(
-      "Supabase product types query failed. Using fallback.",
-      {
-        errorMessage: error?.message,
-        errorCode: error?.code,
-        errorDetails: error?.details,
-        errorHint: error?.hint,
-        fallbackUsed: true,
-      },
-    );
-
     return {
       productTypes: localProductTypes,
       source: "local-fallback",
@@ -62,24 +31,11 @@ export async function getProductTypesResult(): Promise<ProductTypeReadResult> {
   }
 
   if (data.length === 0) {
-    logProductTypeReadDiagnostic(
-      "Supabase product types query returned no active rows. Using fallback.",
-      {
-        productTypeCount: 0,
-        fallbackUsed: true,
-      },
-    );
-
     return {
       productTypes: localProductTypes,
       source: "local-fallback",
     };
   }
-
-  logProductTypeReadDiagnostic("Supabase product types query succeeded.", {
-    productTypeCount: data.length,
-    fallbackUsed: false,
-  });
 
   return {
     productTypes: data,

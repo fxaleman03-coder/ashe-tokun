@@ -2,42 +2,56 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { hasPermission } from "@/lib/staff/permissionHelpers";
+import type { PermissionKey } from "@/lib/staff/permissionTypes";
 
-const navigationGroups = [
+type NavigationLink = {
+  href: string;
+  label: string;
+  permissions: PermissionKey[];
+};
+
+type NavigationGroup = {
+  title: string;
+  links: NavigationLink[];
+};
+
+const navigationGroups: NavigationGroup[] = [
   {
     title: "Dashboard",
-    links: [{ href: "/admin", label: "Dashboard" }],
+    links: [{ href: "/admin", label: "Dashboard", permissions: ["reports.sales"] }],
   },
   {
     title: "Catalog",
     links: [
-      { href: "/admin/catalog", label: "Catalog Overview" },
-      { href: "/admin/products", label: "Products" },
-      { href: "/admin/vendors", label: "Vendors" },
-      { href: "/admin/collections", label: "Collections" },
-      { href: "/admin/categories", label: "Categories" },
-      { href: "/admin/product-types", label: "Product Types" },
-      { href: "/admin/traditions", label: "Traditions" },
-      { href: "/admin/media", label: "Media Library" },
+      { href: "/admin/catalog", label: "Catalog Overview", permissions: ["products.read"] },
+      { href: "/admin/products", label: "Products", permissions: ["products.read"] },
+      { href: "/admin/vendors", label: "Vendors", permissions: ["vendors.read"] },
+      { href: "/admin/collections", label: "Collections", permissions: ["products.read"] },
+      { href: "/admin/categories", label: "Categories", permissions: ["products.read"] },
+      { href: "/admin/product-types", label: "Product Types", permissions: ["products.read"] },
+      { href: "/admin/traditions", label: "Traditions", permissions: ["products.read"] },
+      { href: "/admin/media", label: "Media Library", permissions: ["products.read"] },
     ],
   },
   {
     title: "Commerce",
     links: [
-      { href: "/admin/pos", label: "POS" },
-      { href: "/admin/inventory", label: "Inventory" },
-      { href: "/admin/orders", label: "Orders" },
-      { href: "/admin/shipping", label: "Shipping" },
-      { href: "/admin/returns", label: "Returns" },
-      { href: "/admin/customers", label: "Customers" },
-      { href: "/admin/analytics", label: "Analytics" },
+      { href: "/admin/pos", label: "POS", permissions: ["pos.access"] },
+      { href: "/admin/inventory", label: "Inventory", permissions: ["inventory.read"] },
+      { href: "/admin/orders", label: "Orders", permissions: ["orders.read"] },
+      { href: "/admin/shipping", label: "Shipping", permissions: ["shipping.read"] },
+      { href: "/admin/returns", label: "Returns", permissions: ["returns.read"] },
+      { href: "/admin/customers", label: "Customers", permissions: ["customers.read"] },
+      { href: "/admin/analytics", label: "Analytics", permissions: ["reports.sales"] },
     ],
   },
   {
     title: "Settings",
     links: [
-      { href: "/admin/settings", label: "Settings" },
-      { href: "/admin/database", label: "Database" },
+      { href: "/admin/settings", label: "Settings", permissions: ["settings.company"] },
+      { href: "/admin/staff", label: "Staff", permissions: ["staff.read"] },
+      { href: "/admin/database", label: "Database", permissions: ["settings.security"] },
     ],
   },
 ];
@@ -53,8 +67,20 @@ function getActiveHref(pathname: string) {
     .sort((first, second) => second.href.length - first.href.length)[0]?.href;
 }
 
-export default function AdminSidebar() {
+export default function AdminSidebar({
+  permissions,
+}: {
+  permissions: PermissionKey[];
+}) {
   const pathname = usePathname();
+  const visibleNavigationGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      links: group.links.filter((link) =>
+        hasPermission(permissions, link.permissions),
+      ),
+    }))
+    .filter((group) => group.links.length > 0);
   const activeHref = getActiveHref(pathname);
 
   return (
@@ -69,7 +95,7 @@ export default function AdminSidebar() {
       </Link>
 
       <nav className="mt-8 flex gap-3 overflow-x-auto lg:flex-col lg:overflow-visible">
-        {navigationGroups.map((group) => (
+        {visibleNavigationGroups.map((group) => (
           <div key={group.title} className="min-w-max lg:min-w-0">
             <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]/72">
               {group.title}

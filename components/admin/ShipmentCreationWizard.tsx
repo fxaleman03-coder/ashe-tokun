@@ -96,8 +96,11 @@ export default function ShipmentCreationWizard({
   const [selectedQuantities, setSelectedQuantities] = useState<
     Record<string, string>
   >({});
+  const selectableOrigins = shippingOrigins.filter(
+    (origin) => origin.active && origin.is_complete,
+  );
   const defaultOrigin =
-    shippingOrigins.find((origin) => origin.is_default) ?? shippingOrigins[0];
+    selectableOrigins.find((origin) => origin.is_default) ?? selectableOrigins[0];
   const [selectedOriginId, setSelectedOriginId] = useState(defaultOrigin?.id ?? "");
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [manualAddress, setManualAddress] =
@@ -613,11 +616,10 @@ export default function ShipmentCreationWizard({
                 className={`${inputClass} mt-4`}
               >
                 <option value="">Select origin</option>
-                {shippingOrigins.map((origin) => (
+                {selectableOrigins.map((origin) => (
                   <option key={origin.id} value={origin.id}>
                     {origin.name}
                     {origin.is_default ? " (Default)" : ""}
-                    {!origin.is_complete ? " (Incomplete)" : ""}
                   </option>
                 ))}
               </select>

@@ -5,10 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { USE_SUPABASE } from "@/lib/config";
-import {
-  updateProduct,
-  type ProductPriceTrace,
-} from "@/lib/data/productMutations";
+import { updateProduct } from "@/lib/data/productMutations";
 import type { InventoryProductSummary } from "@/lib/data/inventoryRepository";
 import {
   addProductMedia,
@@ -21,7 +18,6 @@ import type { ProductMediaRecord } from "@/lib/data/productMediaRepository";
 import type { MediaAsset } from "@/lib/data/mediaRepository";
 import {
   productVendors,
-  products as localProducts,
   type Product,
   type ProductVendor,
 } from "@/lib/products";
@@ -244,7 +240,6 @@ const textareaClass =
 type ProductStudioFormProps = EditProductFormProps & {
   seedProduct: Product;
   stock?: number;
-  customOpeleOverride?: ReturnType<typeof useProductOverride>;
 };
 
 function ProductStudioForm({
@@ -254,26 +249,20 @@ function ProductStudioForm({
   inventorySummary,
   seedProduct,
   stock,
-  customOpeleOverride,
 }: ProductStudioFormProps) {
   const router = useRouter();
   const seedFormState = useMemo(() => toFormState(seedProduct), [seedProduct]);
   const [formState, setFormState] = useState(() => toFormState(product, stock));
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [priceTrace, setPriceTrace] = useState<ProductPriceTrace | null>(null);
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [mediaQuery, setMediaQuery] = useState("");
   const [linkedMedia, setLinkedMedia] = useState(productMedia);
-  const localCustomOpele = localProducts.find(
-    (localProduct) => localProduct.slug === "custom-opele",
-  );
 
   const primaryMedia = linkedMedia.find((media) => media.is_primary) ?? null;
   const primaryPreviewUrl = primaryMedia?.media_asset.public_url ?? formState.image;
   const canPreviewImage =
     primaryPreviewUrl.startsWith("/") || primaryPreviewUrl.startsWith("http");
-  const shouldShowCustomOpeleDiagnostic = product.slug === "custom-opele";
   const filteredStudioMediaAssets = useMemo(() => {
     const normalizedQuery = mediaQuery.trim().toLowerCase();
 
@@ -454,7 +443,6 @@ function ProductStudioForm({
 
     if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
       setIsSaving(false);
-      setPriceTrace(null);
       setMessage("Save failed: Price must be a valid non-negative number.");
       return;
     }
@@ -489,20 +477,11 @@ function ProductStudioForm({
       active: formState.visibility === "Storefront",
     };
 
-    console.info("[ASHE TOKUN Product Studio]", "Submitting product update.", {
-      productSlug: product.slug,
-      displayedPriceInputValue: formState.price,
-      formStatePrice: formState.price,
-      payloadPrice: productUpdates.price,
-      payloadPriceType: typeof productUpdates.price,
-    });
-
     const result = await updateProduct(product.slug, productUpdates);
 
     setIsSaving(false);
 
     if (result.ok && result.source === "supabase") {
-      setPriceTrace(result.priceTrace);
       setFormState((currentState) => ({
         ...currentState,
         name: result.product.name ?? currentState.name,
@@ -533,12 +512,10 @@ function ProductStudioForm({
     }
 
     if (result.ok) {
-      setPriceTrace(null);
       setMessage("Saved locally.");
       return;
     }
 
-    setPriceTrace(null);
     setMessage(`Save failed: ${result.error}`);
   }
 
@@ -550,7 +527,6 @@ function ProductStudioForm({
 
     resetProductOverride(product.slug);
     setFormState(seedFormState);
-    setPriceTrace(null);
     setMessage("Local changes reset for this product.");
   }
 
@@ -621,33 +597,6 @@ function ProductStudioForm({
         {message ? (
           <p className="border border-[#d8a344]/35 bg-[#d8a344]/10 px-5 py-4 text-sm font-medium text-[#f7ead2]">
             {message}
-          </p>
-        ) : null}
-
-        {priceTrace ? (
-          <p className="border border-[#f7ead2]/10 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/70">
-            Requested: ${priceTrace.requested.toFixed(2)}
-            <br />
-            Returned: ${priceTrace.returned.toFixed(2)}
-            <br />
-            Verified: ${priceTrace.verified.toFixed(2)}
-          </p>
-        ) : null}
-
-        {shouldShowCustomOpeleDiagnostic ? (
-          <p className="border border-[#f7ead2]/10 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/70">
-            Custom Opele diagnostic
-            <br />
-            Supabase price: ${product.price.toFixed(2)}
-            <br />
-            Local price: ${localCustomOpele?.price.toFixed(2) ?? "Pending"}
-            <br />
-            localStorage price:{" "}
-            {typeof customOpeleOverride?.price === "number"
-              ? `$${customOpeleOverride.price.toFixed(2)}`
-              : "No active price override"}
-            <br />
-            Final repository price: ${product.price.toFixed(2)}
           </p>
         ) : null}
 
@@ -1343,14 +1292,6 @@ export default function EditProductForm({
 
   useEffect(() => {
     if (shouldClearCustomOpeleOverride) {
-      console.info(
-        "[ASHE TOKUN Custom Opele diagnostic]",
-        "Removing stale localStorage override for custom-opele only.",
-        {
-          productSlug: product.slug,
-          localStorageOverride: override,
-        },
-      );
       resetProductOverride(product.slug);
     }
   }, [override, product.slug, shouldClearCustomOpeleOverride]);
@@ -1364,7 +1305,6 @@ export default function EditProductForm({
       inventorySummary={inventorySummary}
       seedProduct={product}
       stock={effectiveOverride?.stock}
-      customOpeleOverride={product.slug === "custom-opele" ? override : undefined}
     />
   );
 }

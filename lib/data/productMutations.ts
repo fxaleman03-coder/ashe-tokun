@@ -250,12 +250,6 @@ export async function updateProduct(
     };
   }
 
-  console.info("[ASHE TOKUN product update]", "Received update input.", {
-    productSlug,
-    receivedPrice: updates.price,
-    receivedPriceType: typeof updates.price,
-  });
-
   const safeUpdates = omitUndefined({
     name: updates.name,
     short_description: updates.shortDescription,
@@ -274,28 +268,12 @@ export async function updateProduct(
     active: updates.active,
   });
 
-  console.info("[ASHE TOKUN product update]", "Attempting Supabase update.", {
-    productSlug,
-    fieldsSent: safeUpdates,
-    sanitizedPrice: safeUpdates.price,
-    sanitizedPriceType: typeof safeUpdates.price,
-  });
-
   const { data, error } = await supabase
     .from("products")
     .update(safeUpdates)
     .eq("slug", productSlug)
     .select("*")
     .single<UpdatedProductRow>();
-
-  console.info("[ASHE TOKUN product update]", "Supabase update result.", {
-    productSlug,
-    returnedRow: data,
-    errorCode: error?.code,
-    errorMessage: error?.message,
-    errorDetails: error?.details,
-    errorHint: error?.hint,
-  });
 
   if (error) {
     return {
@@ -345,15 +323,6 @@ export async function updateProduct(
     .select("id, slug, price, status, updated_at")
     .eq("slug", productSlug)
     .single<UpdatedProductRow>();
-
-  console.info("[ASHE TOKUN product update]", "Fresh verification read.", {
-    productSlug,
-    verificationRow,
-    errorCode: verificationError?.code,
-    errorMessage: verificationError?.message,
-    errorDetails: verificationError?.details,
-    errorHint: verificationError?.hint,
-  });
 
   if (verificationError) {
     return {
@@ -405,12 +374,6 @@ export async function createProduct(
   input: ProductCreateInput,
 ): Promise<ProductCreateResult> {
   if (!USE_SUPABASE) {
-    console.info("[ASHE TOKUN product create]", "Local visual creation path.", {
-      productName: input.name,
-      sku: input.sku,
-      action: input.action,
-    });
-
     return {
       ok: true,
       source: "local",
@@ -523,27 +486,11 @@ export async function createProduct(
     active,
   };
 
-  console.info("[ASHE TOKUN product create]", "Attempting Supabase insert.", {
-    productName: input.name,
-    slug,
-    sku: input.sku,
-    fieldsSent: insertPayload,
-  });
-
   const { data, error } = await supabase
     .from("products")
     .insert(insertPayload)
     .select("*")
     .single<UpdatedProductRow>();
-
-  console.info("[ASHE TOKUN product create]", "Supabase insert result.", {
-    slug,
-    returnedRow: data,
-    errorCode: error?.code,
-    errorMessage: error?.message,
-    errorDetails: error?.details,
-    errorHint: error?.hint,
-  });
 
   if (error) {
     return {

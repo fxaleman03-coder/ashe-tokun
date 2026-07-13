@@ -71,7 +71,7 @@ export type PosDiscount = {
 };
 
 export type PosPaymentInput = {
-  method: "cash" | "card" | "other";
+  method: "cash" | "card" | "zelle" | "other";
   amountTendered: number;
 };
 
