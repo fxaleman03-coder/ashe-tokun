@@ -1,22 +1,31 @@
 import AdminShell from "@/components/admin/AdminShell";
 import StaffAvailabilityManager from "@/components/admin/StaffAvailabilityManager";
 import { getStaffMembers } from "@/lib/data/staffRepository";
-import { getStaffAvailability } from "@/lib/data/schedulingRepository";
+import { getStaffAvailabilityResult } from "@/lib/data/schedulingRepository";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSchedulingAvailabilityPage() {
   const staff = await getStaffMembers();
-  const availability = (
-    await Promise.all(staff.map((member) => getStaffAvailability(member.id)))
-  ).flat();
+  const availabilityResults = await Promise.all(
+    staff.map((member) => getStaffAvailabilityResult(member.id)),
+  );
+  const availability = availabilityResults.flatMap((result) => result.data);
+  const availabilityError = availabilityResults
+    .map((result) => result.error)
+    .filter(Boolean)
+    .join(" / ");
 
   return (
     <AdminShell
       title="Staff Availability"
       description="Manage recurring weekly availability for ASHE TOKUN employees."
     >
-      <StaffAvailabilityManager staff={staff} availability={availability} />
+      <StaffAvailabilityManager
+        staff={staff}
+        availability={availability}
+        availabilityError={availabilityError || undefined}
+      />
     </AdminShell>
   );
 }

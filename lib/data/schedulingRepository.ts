@@ -70,6 +70,11 @@ type SchedulingReadResult<T> = {
   };
 };
 
+type AvailabilityReadResult = {
+  data: StaffAvailability[];
+  error?: string;
+};
+
 type TimeOffReadResult = {
   data: StaffTimeOffRequest[];
   error?: string;
@@ -385,10 +390,19 @@ export async function getTeamSchedule(
 }
 
 export async function getStaffAvailability(staffMemberId: string) {
+  return (await getStaffAvailabilityResult(staffMemberId)).data;
+}
+
+export async function getStaffAvailabilityResult(
+  staffMemberId: string,
+): Promise<AvailabilityReadResult> {
   const client = getSchedulingSupabaseClient();
 
   if (!USE_SUPABASE || !client) {
-    return emptyIfUnavailable<StaffAvailability>();
+    return {
+      data: emptyIfUnavailable<StaffAvailability>(),
+      error: "Scheduling Supabase client unavailable.",
+    };
   }
 
   const { data, error } = await client
@@ -399,7 +413,14 @@ export async function getStaffAvailability(staffMemberId: string) {
     .eq("staff_member_id", staffMemberId)
     .order("weekday", { ascending: true });
 
-  return error || !data ? [] : (data as AvailabilityRow[]).map(toAvailability);
+  if (error) {
+    return {
+      data: [],
+      error: formatReadError("Unable to load staff availability", error),
+    };
+  }
+
+  return { data: ((data ?? []) as AvailabilityRow[]).map(toAvailability) };
 }
 
 export async function getTimeOffRequests(filters?: {
@@ -503,7 +524,12 @@ export async function detectShiftConflicts(input: CreateShiftInput) {
   }
 
   const weekday = new Date(`${input.shift_date}T00:00:00`).getDay();
-  const matchingAvailability = availability.filter((item) => item.weekday === weekday);
+  const matchingAvailability = availability.filter(
+    (item) =>
+      item.weekday === weekday &&
+      (!item.effective_from || item.effective_from <= input.shift_date) &&
+      (!item.effective_until || item.effective_until >= input.shift_date),
+  );
   const availableWindow = matchingAvailability.find(
     (item) =>
       item.available &&

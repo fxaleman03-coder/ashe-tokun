@@ -5,18 +5,12 @@ import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { languageOptions } from "@/lib/translations";
 import { logoutStaffAction } from "@/lib/staff/staffActions";
+import { getSecurityRoleLabel } from "@/lib/staff/roleLabels";
 import type { StaffSession } from "@/lib/staff/staffSession";
 
 type StaffPortalHeaderProps = {
   session: StaffSession;
 };
-
-function formatRole(role: string) {
-  return role
-    .split("_")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
-}
 
 const dateLocales = {
   en: "en-US",
@@ -68,7 +62,7 @@ export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
             <span>
               {t.staff.role}:{" "}
               <strong className="font-semibold text-[#f7ead2]">
-                {formatRole(session.role)}
+                {getSecurityRoleLabel(session.role)}
               </strong>
             </span>
             <span aria-hidden="true">/</span>

@@ -52,6 +52,17 @@ export const permissionGroups: PermissionGroupDefinition[] = [
     description: "Employee records, PIN resets, sessions, and permissions.",
   },
   {
+    id: "audit",
+    label: "Audit",
+    description: "Operational, staff, and security audit review.",
+  },
+  {
+    id: "ownership",
+    label: "Ownership Governance",
+    description:
+      "Reserved legal ownership, partner assignment, and master recovery controls.",
+  },
+  {
     id: "settings",
     label: "Settings",
     description: "Company settings and security configuration.",

@@ -58,3 +58,13 @@ Phase 10.2 introduces the real server-side PIN authentication foundation. Staff 
 - Add action attribution.
 - Expand audit trails for POS, inventory, orders, returns, and shipping.
 - Add staff activity history and session/device logging.
+
+## Dual Owner Recovery Rule
+
+- Owners may reset another Owner's PIN.
+- No Owner may view another PIN.
+- PIN reset revokes active sessions for the target Owner.
+- PIN reset creates a temporary PIN and sets `must_change_pin = true`.
+- PIN reset actions must be audited.
+- The system must never allow zero active Owners.
+- Managers cannot manage Owner security.

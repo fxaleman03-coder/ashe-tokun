@@ -1,5 +1,8 @@
 export type StaffRole =
   | "owner"
+  | "managing_partner"
+  | "store_manager"
+  | "assistant_manager"
   | "manager"
   | "cashier"
   | "inventory"
@@ -19,6 +22,8 @@ export type PermissionGroupId =
   | "pos"
   | "reports"
   | "staff"
+  | "audit"
+  | "ownership"
   | "settings"
   | "accounting"
   | "vendors"
@@ -71,6 +76,10 @@ export type PermissionKey =
   | "staff.edit"
   | "staff.reset_pin"
   | "staff.permissions.manage"
+  | "ownership.transfer"
+  | "ownership.assign_owner"
+  | "ownership.remove_last_owner"
+  | "system.master_recovery"
   | "settings.company"
   | "settings.security"
   | "accounting.read"
@@ -82,7 +91,8 @@ export type PermissionKey =
   | "store_credit.read"
   | "store_credit.issue"
   | "notifications.read"
-  | "notifications.send";
+  | "notifications.send"
+  | "audit.read";
 
 export type StaffPermissionAssignment = {
   permission_key: PermissionKey;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import {
   archiveStaffAction,
@@ -14,6 +15,11 @@ import {
 } from "@/lib/staff/staffActions";
 import { permissionGroups } from "@/lib/staff/permissionGroups";
 import { permissions } from "@/lib/staff/permissions";
+import {
+  getSecurityRoleLabel,
+  getStaffBusinessTitle,
+  isExecutiveRole,
+} from "@/lib/staff/roleLabels";
 import { roleTemplates } from "@/lib/staff/roleTemplates";
 import type { PermissionKey } from "@/lib/staff/permissionTypes";
 import type {
@@ -29,6 +35,7 @@ type StaffMemberDetailProps = {
   hasBusinessActivity: boolean;
   effectivePermissions: PermissionKey[];
   staffOptions: StaffMember[];
+  canEditProfile: boolean;
 };
 
 const initialState: StaffActionState = {
@@ -73,6 +80,26 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ExecutiveBadge({ role }: { role: StaffMember["role"] }) {
+  if (!isExecutiveRole(role)) {
+    return null;
+  }
+
+  const isOwner = role === "owner";
+
+  return (
+    <span
+      className={`inline-flex w-fit border px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] ${
+        isOwner
+          ? "border-[#d8a344]/70 bg-[#d8a344]/12 text-[#f7d184]"
+          : "border-[#f7ead2]/20 bg-[#f7ead2]/8 text-[#e8dcc8]/85"
+      }`}
+    >
+      {isOwner ? "Executive Leadership / Owner" : "Executive Leadership / Managing Partner"}
+    </span>
+  );
+}
+
 export default function StaffMemberDetail({
   member,
   sessions,
@@ -80,6 +107,7 @@ export default function StaffMemberDetail({
   hasBusinessActivity,
   effectivePermissions,
   staffOptions,
+  canEditProfile,
 }: StaffMemberDetailProps) {
   const [resetState, resetAction] = useActionState(
     resetStaffPinAction,
@@ -95,18 +123,32 @@ export default function StaffMemberDetail({
   );
   const effectivePermissionSet = new Set(effectivePermissions);
   const roleTemplate = roleTemplates[member.role];
+  const businessTitle = getStaffBusinessTitle(
+    member.role,
+    member.business_title,
+  );
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_0.85fr]">
       <div className="space-y-6">
         <DetailCard title="Profile">
+          {canEditProfile ? (
+            <Link
+              href={`/admin/staff/${member.id}/edit`}
+              className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/55 px-4 text-xs font-bold uppercase tracking-[0.18em] text-[#d8a344] transition hover:bg-[#d8a344] hover:text-[#0f0b07]"
+            >
+              Edit Profile
+            </Link>
+          ) : null}
+          <ExecutiveBadge role={member.role} />
           <Row label="Employee Number" value={member.employee_number} />
           <Row
             label="Name"
             value={`${member.first_name} ${member.last_name}`}
           />
           <Row label="Display Name" value={member.display_name ?? "Pending"} />
-          <Row label="Role" value={member.role} />
+          <Row label="Business Title" value={businessTitle} />
+          <Row label="Security Role" value={getSecurityRoleLabel(member.role)} />
           <Row
             label="Location"
             value={member.assigned_location_name ?? "Unassigned"}

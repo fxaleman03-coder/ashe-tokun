@@ -277,6 +277,39 @@ export const permissions: PermissionDefinition[] = [
     ownerCritical: true,
   },
   {
+    key: "ownership.transfer",
+    group: "ownership",
+    label: "Transfer Ownership",
+    description: "Reserved future control for legal ownership transfer.",
+    sensitive: true,
+    ownerCritical: true,
+  },
+  {
+    key: "ownership.assign_owner",
+    group: "ownership",
+    label: "Assign Owner",
+    description: "Reserved future control for adding legal Owner authority.",
+    sensitive: true,
+    ownerCritical: true,
+  },
+  {
+    key: "ownership.remove_last_owner",
+    group: "ownership",
+    label: "Remove Last Owner",
+    description:
+      "Reserved recovery control; the application must not allow zero active Owners.",
+    sensitive: true,
+    ownerCritical: true,
+  },
+  {
+    key: "system.master_recovery",
+    group: "ownership",
+    label: "Master Recovery",
+    description: "Reserved future control for emergency system recovery.",
+    sensitive: true,
+    ownerCritical: true,
+  },
+  {
     key: "settings.company",
     group: "settings",
     label: "Company Settings",
@@ -350,6 +383,13 @@ export const permissions: PermissionDefinition[] = [
     group: "notifications",
     label: "Send Notifications",
     description: "Send customer or operational notifications.",
+  },
+  {
+    key: "audit.read",
+    group: "audit",
+    label: "Read Audit Logs",
+    description: "Review operational, staff, and security audit events.",
+    sensitive: true,
   },
 ];
 

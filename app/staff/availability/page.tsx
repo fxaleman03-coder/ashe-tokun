@@ -1,5 +1,5 @@
 import StaffAvailabilityManager from "@/components/admin/StaffAvailabilityManager";
-import { getStaffAvailability } from "@/lib/data/schedulingRepository";
+import { getStaffAvailabilityResult } from "@/lib/data/schedulingRepository";
 import { getStaffMemberById } from "@/lib/data/staffRepository";
 import { requirePermission } from "@/lib/staff/permissionGuard";
 
@@ -7,9 +7,9 @@ export const dynamic = "force-dynamic";
 
 export default async function StaffAvailabilityPage() {
   const { staff } = await requirePermission("schedule.manage_availability");
-  const [member, availability] = await Promise.all([
+  const [member, availabilityResult] = await Promise.all([
     getStaffMemberById(staff.staffId),
-    getStaffAvailability(staff.staffId),
+    getStaffAvailabilityResult(staff.staffId),
   ]);
 
   return (
@@ -28,7 +28,8 @@ export default async function StaffAvailabilityPage() {
         </section>
         <StaffAvailabilityManager
           staff={member ? [member] : []}
-          availability={availability}
+          availability={availabilityResult.data}
+          availabilityError={availabilityResult.error}
           selfStaffId={staff.staffId}
         />
       </main>

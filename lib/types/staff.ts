@@ -14,6 +14,7 @@ export type StaffMember = {
   first_name: string;
   last_name: string;
   display_name: string | null;
+  business_title: string | null;
   role: StaffRole;
   active: boolean;
   assigned_location_id: string | null;
@@ -74,6 +75,7 @@ export type UpdateStaffInput = {
   first_name?: string;
   last_name?: string;
   display_name?: string;
+  business_title?: string;
   role?: StaffRole;
   assigned_location_id?: string | null;
   employment_status?: StaffEmploymentStatus;
@@ -96,6 +98,7 @@ export type StaffMetrics = {
   onLeaveStaff: number;
   archivedStaff: number;
   managers: number;
+  managingPartners: number;
   cashiers: number;
   fulfillment: number;
   inventory: number;

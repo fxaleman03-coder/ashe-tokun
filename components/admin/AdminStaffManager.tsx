@@ -9,6 +9,11 @@ import {
   revokeStaffSessionsAction,
   unlockStaffAction,
 } from "@/lib/staff/staffActions";
+import {
+  getSecurityRoleLabel,
+  getStaffBusinessTitle,
+  isExecutiveRole,
+} from "@/lib/staff/roleLabels";
 import type { StaffMember, StaffMetrics } from "@/lib/types/staff";
 
 type AdminStaffManagerProps = {
@@ -26,13 +31,6 @@ function formatDate(value: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-function formatRole(role: string) {
-  return role
-    .split("_")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
 }
 
 function StatCard({
@@ -142,10 +140,13 @@ export default function AdminStaffManager({
           >
             <option value="all">All Roles</option>
             <option value="owner">Owner</option>
-            <option value="manager">Manager</option>
+            <option value="managing_partner">Managing Partner</option>
+            <option value="store_manager">Store Manager</option>
+            <option value="assistant_manager">Assistant Manager</option>
+            <option value="manager">Store Manager (legacy)</option>
             <option value="cashier">Cashier</option>
-            <option value="inventory">Inventory</option>
-            <option value="fulfillment">Fulfillment</option>
+            <option value="inventory">Inventory Specialist</option>
+            <option value="fulfillment">Shipping & Fulfillment</option>
             <option value="customer_service">Customer Service</option>
             <option value="accounting">Accounting</option>
             <option value="marketing_ecommerce">Marketing & E-Commerce</option>
@@ -201,6 +202,10 @@ export default function AdminStaffManager({
               const isLocked =
                 member.locked_until !== null &&
                 new Date(member.locked_until).getTime() > currentTime;
+              const businessTitle = getStaffBusinessTitle(
+                member.role,
+                member.business_title,
+              );
 
               return (
                 <tr key={member.id} className="align-top">
@@ -212,9 +217,19 @@ export default function AdminStaffManager({
                     <p className="mt-1 text-xs text-[#e8dcc8]/55">
                       {member.employee_number}
                     </p>
+                    {isExecutiveRole(member.role) ? (
+                      <p className="mt-2 inline-flex border border-[#d8a344]/45 px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#d8a344]">
+                        Executive Leadership
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-4 text-[#e8dcc8]/72">
-                    {formatRole(member.role)}
+                    <span className="block font-semibold text-[#f7ead2]">
+                      {businessTitle}
+                    </span>
+                    <span className="mt-1 block text-xs text-[#e8dcc8]/55">
+                      Security: {getSecurityRoleLabel(member.role)}
+                    </span>
                   </td>
                   <td className="px-4 py-4 text-[#e8dcc8]/72">
                     {member.assigned_location_name ?? "Unassigned"}

@@ -590,8 +590,15 @@ export async function resetStaffPinAsOwner(
     return { ok: false, message: "Staff member not found." };
   }
 
-  if (actor.role === "manager" && target.role === "owner") {
-    return { ok: false, message: "Managers cannot reset Owner PINs." };
+  if (
+    ["manager", "store_manager", "assistant_manager"].includes(actor.role) &&
+    (target.role === "owner" || target.role === "managing_partner")
+  ) {
+    return { ok: false, message: "Managers cannot reset executive PINs." };
+  }
+
+  if (actor.role === "managing_partner" && target.role === "owner") {
+    return { ok: false, message: "Managing Partners cannot reset Owner PINs." };
   }
 
   const validation = validatePinFormat(

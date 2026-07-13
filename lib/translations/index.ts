@@ -106,6 +106,8 @@ export type Translation = {
     commandCenter: string;
     welcome: string;
     role: string;
+    businessTitle: string;
+    securityRole: string;
     location: string;
     logout: string;
     openModule: string;
@@ -164,6 +166,20 @@ export type Translation = {
       applyClone: string;
       permissionAdded: string;
       permissionRemoved: string;
+    };
+    roles: {
+      owner: string;
+      managingPartner: string;
+      storeManager: string;
+      assistantManager: string;
+      inventorySpecialist: string;
+      shippingFulfillment: string;
+      customerService: string;
+      cashier: string;
+      accounting: string;
+      marketingEcommerce: string;
+      executiveLeadership: string;
+      ownerOnlyGovernance: string;
     };
     modules: {
       pos: { name: string; description: string };

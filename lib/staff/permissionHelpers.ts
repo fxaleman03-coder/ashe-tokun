@@ -54,11 +54,15 @@ export function canRoleManageTargetRole(actorRole: StaffRole, targetRole: StaffR
     return true;
   }
 
-  if (targetRole === "owner") {
+  if (actorRole === "managing_partner") {
+    return targetRole !== "owner";
+  }
+
+  if (targetRole === "owner" || targetRole === "managing_partner") {
     return false;
   }
 
-  return actorRole === "manager";
+  return actorRole === "store_manager" || actorRole === "manager";
 }
 
 export function normalizePermissionAssignments(

@@ -26,6 +26,9 @@ export type StaffModuleDefinition = {
 
 export const rolePermissions: Record<StaffRole, PermissionKey[]> = {
   owner: roleTemplates.owner.permissions,
+  managing_partner: roleTemplates.managing_partner.permissions,
+  store_manager: roleTemplates.store_manager.permissions,
+  assistant_manager: roleTemplates.assistant_manager.permissions,
   manager: roleTemplates.manager.permissions,
   cashier: roleTemplates.cashier.permissions,
   inventory: roleTemplates.inventory.permissions,

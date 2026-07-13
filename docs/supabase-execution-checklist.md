@@ -420,11 +420,48 @@ Manual activation order:
 14. Copy previous week when the duplicate workflow is ready for operational use.
 15. Print the schedule from the weekly schedule view.
 
+Final Phase 10.4 verification:
+
+1. Edit employee name or display name.
+2. Confirm Employee Number remains unchanged.
+3. Confirm profile update audit event exists.
+4. Save staff availability.
+5. Reload and verify availability persistence.
+6. Create a shift inside availability.
+7. Attempt a shift outside availability.
+8. Submit a time-off request.
+9. Approve the request.
+10. Confirm a conflicting shift is blocked.
+11. Publish the schedule.
+12. View employee schedule from the Staff Portal.
+13. Print the schedule.
+14. Verify permissions for Owner, Manager, and limited staff roles.
+15. Verify archived staff cannot login.
+
 Warnings:
 
 - Scheduling data is sensitive employee information.
 - Development scheduling policies are not production RLS.
 - Time clock, overtime, payroll, PTO balances, and notifications are not included in Phase 10.4.
+
+## Phase 10.4D Executive Leadership
+
+Manual activation:
+
+1. Review `docs/executive-governance.md`.
+2. Run `supabase/migrations/phase-10-4d-executive-leadership.sql`.
+3. Manually review staff records before assigning:
+   - `0001` Eduardo Gomez: business title `Owner`, security role `owner`.
+   - `0002` Felix Aleman: business title `Managing Partner`, security role
+     `managing_partner`.
+4. Confirm Managing Partner operational permissions.
+5. Confirm Owner-only governance permissions remain reserved.
+
+Warnings:
+
+- Do not update employee numbers.
+- Do not execute staff record updates automatically from application code.
+- Reserved ownership permissions do not expose UI yet.
 
 ## 4. Rollback Notes
 

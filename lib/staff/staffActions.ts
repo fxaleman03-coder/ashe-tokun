@@ -10,6 +10,7 @@ import {
   isOwnerCriticalPermission,
   normalizePermissionAssignments,
 } from "@/lib/staff/permissionHelpers";
+import { getDefaultBusinessTitle } from "@/lib/staff/roleLabels";
 import { requirePermission } from "@/lib/staff/permissionGuard";
 import { hashPin, validatePinFormat } from "@/lib/staff/pinSecurity";
 import {
@@ -26,9 +27,38 @@ import {
 import type { StaffRole } from "@/lib/staff/staffSession";
 import type { StaffEmploymentStatus } from "@/lib/types/staff";
 
+const editableStaffRoles: StaffRole[] = [
+  "owner",
+  "managing_partner",
+  "store_manager",
+  "assistant_manager",
+  "manager",
+  "cashier",
+  "inventory",
+  "fulfillment",
+  "customer_service",
+  "accounting",
+  "marketing_ecommerce",
+];
+
+const editableEmploymentStatuses: StaffEmploymentStatus[] = [
+  "active",
+  "on_leave",
+  "resigned",
+  "terminated",
+  "retired",
+  "archived",
+];
+
 export type StaffActionState = {
   message: string;
   status: "idle" | "error" | "success";
+};
+
+type StaffProfileSpecificAudit = {
+  action: string;
+  previous: string | boolean | null;
+  next: string | boolean | null;
 };
 
 function getString(formData: FormData, key: string) {
@@ -60,6 +90,27 @@ async function writePermissionAudit(input: {
   });
 }
 
+async function writeStaffProfileAudit(input: {
+  actorId: string;
+  staffMemberId: string;
+  action: string;
+  details: Record<string, unknown>;
+}) {
+  const supabase = createSupabaseServiceClient();
+
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.from("audit_logs").insert({
+    staff_user_id: input.actorId,
+    action: input.action,
+    entity_type: "staff",
+    entity_id: input.staffMemberId,
+    details: input.details,
+  });
+}
+
 async function getTargetStaffForPermissionChange(staffMemberId: string) {
   const supabase = createSupabaseServiceClient();
 
@@ -80,6 +131,56 @@ async function getTargetStaffForPermissionChange(staffMemberId: string) {
     active: boolean;
     employment_status: StaffEmploymentStatus;
   } | null;
+}
+
+async function getTargetStaffForProfileUpdate(staffMemberId: string) {
+  const supabase = createSupabaseServiceClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const selectWithBusinessTitle =
+    "id, employee_number, first_name, last_name, display_name, business_title, role, active, assigned_location_id, employment_status";
+  const legacySelect =
+    "id, employee_number, first_name, last_name, display_name, role, active, assigned_location_id, employment_status";
+
+  const result = await supabase
+    .from("staff_members")
+    .select(selectWithBusinessTitle)
+    .eq("id", staffMemberId)
+    .maybeSingle();
+
+  const missingBusinessTitle =
+    result.error?.code === "42703" ||
+    result.error?.message.includes("business_title");
+  const { data } = missingBusinessTitle
+    ? await supabase
+        .from("staff_members")
+        .select(legacySelect)
+        .eq("id", staffMemberId)
+        .maybeSingle()
+    : result;
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    ...(data as {
+      id: string;
+      employee_number: string;
+      first_name: string;
+      last_name: string;
+      display_name: string | null;
+      business_title?: string | null;
+      role: StaffRole;
+      active: boolean;
+      assigned_location_id: string | null;
+      employment_status: StaffEmploymentStatus;
+    }),
+    businessTitleColumnAvailable: !missingBusinessTitle,
+  };
 }
 
 async function isFinalActiveOwner(staffMemberId: string) {
@@ -170,12 +271,26 @@ export async function createStaffMemberAction(
   const confirmTemporaryPin = getString(formData, "confirmTemporaryPin");
   const role = getString(formData, "role") as StaffRole;
 
+  if (!editableStaffRoles.includes(role)) {
+    return { status: "error", message: "Selected role is not valid." };
+  }
+
   if (temporaryPin !== confirmTemporaryPin) {
     return { status: "error", message: "Temporary PIN confirmation does not match." };
   }
 
-  if (actor.role === "manager" && role === "owner") {
-    return { status: "error", message: "Managers cannot create Owner accounts." };
+  if (
+    ["manager", "store_manager", "assistant_manager"].includes(actor.role) &&
+    (role === "owner" || role === "managing_partner")
+  ) {
+    return { status: "error", message: "Managers cannot create executive accounts." };
+  }
+
+  if (actor.role === "managing_partner" && role === "owner") {
+    return {
+      status: "error",
+      message: "Managing Partners cannot create Owner accounts.",
+    };
   }
 
   const validation = validatePinFormat(temporaryPin, employeeNumber);
@@ -235,6 +350,249 @@ export async function createStaffMemberAction(
 
   revalidatePath("/admin/staff");
   redirect(`/admin/staff/${data.id}`);
+}
+
+export async function updateStaffMemberProfileAction(
+  _previousState: StaffActionState,
+  formData: FormData,
+): Promise<StaffActionState> {
+  const { staff: actor } = await requirePermission("staff.edit");
+  const supabase = createSupabaseServiceClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Staff management is not configured." };
+  }
+
+  const staffMemberId = getString(formData, "staffMemberId");
+  const target = await getTargetStaffForProfileUpdate(staffMemberId);
+
+  if (!target) {
+    return { status: "error", message: "Employee was not found." };
+  }
+
+  if (!canRoleManageTargetRole(actor.role, target.role)) {
+    return { status: "error", message: "You cannot modify this employee." };
+  }
+
+  const role = getString(formData, "role") as StaffRole;
+  const employmentStatus = getString(formData, "employmentStatus") as StaffEmploymentStatus;
+  const firstName = getString(formData, "firstName");
+  const lastName = getString(formData, "lastName");
+  const displayName = getString(formData, "displayName") || null;
+  const businessTitle =
+    getString(formData, "businessTitle") || getDefaultBusinessTitle(role);
+  const assignedLocationId = getString(formData, "assignedLocationId") || null;
+  const active = formData.get("active") === "on";
+
+  if (!firstName || !lastName) {
+    return { status: "error", message: "First and last name are required." };
+  }
+
+  if (!editableStaffRoles.includes(role)) {
+    return { status: "error", message: "Selected role is not valid." };
+  }
+
+  if (!editableEmploymentStatuses.includes(employmentStatus)) {
+    return { status: "error", message: "Selected employment status is not valid." };
+  }
+
+  const targetIsExecutive =
+    target.role === "owner" || target.role === "managing_partner";
+  const submittedRoleIsExecutive = role === "owner" || role === "managing_partner";
+
+  if (
+    ["manager", "store_manager", "assistant_manager"].includes(actor.role) &&
+    (targetIsExecutive || submittedRoleIsExecutive)
+  ) {
+    return {
+      status: "error",
+      message: "Managers cannot modify or assign executive roles.",
+    };
+  }
+
+  if (actor.role === "managing_partner" && (target.role === "owner" || role === "owner")) {
+    return {
+      status: "error",
+      message: "Managing Partners cannot modify or assign Owner roles.",
+    };
+  }
+
+  if (assignedLocationId) {
+    const { data: location } = await supabase
+      .from("inventory_locations")
+      .select("id")
+      .eq("id", assignedLocationId)
+      .maybeSingle();
+
+    if (!location) {
+      return { status: "error", message: "Assigned location was not found." };
+    }
+  }
+
+  const finalOwner = target.role === "owner" && (await isFinalActiveOwner(target.id));
+  if (finalOwner && role !== "owner") {
+    return { status: "error", message: "The final active Owner cannot lose the Owner role." };
+  }
+  if (finalOwner && (!active || employmentStatus !== "active")) {
+    return { status: "error", message: "The final active Owner cannot be deactivated or archived." };
+  }
+
+  const updatePayload = {
+    first_name: firstName,
+    last_name: lastName,
+    display_name: displayName,
+    ...(target.businessTitleColumnAvailable
+      ? { business_title: businessTitle }
+      : {}),
+    role,
+    assigned_location_id: assignedLocationId,
+    active,
+    employment_status: employmentStatus,
+    updated_by_staff_id: actor.staffId,
+  };
+  const previousValues = {
+    first_name: target.first_name,
+    last_name: target.last_name,
+    display_name: target.display_name,
+    ...(target.businessTitleColumnAvailable
+      ? {
+          business_title:
+            target.business_title ?? getDefaultBusinessTitle(target.role),
+        }
+      : {}),
+    role: target.role,
+    assigned_location_id: target.assigned_location_id,
+    active: target.active,
+    employment_status: target.employment_status,
+  };
+  const changedFields = Object.entries(updatePayload)
+    .filter(([key, value]) => key !== "updated_by_staff_id" && previousValues[key as keyof typeof previousValues] !== value)
+    .map(([key]) => key);
+
+  if (changedFields.length === 0) {
+    return { status: "success", message: "No profile changes were needed." };
+  }
+
+  const { data, error } = await supabase
+    .from("staff_members")
+    .update(updatePayload)
+    .eq("id", target.id)
+    .select(
+      target.businessTitleColumnAvailable
+        ? "id, employee_number, first_name, last_name, display_name, business_title, role, assigned_location_id, active, employment_status"
+        : "id, employee_number, first_name, last_name, display_name, role, assigned_location_id, active, employment_status",
+    )
+    .single();
+
+  if (error || !data) {
+    return { status: "error", message: "Employee profile could not be updated." };
+  }
+
+  const updatedStaff = data as unknown as {
+    id: string;
+    employee_number: string;
+    first_name: string;
+    last_name: string;
+    display_name: string | null;
+    business_title?: string | null;
+    role: StaffRole;
+    assigned_location_id: string | null;
+    active: boolean;
+    employment_status: StaffEmploymentStatus;
+  };
+  const newValues = {
+    first_name: updatedStaff.first_name,
+    last_name: updatedStaff.last_name,
+    display_name: updatedStaff.display_name,
+    ...(target.businessTitleColumnAvailable
+      ? {
+          business_title:
+            updatedStaff.business_title ??
+            getDefaultBusinessTitle(updatedStaff.role),
+        }
+      : {}),
+    role: updatedStaff.role,
+    assigned_location_id: updatedStaff.assigned_location_id,
+    active: updatedStaff.active,
+    employment_status: updatedStaff.employment_status,
+  };
+
+  await writeStaffProfileAudit({
+    actorId: actor.staffId,
+    staffMemberId: target.id,
+    action: "staff_profile_updated",
+    details: {
+      employee_number: target.employee_number,
+      changed_fields: changedFields,
+      previous: previousValues,
+      next: newValues,
+      changed_by: actor.employeeNumber,
+    },
+  });
+
+  const previousBusinessTitle =
+    target.business_title ?? getDefaultBusinessTitle(target.role);
+  const nextBusinessTitle =
+    updatedStaff.business_title ?? getDefaultBusinessTitle(updatedStaff.role);
+  const specificAuditActions: Array<StaffProfileSpecificAudit | null> = [
+    target.businessTitleColumnAvailable &&
+    previousBusinessTitle !== nextBusinessTitle
+      ? {
+          action: "staff_business_title_changed",
+          previous: previousBusinessTitle,
+          next: nextBusinessTitle,
+        }
+      : null,
+    target.role !== updatedStaff.role
+      ? {
+          action: "staff_security_role_changed",
+          previous: target.role,
+          next: updatedStaff.role,
+        }
+      : null,
+    target.assigned_location_id !== updatedStaff.assigned_location_id
+      ? {
+          action: "location_changed",
+          previous: target.assigned_location_id,
+          next: updatedStaff.assigned_location_id,
+        }
+      : null,
+    target.employment_status !== updatedStaff.employment_status
+      ? {
+          action: "employment_status_changed",
+          previous: target.employment_status,
+          next: updatedStaff.employment_status,
+        }
+      : null,
+    target.active && !updatedStaff.active
+      ? { action: "staff_deactivated", previous: true, next: false }
+      : null,
+    !target.active && updatedStaff.active
+      ? { action: "staff_reactivated", previous: false, next: true }
+      : null,
+  ];
+
+  for (const audit of specificAuditActions.filter(
+    (entry): entry is StaffProfileSpecificAudit => Boolean(entry),
+  )) {
+    await writeStaffProfileAudit({
+      actorId: actor.staffId,
+      staffMemberId: target.id,
+      action: audit.action,
+      details: {
+        actor_staff_id: actor.staffId,
+        target_staff_id: target.id,
+        employee_number: target.employee_number,
+        changed_by: actor.employeeNumber,
+        previous: audit.previous,
+        next: audit.next,
+      },
+    });
+  }
+
+  revalidatePath("/admin/staff");
+  revalidatePath(`/admin/staff/${target.id}`);
+  redirect(`/admin/staff/${target.id}`);
 }
 
 export async function resetStaffPinAction(

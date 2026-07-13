@@ -601,25 +601,60 @@ export async function setStaffAvailability(
     return { ok: false, error: "You cannot edit another employee’s availability." };
   }
 
-  await supabase.from("staff_availability").delete().eq("staff_member_id", staffMemberId);
+  const errors: string[] = [];
+  const seenWeekdays = new Set<number>();
 
   const rows = availability.map((item) => ({
     staff_member_id: staffMemberId,
     weekday: item.weekday,
     available: item.available,
-    start_time: item.start_time ? normalizeTimeInputValue(item.start_time) : null,
-    end_time: item.end_time ? normalizeTimeInputValue(item.end_time) : null,
+    start_time: item.available && item.start_time ? toDatabaseTime(item.start_time) : null,
+    end_time: item.available && item.end_time ? toDatabaseTime(item.end_time) : null,
     notes: normalizeText(item.notes),
     effective_from: item.effective_from || null,
     effective_until: item.effective_until || null,
   }));
 
+  for (const row of rows) {
+    if (!Number.isInteger(row.weekday) || row.weekday < 0 || row.weekday > 6) {
+      errors.push("Weekday values must be between 0 and 6.");
+    }
+    if (seenWeekdays.has(row.weekday)) {
+      errors.push("Availability can include only one row per weekday in this editor.");
+    }
+    seenWeekdays.add(row.weekday);
+
+    if (row.available && row.start_time && row.end_time) {
+      const startMinutes = timeInputValueToMinutes(row.start_time);
+      const endMinutes = timeInputValueToMinutes(row.end_time);
+      if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+        errors.push(`Weekday ${row.weekday} end time must be after start time.`);
+      }
+    }
+    if (row.effective_from && row.effective_until && row.effective_until < row.effective_from) {
+      errors.push(`Weekday ${row.weekday} effective-until date must be after effective-from.`);
+    }
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, error: errors.join(" ") };
+  }
+
+  const { error: deleteError } = await supabase
+    .from("staff_availability")
+    .delete()
+    .eq("staff_member_id", staffMemberId);
+
+  if (deleteError) {
+    return { ok: false, error: formatSupabaseError("Existing availability could not be replaced", deleteError) };
+  }
+
   const { error } =
     rows.length > 0
-      ? await supabase.from("staff_availability").insert(rows)
+      ? await supabase.from("staff_availability").insert(rows).select("id").limit(1)
       : { error: null };
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: formatSupabaseError("Availability could not be saved", error) };
 
   await writeScheduleEvent({
     staffMemberId,

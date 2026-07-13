@@ -4,6 +4,7 @@ import type {
   StaffRole,
 } from "@/lib/staff/permissionTypes";
 import { getEffectivePermissions } from "@/lib/staff/permissionHelpers";
+import { getDefaultBusinessTitle } from "@/lib/staff/roleLabels";
 import type {
   StaffAuthEvent,
   StaffFilters,
@@ -29,6 +30,7 @@ function normalizeStaffMember(row: StaffMemberRow): StaffMember {
     first_name: row.first_name,
     last_name: row.last_name,
     display_name: row.display_name,
+    business_title: row.business_title ?? getDefaultBusinessTitle(row.role),
     role: row.role,
     active: row.active,
     assigned_location_id: row.assigned_location_id,
@@ -93,12 +95,24 @@ export async function getStaffMembers(filters?: StaffFilters) {
     return [] satisfies StaffMember[];
   }
 
-  const { data, error } = await supabase
+  const selectWithBusinessTitle =
+    "id, employee_number, first_name, last_name, display_name, business_title, role, active, assigned_location_id, employment_status, must_change_pin, pin_changed_at, failed_login_attempts, locked_until, last_login_at, last_activity_at, archived_at, archive_reason, terminated_at, termination_reason, sessions_revoked_at, created_at, updated_at, location:inventory_locations(name)";
+  const legacySelect =
+    "id, employee_number, first_name, last_name, display_name, role, active, assigned_location_id, employment_status, must_change_pin, pin_changed_at, failed_login_attempts, locked_until, last_login_at, last_activity_at, archived_at, archive_reason, terminated_at, termination_reason, sessions_revoked_at, created_at, updated_at, location:inventory_locations(name)";
+
+  const result = await supabase
     .from("staff_members")
-    .select(
-      "id, employee_number, first_name, last_name, display_name, role, active, assigned_location_id, employment_status, must_change_pin, pin_changed_at, failed_login_attempts, locked_until, last_login_at, last_activity_at, archived_at, archive_reason, terminated_at, termination_reason, sessions_revoked_at, created_at, updated_at, location:inventory_locations(name)",
-    )
+    .select(selectWithBusinessTitle)
     .order("created_at", { ascending: false });
+
+  const { data, error } =
+    result.error?.code === "42703" ||
+    result.error?.message.includes("business_title")
+      ? await supabase
+          .from("staff_members")
+          .select(legacySelect)
+          .order("created_at", { ascending: false })
+      : result;
 
   if (error || !data) {
     return [];
@@ -235,7 +249,11 @@ export async function getStaffMetrics(): Promise<StaffMetrics> {
           member.employment_status,
         ),
     ).length,
-    managers: staff.filter((member) => member.role === "manager").length,
+    managers: staff.filter((member) =>
+      ["manager", "store_manager", "assistant_manager"].includes(member.role),
+    ).length,
+    managingPartners: staff.filter((member) => member.role === "managing_partner")
+      .length,
     cashiers: staff.filter((member) => member.role === "cashier").length,
     fulfillment: staff.filter((member) => member.role === "fulfillment").length,
     inventory: staff.filter((member) => member.role === "inventory").length,

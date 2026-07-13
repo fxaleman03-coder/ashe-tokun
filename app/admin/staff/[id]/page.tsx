@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
 import StaffMemberDetail from "@/components/admin/StaffMemberDetail";
 import {
+  getStaffEffectivePermissions,
   getStaffAuthEvents,
   getStaffMembers,
   getStaffMemberById,
@@ -10,6 +11,7 @@ import {
   staffMemberHasBusinessActivity,
 } from "@/lib/data/staffRepository";
 import { requireStaffManagementAccess } from "@/lib/staff/staffAuthService";
+import { hasPermission } from "@/lib/staff/permissionHelpers";
 
 type StaffMemberDetailPageProps = {
   params: Promise<{
@@ -20,7 +22,7 @@ type StaffMemberDetailPageProps = {
 export default async function StaffMemberDetailPage({
   params,
 }: StaffMemberDetailPageProps) {
-  await requireStaffManagementAccess();
+  const currentStaff = await requireStaffManagementAccess();
   const { id } = await params;
   const [member, sessions, events, hasBusinessActivity, staffOptions] = await Promise.all([
     getStaffMemberById(id),
@@ -38,6 +40,10 @@ export default async function StaffMemberDetailPage({
     member.id,
     member.role,
   );
+  const currentPermissions = await getStaffEffectivePermissions(
+    currentStaff.staffId,
+    currentStaff.role,
+  );
 
   return (
     <AdminShell
@@ -51,6 +57,7 @@ export default async function StaffMemberDetailPage({
         hasBusinessActivity={hasBusinessActivity}
         effectivePermissions={permissionSnapshot.effectivePermissions}
         staffOptions={staffOptions}
+        canEditProfile={hasPermission(currentPermissions, "staff.edit")}
       />
     </AdminShell>
   );
