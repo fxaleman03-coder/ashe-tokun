@@ -9,6 +9,10 @@ export type StaffModuleId =
   | "inventory"
   | "shipping"
   | "returns"
+  | "scheduling"
+  | "my_schedule"
+  | "availability"
+  | "time_off"
   | "products"
   | "receiving"
   | "reports"
@@ -61,6 +65,26 @@ export const staffModuleDefinitions: StaffModuleDefinition[] = [
     id: "returns",
     href: "/admin/returns",
     requiredPermissions: ["returns.read"],
+  },
+  {
+    id: "scheduling",
+    href: "/admin/scheduling",
+    requiredPermissions: ["schedule.view_all"],
+  },
+  {
+    id: "my_schedule",
+    href: "/staff/schedule",
+    requiredPermissions: ["schedule.view_own"],
+  },
+  {
+    id: "availability",
+    href: "/staff/availability",
+    requiredPermissions: ["schedule.manage_availability"],
+  },
+  {
+    id: "time_off",
+    href: "/staff/time-off",
+    requiredPermissions: ["schedule.manage_time_off"],
   },
   {
     id: "products",

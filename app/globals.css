@@ -22,3 +22,168 @@ body {
   background: #d8a344;
   color: #0f0b07;
 }
+
+.print-only,
+#staff-schedule-print {
+  display: none !important;
+}
+
+@page {
+  size: landscape;
+  margin: 0.5in;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  #staff-schedule-print,
+  #staff-schedule-print * {
+    visibility: visible;
+  }
+
+  #staff-schedule-print {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #111111;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .staff-print-header {
+    border-bottom: 2px solid #111111;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+
+  .staff-print-brand {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    margin: 0 0 4px;
+    text-transform: uppercase;
+  }
+
+  .staff-print-header h1 {
+    font-size: 24px;
+    line-height: 1.1;
+    margin: 0 0 10px;
+  }
+
+  .staff-print-meta {
+    display: grid;
+    gap: 5px 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .staff-print-meta p,
+  .staff-print-empty {
+    margin: 0;
+  }
+
+  .staff-print-meta span {
+    display: block;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .staff-print-empty {
+    border: 1px solid #111111;
+    font-size: 12px;
+    padding: 14px;
+  }
+
+  .staff-print-table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .staff-print-table thead {
+    display: table-header-group;
+  }
+
+  .staff-print-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .staff-print-table th,
+  .staff-print-table td {
+    border: 1px solid #222222;
+    padding: 6px 5px;
+    text-align: left;
+    vertical-align: top;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .staff-print-table th {
+    background: #efefef !important;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .staff-print-table th:nth-child(1),
+  .staff-print-table td:nth-child(1) {
+    width: 8%;
+  }
+
+  .staff-print-table th:nth-child(2),
+  .staff-print-table td:nth-child(2) {
+    width: 13%;
+  }
+
+  .staff-print-table th:nth-child(3),
+  .staff-print-table td:nth-child(3) {
+    width: 13%;
+  }
+
+  .staff-print-table th:nth-child(4),
+  .staff-print-table td:nth-child(4) {
+    width: 9%;
+  }
+
+  .staff-print-table th:nth-child(5),
+  .staff-print-table td:nth-child(5),
+  .staff-print-table th:nth-child(6),
+  .staff-print-table td:nth-child(6),
+  .staff-print-table th:nth-child(7),
+  .staff-print-table td:nth-child(7) {
+    width: 7%;
+  }
+
+  .staff-print-table th:nth-child(8),
+  .staff-print-table td:nth-child(8),
+  .staff-print-table th:nth-child(9),
+  .staff-print-table td:nth-child(9) {
+    width: 11%;
+  }
+
+  .staff-print-table th:nth-child(10),
+  .staff-print-table td:nth-child(10) {
+    width: 14%;
+  }
+}

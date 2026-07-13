@@ -26,6 +26,7 @@ export type StaffMetricLabel =
   | "lowStock"
   | "outOfStock"
   | "pinLoginPending"
+  | "pendingTimeOffRequest"
   | "preparing"
   | "productLookupReady"
   | "registered"
@@ -35,6 +36,10 @@ export type StaffMetricLabel =
   | "returnsReady"
   | "revenue"
   | "roleControlsPrepared"
+  | "schedulePublishedStatus"
+  | "schedulingReady"
+  | "todayShift"
+  | "nextScheduledShift"
   | "stockControlReady";
 
 export type StaffMetricStatus = "operational" | "phase101" | "preview" | "ready";
@@ -168,6 +173,26 @@ export async function getStaffCommandCenterMetrics(): Promise<StaffCommandCenter
           ? { label: "returnsReady" }
           : { value: returns.approvedReturns, label: "awaitingApproval" },
       status: "operational",
+    },
+    scheduling: {
+      primary: { label: "schedulingReady" },
+      secondary: { label: "schedulePublishedStatus" },
+      status: "ready",
+    },
+    my_schedule: {
+      primary: { label: "todayShift" },
+      secondary: { label: "nextScheduledShift" },
+      status: "ready",
+    },
+    availability: {
+      primary: { label: "schedulingReady" },
+      secondary: { label: "schedulePublishedStatus" },
+      status: "ready",
+    },
+    time_off: {
+      primary: { label: "pendingTimeOffRequest" },
+      secondary: { label: "schedulingReady" },
+      status: "ready",
     },
     products: {
       primary: countLine(

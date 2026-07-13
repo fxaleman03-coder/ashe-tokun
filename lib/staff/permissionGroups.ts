@@ -27,6 +27,11 @@ export const permissionGroups: PermissionGroupDefinition[] = [
     description: "Shipment creation, fulfillment, origins, and tracking.",
   },
   {
+    id: "scheduling",
+    label: "Scheduling",
+    description: "Employee schedules, availability, time off, and shift coverage.",
+  },
+  {
     id: "returns",
     label: "Returns",
     description: "Return creation, approvals, receiving, and completion.",

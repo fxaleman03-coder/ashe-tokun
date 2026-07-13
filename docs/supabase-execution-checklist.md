@@ -400,6 +400,32 @@ Warnings:
 - Real customer, staff, financial, and address data must not be protected by unrestricted anon development policies in production.
 - Complete `/admin/*` route protection is reserved for Phase 10.3; Phase 10.2 protects `/admin/staff` and `/staff`.
 
+## Phase 10.4 Employee Scheduling
+
+Manual activation order:
+
+1. Run `supabase/migrations/phase-10-4-employee-scheduling.sql`.
+2. Run `supabase/policies-staff-scheduling-development.sql`.
+3. Restart localhost.
+4. Open Admin Scheduling at `/admin/scheduling`.
+5. Create a draft schedule.
+6. Add shifts.
+7. Test conflict protection.
+8. Publish the schedule.
+9. Login as an employee.
+10. View own schedule at `/staff/schedule`.
+11. Submit a time-off request at `/staff/time-off`.
+12. Approve the request from `/admin/scheduling/time-off`.
+13. Confirm the approved time off blocks new scheduling.
+14. Copy previous week when the duplicate workflow is ready for operational use.
+15. Print the schedule from the weekly schedule view.
+
+Warnings:
+
+- Scheduling data is sensitive employee information.
+- Development scheduling policies are not production RLS.
+- Time clock, overtime, payroll, PTO balances, and notifications are not included in Phase 10.4.
+
 ## 4. Rollback Notes
 
 - This execution is for development only.
