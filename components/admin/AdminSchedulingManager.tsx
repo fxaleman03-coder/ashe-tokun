@@ -10,6 +10,7 @@ import type {
   StaffShift,
   StaffTimeOffRequest,
 } from "@/lib/types/scheduling";
+import { formatDate } from "@/lib/utils/dateTimeDisplay";
 
 type AdminSchedulingManagerProps = {
   periods: StaffSchedulePeriod[];
@@ -20,14 +21,6 @@ type AdminSchedulingManagerProps = {
 
 const inputClass =
   "min-h-11 border border-[#f7ead2]/10 bg-[#0f0b07] px-3 text-sm text-[#f7ead2] outline-none focus:border-[#d8a344]/70";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
-}
 
 export default function AdminSchedulingManager({
   periods,

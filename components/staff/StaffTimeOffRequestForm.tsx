@@ -10,6 +10,7 @@ import type {
   StaffTimeOffRequest,
   TimeOffRequestType,
 } from "@/lib/types/scheduling";
+import { formatDate } from "@/lib/utils/dateTimeDisplay";
 import {
   formatTimeForDisplay,
   normalizeTimeInputValue,
@@ -247,7 +248,8 @@ export default function StaffTimeOffRequestForm({
               <article key={request.id} className="border border-[#f7ead2]/10 bg-[#0f0b07] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-semibold text-[#f7ead2]">
-                    {request.request_type}: {request.start_date} - {request.end_date}
+                    {request.request_type}: {formatDate(request.start_date)} -{" "}
+                    {formatDate(request.end_date)}
                   </p>
                   <p className="text-sm text-[#d8a344]">{request.status}</p>
                 </div>

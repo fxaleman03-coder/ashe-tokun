@@ -463,6 +463,40 @@ Warnings:
 - Do not execute staff record updates automatically from application code.
 - Reserved ownership permissions do not expose UI yet.
 
+## Phase 10.5 Timekeeper, Attendance & Timecards
+
+Manual activation:
+
+1. Review `docs/phase-10-5-timekeeper.md`.
+2. Review `docs/timekeeper-operating-rules.md`.
+3. Run `supabase/migrations/phase-10-5-timekeeper.sql`.
+4. Run `supabase/policies-timekeeper-development.sql`.
+5. Restart localhost.
+6. Login as an employee and open `/staff/timekeeper`.
+7. Test clock in, break start, break end, and clock out.
+8. Open `/admin/timekeeper`.
+9. Review the timecard.
+10. Add a missed punch only when testing manual corrections.
+11. Approve, reopen, resolve, or dismiss exceptions as appropriate.
+12. Open Payroll PDF from `/admin/timekeeper/[id]`.
+13. Confirm employee number and business title.
+14. Confirm Total Hours Worked.
+15. Confirm Regular Hours.
+16. Confirm Overtime Hours.
+17. Confirm break totals are not printed.
+18. Confirm the Exceptions section is absent.
+19. Confirm Punch Timeline remains.
+20. Confirm Approval section remains.
+21. Save the PDF.
+22. Print the PDF from the browser PDF viewer.
+
+Warnings:
+
+- Development Timekeeper policies are not production RLS.
+- This phase does not process payroll, wages, taxes, deductions, or paychecks.
+- Do not create punches or timecards automatically from SQL.
+- Do not use biometric, facial-recognition, or GPS surveillance workflows.
+
 ## 4. Rollback Notes
 
 - This execution is for development only.

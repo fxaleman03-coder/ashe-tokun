@@ -34,30 +34,41 @@ body {
 }
 
 @media print {
+  html,
   body {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    overflow: visible !important;
     background: #ffffff !important;
     color: #111111 !important;
-  }
-
-  body * {
-    visibility: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .print-only {
     display: block !important;
+    position: static !important;
+    visibility: visible !important;
+    width: 100% !important;
+  }
+
+  .staff-schedule-page * {
+    visibility: hidden !important;
   }
 
   #staff-schedule-print,
   #staff-schedule-print * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   #staff-schedule-print {
     display: block !important;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
     color: #111111;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 10px;

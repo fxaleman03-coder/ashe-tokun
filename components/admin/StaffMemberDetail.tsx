@@ -27,6 +27,7 @@ import type {
   StaffMember,
   StaffSessionSummary,
 } from "@/lib/types/staff";
+import { formatDateTime } from "@/lib/utils/dateTimeDisplay";
 
 type StaffMemberDetailProps = {
   member: StaffMember;
@@ -42,17 +43,6 @@ const initialState: StaffActionState = {
   message: "",
   status: "idle",
 };
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Pending";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function DetailCard({
   title,
@@ -157,12 +147,12 @@ export default function StaffMemberDetail({
         </DetailCard>
 
         <DetailCard title="Security">
-          <Row label="Last Login" value={formatDate(member.last_login_at)} />
+          <Row label="Last Login" value={formatDateTime(member.last_login_at)} />
           <Row
             label="Failed Attempts"
             value={String(member.failed_login_attempts)}
           />
-          <Row label="Locked Until" value={formatDate(member.locked_until)} />
+          <Row label="Locked Until" value={formatDateTime(member.locked_until)} />
           <Row
             label="Must Change PIN"
             value={member.must_change_pin ? "Yes" : "No"}
@@ -172,9 +162,9 @@ export default function StaffMemberDetail({
 
         <DetailCard title="Employment Lifecycle">
           <Row label="Active" value={member.active ? "Yes" : "No"} />
-          <Row label="Archived At" value={formatDate(member.archived_at)} />
+          <Row label="Archived At" value={formatDateTime(member.archived_at)} />
           <Row label="Archive Reason" value={member.archive_reason ?? "Pending"} />
-          <Row label="Terminated At" value={formatDate(member.terminated_at)} />
+          <Row label="Terminated At" value={formatDateTime(member.terminated_at)} />
           <Row
             label="Termination Reason"
             value={member.termination_reason ?? "Pending"}
@@ -378,7 +368,7 @@ export default function StaffMemberDetail({
             <div key={event.id} className="border-b border-[#f7ead2]/10 pb-3">
               <p className="font-semibold text-[#f7ead2]">{event.event_type}</p>
               <p className="text-xs text-[#e8dcc8]/50">
-                {formatDate(event.created_at)} / {event.success ? "Success" : "Failed"}
+                {formatDateTime(event.created_at)} / {event.success ? "Success" : "Failed"}
               </p>
             </div>
           ))}

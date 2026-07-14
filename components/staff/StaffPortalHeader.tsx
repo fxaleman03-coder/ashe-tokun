@@ -7,16 +7,11 @@ import { languageOptions } from "@/lib/translations";
 import { logoutStaffAction } from "@/lib/staff/staffActions";
 import { getSecurityRoleLabel } from "@/lib/staff/roleLabels";
 import type { StaffSession } from "@/lib/staff/staffSession";
+import { formatDateTime } from "@/lib/utils/dateTimeDisplay";
 
 type StaffPortalHeaderProps = {
   session: StaffSession;
 };
-
-const dateLocales = {
-  en: "en-US",
-  es: "es-US",
-  yo: "yo-NG",
-} as const;
 
 export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
@@ -24,12 +19,7 @@ export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
 
   useEffect(() => {
     function updateTime() {
-      setCurrentTime(
-        new Intl.DateTimeFormat(dateLocales[language], {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date()),
-      );
+      setCurrentTime(formatDateTime(new Date().toISOString()));
     }
 
     updateTime();

@@ -7,6 +7,7 @@ import {
   denyTimeOffRequest,
 } from "@/lib/data/schedulingMutations";
 import type { StaffTimeOffRequest, TimeOffStatus } from "@/lib/types/scheduling";
+import { formatDate } from "@/lib/utils/dateTimeDisplay";
 
 type AdminTimeOffManagerProps = {
   requests: StaffTimeOffRequest[];
@@ -98,7 +99,7 @@ export default function AdminTimeOffManager({
                 <td className="px-4 py-4 text-[#f7ead2]">{employeeName(request)}</td>
                 <td className="px-4 py-4 text-[#e8dcc8]/72">{request.request_type}</td>
                 <td className="px-4 py-4 text-[#e8dcc8]/72">
-                  {request.start_date} - {request.end_date}
+                  {formatDate(request.start_date)} - {formatDate(request.end_date)}
                 </td>
                 <td className="px-4 py-4 text-[#e8dcc8]/72">{request.status}</td>
                 <td className="px-4 py-4 text-[#e8dcc8]/60">{request.reason ?? "Pending"}</td>

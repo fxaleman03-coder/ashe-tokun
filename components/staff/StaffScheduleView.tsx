@@ -2,28 +2,22 @@
 
 import type { StaffShift, StaffTimeOffRequest } from "@/lib/types/scheduling";
 import type { StaffSession } from "@/lib/staff/staffSession";
+import { formatShortDateWithWeekday } from "@/lib/utils/dateTimeDisplay";
 import { formatTimeForDisplay } from "@/lib/utils/schedulingTime";
 
 type StaffScheduleViewProps = {
   session: StaffSession;
   shifts: StaffShift[];
   timeOffRequests: StaffTimeOffRequest[];
+  today: string;
 };
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
-}
 
 export default function StaffScheduleView({
   session,
   shifts,
   timeOffRequests,
+  today,
 }: StaffScheduleViewProps) {
-  const today = new Date().toISOString().slice(0, 10);
   const upcoming = shifts
     .filter((shift) => shift.shift_date >= today && shift.status !== "cancelled")
     .sort((a, b) => `${a.shift_date}${a.start_time}`.localeCompare(`${b.shift_date}${b.start_time}`));
@@ -57,7 +51,7 @@ export default function StaffScheduleView({
               {shift ? (
                 <>
                   <p className="mt-3 font-serif text-2xl font-semibold text-[#f7ead2]">
-                    {formatDate((shift as StaffShift).shift_date)}
+                    {formatShortDateWithWeekday((shift as StaffShift).shift_date)}
                   </p>
                   <p className="mt-2 text-sm text-[#e8dcc8]/70">
                     {formatTimeForDisplay((shift as StaffShift).start_time)} - {formatTimeForDisplay((shift as StaffShift).end_time)}
@@ -79,7 +73,9 @@ export default function StaffScheduleView({
             {upcoming.map((shift) => (
               <article key={shift.id} className="border border-[#d8a344]/20 bg-[#0f0b07] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-semibold text-[#f7ead2]">{formatDate(shift.shift_date)}</p>
+                  <p className="font-semibold text-[#f7ead2]">
+                    {formatShortDateWithWeekday(shift.shift_date)}
+                  </p>
                   <p className="text-sm text-[#d8a344]">{shift.status}</p>
                 </div>
                 <p className="mt-2 text-sm text-[#e8dcc8]/70">

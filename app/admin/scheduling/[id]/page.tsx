@@ -67,32 +67,34 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
   }
 
   return (
-    <AdminShell
-      title={period.name}
-      description="Manage weekly shifts, publish schedules, review audit history, and print staff schedules."
-    >
-      <div className="space-y-6">
-        {period.status !== "archived" ? (
-          <ShiftForm
-            schedulePeriodId={period.id}
-            periodStart={period.start_date}
-            periodEnd={period.end_date}
-            locations={locations}
-            staff={staff}
-          />
-        ) : (
-          <section className="border border-[#f7ead2]/10 bg-[#120d08] p-5 text-sm text-[#e8dcc8]/62">
-            Archived schedules are read-only.
-          </section>
-        )}
-        {shiftsResult.error ? (
-          <section className="border border-[#d8a344]/30 bg-[#120d08] p-5 text-sm leading-6 text-[#e8dcc8]/72">
-            Schedule read warning: {shiftsResult.error}
-          </section>
-        ) : null}
-        <WeeklyScheduleBoard period={period} shifts={shifts} events={events} />
-        <PrintableStaffSchedule period={period} shifts={shifts} />
-      </div>
-    </AdminShell>
+    <div className="staff-schedule-page">
+      <AdminShell
+        title={period.name}
+        description="Manage weekly shifts, publish schedules, review audit history, and print staff schedules."
+      >
+        <div className="space-y-6">
+          {period.status !== "archived" ? (
+            <ShiftForm
+              schedulePeriodId={period.id}
+              periodStart={period.start_date}
+              periodEnd={period.end_date}
+              locations={locations}
+              staff={staff}
+            />
+          ) : (
+            <section className="border border-[#f7ead2]/10 bg-[#120d08] p-5 text-sm text-[#e8dcc8]/62">
+              Archived schedules are read-only.
+            </section>
+          )}
+          {shiftsResult.error ? (
+            <section className="border border-[#d8a344]/30 bg-[#120d08] p-5 text-sm leading-6 text-[#e8dcc8]/72">
+              Schedule read warning: {shiftsResult.error}
+            </section>
+          ) : null}
+          <WeeklyScheduleBoard period={period} shifts={shifts} events={events} />
+          <PrintableStaffSchedule period={period} shifts={shifts} />
+        </div>
+      </AdminShell>
+    </div>
   );
 }

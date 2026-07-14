@@ -40,6 +40,9 @@ export type StaffMetricLabel =
   | "schedulingReady"
   | "todayShift"
   | "nextScheduledShift"
+  | "clockedOut"
+  | "timekeeperReady"
+  | "viewTimecard"
   | "stockControlReady";
 
 export type StaffMetricStatus = "operational" | "phase101" | "preview" | "ready";
@@ -177,6 +180,11 @@ export async function getStaffCommandCenterMetrics(): Promise<StaffCommandCenter
     scheduling: {
       primary: { label: "schedulingReady" },
       secondary: { label: "schedulePublishedStatus" },
+      status: "ready",
+    },
+    timekeeper: {
+      primary: { label: "clockedOut" },
+      secondary: { label: "timekeeperReady" },
       status: "ready",
     },
     my_schedule: {

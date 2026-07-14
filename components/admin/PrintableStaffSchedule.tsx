@@ -1,4 +1,9 @@
 import type { StaffSchedulePeriod, StaffShift } from "@/lib/types/scheduling";
+import {
+  formatDateTime,
+  formatDateWithWeekday,
+  formatWeekday,
+} from "@/lib/utils/dateTimeDisplay";
 import { formatTimeForDisplay } from "@/lib/utils/schedulingTime";
 
 type PrintableStaffScheduleProps = {
@@ -19,31 +24,10 @@ function employeeName(shift: StaffShift) {
   return staff.display_name || `${staff.first_name} ${staff.last_name}`.trim() || "Employee";
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
-}
-
-function formatDay(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-  }).format(new Date(`${value}T00:00:00`));
-}
-
 function formatPublishedDate(value: string | null) {
   if (!value) return "Draft";
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return formatDateTime(value);
 }
 
 export default function PrintableStaffSchedule({
@@ -75,7 +59,7 @@ export default function PrintableStaffSchedule({
           </p>
           <p>
             <span>Date Range</span>
-            {formatDate(period.start_date)} - {formatDate(period.end_date)}
+            {formatDateWithWeekday(period.start_date)} - {formatDateWithWeekday(period.end_date)}
           </p>
           <p>
             <span>Published</span>
@@ -111,8 +95,8 @@ export default function PrintableStaffSchedule({
               <tr key={shift.id}>
                 <td>{employeeNumber(shift) || "Pending"}</td>
                 <td>{employeeName(shift)}</td>
-                <td>{formatDate(shift.shift_date)}</td>
-                <td>{formatDay(shift.shift_date)}</td>
+                <td>{formatDateWithWeekday(shift.shift_date)}</td>
+                <td>{formatWeekday(shift.shift_date)}</td>
                 <td>{formatTimeForDisplay(shift.start_time)}</td>
                 <td>{formatTimeForDisplay(shift.end_time)}</td>
                 <td>{shift.unpaid_break_minutes} min</td>

@@ -7,6 +7,40 @@ export type RoleTemplate = {
   permissions: PermissionKey[];
 };
 
+const staffSelfTimekeeperPermissions: PermissionKey[] = [
+  "timekeeper.clock_self",
+  "timekeeper.view_own",
+];
+
+const managerTimekeeperPermissions: PermissionKey[] = [
+  "timekeeper.clock_self",
+  "timekeeper.view_own",
+  "timekeeper.view_team",
+  "timekeeper.view_all",
+  "timekeeper.correct_punch",
+  "timekeeper.add_missed_punch",
+  "timekeeper.review_timecard",
+  "timekeeper.approve_timecard",
+  "timekeeper.reopen_timecard",
+  "timekeeper.resolve_exception",
+];
+
+const assistantManagerTimekeeperPermissions: PermissionKey[] = [
+  "timekeeper.clock_self",
+  "timekeeper.view_own",
+  "timekeeper.view_team",
+  "timekeeper.correct_punch",
+  "timekeeper.add_missed_punch",
+  "timekeeper.review_timecard",
+  "timekeeper.resolve_exception",
+];
+
+const allTimekeeperPermissions: PermissionKey[] = [
+  ...managerTimekeeperPermissions,
+  "timekeeper.manage_settings",
+  "timekeeper.export",
+];
+
 const ownerPermissions: PermissionKey[] = [
   "products.read",
   "products.create",
@@ -39,6 +73,7 @@ const ownerPermissions: PermissionKey[] = [
   "schedule.manage_time_off",
   "schedule.approve_time_off",
   "schedule.override_conflicts",
+  ...allTimekeeperPermissions,
   "returns.read",
   "returns.create",
   "returns.approve",
@@ -104,10 +139,11 @@ const storeManagerPermissions: PermissionKey[] = [
   "schedule.edit",
   "schedule.publish",
   "schedule.manage_availability",
-  "schedule.manage_time_off",
-  "schedule.approve_time_off",
-  "schedule.override_conflicts",
-  "returns.read",
+      "schedule.manage_time_off",
+      "schedule.approve_time_off",
+      "schedule.override_conflicts",
+      ...managerTimekeeperPermissions,
+      "returns.read",
   "returns.create",
   "returns.approve",
   "returns.complete",
@@ -169,6 +205,7 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "schedule.edit",
       "schedule.manage_availability",
       "schedule.manage_time_off",
+      ...assistantManagerTimekeeperPermissions,
       "returns.read",
       "returns.create",
       "pos.access",
@@ -202,6 +239,7 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "schedule.view_own",
       "schedule.manage_availability",
       "schedule.manage_time_off",
+      ...staffSelfTimekeeperPermissions,
       "gift_cards.read",
       "store_credit.read",
     ],
@@ -219,6 +257,7 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "schedule.view_own",
       "schedule.manage_availability",
       "schedule.manage_time_off",
+      ...staffSelfTimekeeperPermissions,
       "reports.inventory",
       "vendors.read",
     ],
@@ -237,6 +276,7 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "schedule.view_own",
       "schedule.manage_availability",
       "schedule.manage_time_off",
+      ...staffSelfTimekeeperPermissions,
       "returns.read",
       "returns.complete",
       "customers.read",
@@ -256,6 +296,7 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "schedule.view_own",
       "schedule.manage_availability",
       "schedule.manage_time_off",
+      ...staffSelfTimekeeperPermissions,
       "returns.read",
       "returns.create",
       "notifications.read",
@@ -273,6 +314,9 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "customers.read",
       "schedule.view_own",
       "schedule.view_all",
+      "timekeeper.view_own",
+      "timekeeper.view_all",
+      "timekeeper.export",
       "accounting.read",
       "accounting.refunds",
       "vendors.read",
@@ -293,6 +337,7 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "schedule.view_own",
       "schedule.manage_availability",
       "schedule.manage_time_off",
+      ...staffSelfTimekeeperPermissions,
       "reports.sales",
       "vendors.read",
       "notifications.read",

@@ -23,6 +23,7 @@ export type StaffScheduleEmployee = {
   first_name: string;
   last_name: string;
   display_name: string | null;
+  business_title?: string | null;
   role: StaffRole;
   active: boolean;
   employment_status: string;

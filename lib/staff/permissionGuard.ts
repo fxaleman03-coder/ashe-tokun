@@ -40,6 +40,7 @@ export const adminRoutePermissions: AdminRoutePermission[] = [
   { path: "/admin/scheduling/availability", permissions: ["schedule.manage_availability"] },
   { path: "/admin/scheduling/time-off", permissions: ["schedule.approve_time_off"] },
   { path: "/admin/scheduling", permissions: ["schedule.view_all"] },
+  { path: "/admin/timekeeper", permissions: ["timekeeper.view_all"] },
   { path: "/admin/returns/new", permissions: ["returns.create"] },
   { path: "/admin/returns", permissions: ["returns.read"] },
   { path: "/admin/customers/new", permissions: ["customers.create"] },

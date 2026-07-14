@@ -10,6 +10,7 @@ export type StaffModuleId =
   | "shipping"
   | "returns"
   | "scheduling"
+  | "timekeeper"
   | "my_schedule"
   | "availability"
   | "time_off"
@@ -73,6 +74,11 @@ export const staffModuleDefinitions: StaffModuleDefinition[] = [
     id: "scheduling",
     href: "/admin/scheduling",
     requiredPermissions: ["schedule.view_all"],
+  },
+  {
+    id: "timekeeper",
+    href: "/staff/timekeeper",
+    requiredPermissions: ["timekeeper.view_own"],
   },
   {
     id: "my_schedule",

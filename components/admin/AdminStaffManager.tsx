@@ -15,23 +15,13 @@ import {
   isExecutiveRole,
 } from "@/lib/staff/roleLabels";
 import type { StaffMember, StaffMetrics } from "@/lib/types/staff";
+import { formatDateTime } from "@/lib/utils/dateTimeDisplay";
 
 type AdminStaffManagerProps = {
   staff: StaffMember[];
   metrics: StaffMetrics;
   currentTime: number;
 };
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Pending";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function StatCard({
   label,
@@ -240,11 +230,13 @@ export default function AdminStaffManager({
                       {member.employment_status}
                     </p>
                     <p className="mt-1 text-xs text-[#e8dcc8]/50">
-                      {isLocked ? `Locked until ${formatDate(member.locked_until)}` : "Unlocked"}
+                      {isLocked
+                        ? `Locked until ${formatDateTime(member.locked_until)}`
+                        : "Unlocked"}
                     </p>
                   </td>
                   <td className="px-4 py-4 text-[#e8dcc8]/72">
-                    {formatDate(member.last_login_at)}
+                    {formatDateTime(member.last_login_at)}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap gap-2">

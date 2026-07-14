@@ -12,6 +12,10 @@ import type {
   StaffSchedulePeriod,
   StaffShift,
 } from "@/lib/types/scheduling";
+import {
+  formatDateTime,
+  formatShortDateWithWeekday,
+} from "@/lib/utils/dateTimeDisplay";
 import { formatTimeForDisplay } from "@/lib/utils/schedulingTime";
 
 type WeeklyScheduleBoardProps = {
@@ -19,14 +23,6 @@ type WeeklyScheduleBoardProps = {
   shifts: StaffShift[];
   events: StaffScheduleEvent[];
 };
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
-}
 
 function getDays(startDate: string, endDate: string) {
   const days: string[] = [];
@@ -101,7 +97,7 @@ export default function WeeklyScheduleBoard({
         "Publish this schedule?",
         `Employees: ${activeEmployeeCount}`,
         `Active shifts: ${activeShifts.length}`,
-        `Date range: ${formatDate(period.start_date)} - ${formatDate(period.end_date)}`,
+        `Date range: ${formatShortDateWithWeekday(period.start_date)} - ${formatShortDateWithWeekday(period.end_date)}`,
       ].join("\n"),
     );
 
@@ -131,7 +127,7 @@ export default function WeeklyScheduleBoard({
               {period.name}
             </h2>
             <p className="mt-2 text-sm text-[#e8dcc8]/58">
-              {formatDate(period.start_date)} - {formatDate(period.end_date)} /{" "}
+              {formatShortDateWithWeekday(period.start_date)} - {formatShortDateWithWeekday(period.end_date)} /{" "}
               {period.location_name ?? "All locations"}
             </p>
           </div>
@@ -168,7 +164,7 @@ export default function WeeklyScheduleBoard({
             <div className="p-3">Employee</div>
             {days.map((day) => (
               <div key={day} className="border-l border-[#f7ead2]/10 p-3">
-                {formatDate(day)}
+                {formatShortDateWithWeekday(day)}
               </div>
             ))}
           </div>
@@ -224,7 +220,7 @@ export default function WeeklyScheduleBoard({
         {days.map((day) => (
           <article key={day} className="border border-[#f7ead2]/10 bg-[#120d08] p-4">
             <h3 className="font-serif text-2xl font-semibold text-[#f7ead2]">
-              {formatDate(day)}
+              {formatShortDateWithWeekday(day)}
             </h3>
             <div className="mt-4 space-y-3">
               {activeShifts.filter((shift) => shift.shift_date === day).map((shift) => (
@@ -254,7 +250,7 @@ export default function WeeklyScheduleBoard({
         <div className="mt-4 space-y-2">
           {events.slice(0, 8).map((event) => (
             <p key={event.id} className="text-sm text-[#e8dcc8]/62">
-              {event.event_type} / {new Date(event.created_at).toLocaleString()}
+              {event.event_type} / {formatDateTime(event.created_at)}
             </p>
           ))}
           {events.length === 0 ? <p className="text-sm text-[#e8dcc8]/58">No schedule events yet.</p> : null}

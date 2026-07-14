@@ -32,6 +32,11 @@ export const permissionGroups: PermissionGroupDefinition[] = [
     description: "Employee schedules, availability, time off, and shift coverage.",
   },
   {
+    id: "timekeeper",
+    label: "Timekeeper",
+    description: "Actual punches, timecards, attendance exceptions, and review.",
+  },
+  {
     id: "returns",
     label: "Returns",
     description: "Return creation, approvals, receiving, and completion.",

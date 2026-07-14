@@ -24,6 +24,7 @@ const moduleMarkers: Record<StaffModuleId, string> = {
   shipping: "S",
   returns: "R",
   scheduling: "SC",
+  timekeeper: "TK",
   my_schedule: "MS",
   availability: "A",
   time_off: "TO",
