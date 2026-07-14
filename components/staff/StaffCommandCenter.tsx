@@ -12,6 +12,7 @@ import type { StaffSession } from "@/lib/staff/staffSession";
 
 type StaffCommandCenterProps = {
   session: StaffSession;
+  businessTitle?: string | null;
   modules: StaffModuleDefinition[];
   metrics: Record<StaffModuleId, StaffModuleMetric>;
 };
@@ -36,6 +37,7 @@ const moduleMarkers: Record<StaffModuleId, string> = {
 
 export default function StaffCommandCenter({
   session,
+  businessTitle,
   modules,
   metrics,
 }: StaffCommandCenterProps) {
@@ -43,7 +45,7 @@ export default function StaffCommandCenter({
 
   return (
     <div className="min-h-screen bg-[#0f0b07] text-[#f7ead2]">
-      <StaffPortalHeader session={session} />
+      <StaffPortalHeader session={session} businessTitle={businessTitle} />
       <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <section className="mb-8 border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#d8a344]">

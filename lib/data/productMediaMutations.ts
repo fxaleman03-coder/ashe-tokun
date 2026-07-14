@@ -1,7 +1,8 @@
-"use client";
+"use server";
 
 import { USE_SUPABASE } from "@/lib/config";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 
 type ProductMediaRow = {
   id: string;
@@ -32,6 +33,8 @@ function supabaseConfigError(): ProductMediaMutationResult {
 }
 
 async function getNextDisplayOrder(productId: string) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return 0;
   }
@@ -49,6 +52,8 @@ async function getNextDisplayOrder(productId: string) {
 }
 
 async function getExistingProductMedia(productId: string, mediaAssetId: string) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return null;
   }
@@ -75,6 +80,8 @@ async function getExistingProductMedia(productId: string, mediaAssetId: string) 
 }
 
 async function getProductMediaRows(productId: string) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return [];
   }
@@ -111,6 +118,17 @@ export async function setPrimaryProductMedia(
       source: "local",
     };
   }
+
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return supabaseConfigError();
@@ -206,6 +224,17 @@ export async function addProductMedia(
     };
   }
 
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return supabaseConfigError();
   }
@@ -267,6 +296,17 @@ export async function removeProductMedia(
     };
   }
 
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return supabaseConfigError();
   }
@@ -327,6 +367,17 @@ export async function reorderProductMedia(
       source: "local",
     };
   }
+
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return supabaseConfigError();
@@ -403,6 +454,17 @@ export async function updateProductMediaAltText(
     };
   }
 
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return supabaseConfigError();
   }
@@ -444,8 +506,13 @@ export async function removePrimaryProductMedia(
     };
   }
 
-  if (!supabase) {
-    return supabaseConfigError();
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
   }
 
   const primaryRows = (await getProductMediaRows(productId)).filter(

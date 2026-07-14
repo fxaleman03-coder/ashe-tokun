@@ -494,8 +494,87 @@ Warnings:
 
 - Development Timekeeper policies are not production RLS.
 - This phase does not process payroll, wages, taxes, deductions, or paychecks.
+
+## Phase 11 Payroll & Pay Period Foundation
+
+Manual setup:
+
+1. Review `docs/phase-11-payroll.md`.
+2. Run `supabase/migrations/phase-11-payroll-foundation.sql`.
+3. Restart localhost.
+4. Open `/admin/payroll`.
+
+Expected result:
+
+- Payroll periods are available when the migration has been run.
+- The Payroll dashboard aggregates approved Timekeeper timecards by employee.
+- Generate Payroll, Export CSV, and Export Excel remain placeholders.
+
+Warnings:
+
+- This phase does not calculate taxes, pay rates, deductions, paychecks, or accounting exports.
+- Do not treat payroll exports as production-ready until a later payroll export phase is completed.
+
+## Phase 11.1 Payroll Actions, Export, and Package Foundation
+
+Manual activation:
+
+1. Review `docs/phase-11-1-payroll-actions.md`.
+2. Run `supabase/migrations/phase-11-1-payroll-actions.sql`.
+3. Run `supabase/migrations/phase-11-1b-payroll-period-form.sql`.
+4. Restart localhost.
+5. Open `/admin/payroll`.
+6. Open `/admin/payroll/new`.
+7. Create a draft payroll period.
+8. Confirm the app navigates to `/admin/payroll/[id]`.
+9. Generate Payroll.
+10. Verify employee payroll rows.
+11. Review employee payroll.
+12. Approve employee payroll.
+13. Approve period.
+14. Export CSV.
+15. Export Excel.
+16. Open Period PDF.
+17. Generate Payroll Package.
+18. Close period.
+19. Reopen with a reason when testing reopen behavior.
+20. Verify `payroll_events` and `audit_logs`.
+
+Expected result:
+
+- Payroll rows are generated from approved Timekeeper timecards.
+- Source timecards and punches remain unchanged.
+- Exports download without UUIDs, exceptions, breaks, PINs, or session data.
+- Closed periods block payroll mutation actions.
+
+Warnings:
+
+- This phase still does not calculate wages, taxes, deductions, payments, paychecks, PTO balances, or payroll provider transmissions.
+- Do not use unrestricted development policies in production.
 - Do not create punches or timecards automatically from SQL.
 - Do not use biometric, facial-recognition, or GPS surveillance workflows.
+
+## Phase 11.2 Global User Experience
+
+Manual activation:
+
+1. Review `docs/phase-11-2-global-user-experience.md`.
+2. Restart localhost after pulling the UI changes.
+3. Open `/admin`.
+4. Open `/staff`.
+5. Confirm the shared user menu signs out through the staff login route.
+
+Expected result:
+
+- Admin pages show breadcrumbs, notifications foundation, and the authenticated staff menu.
+- Staff Operations uses the same Sign Out flow without a duplicate logout button.
+- Dashboard quick actions appear only when the current staff member has permission.
+
+Warnings:
+
+- No SQL is required for Phase 11.2.
+- Notifications are UI foundation only and do not create persisted records.
+- Account Settings and Activity Log remain unavailable until future pages are implemented.
 
 ## 4. Rollback Notes
 

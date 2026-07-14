@@ -41,6 +41,16 @@ const allTimekeeperPermissions: PermissionKey[] = [
   "timekeeper.export",
 ];
 
+const allPayrollPermissions: PermissionKey[] = [
+  "payroll.view",
+  "payroll.manage",
+  "payroll.export",
+  "payroll.approve",
+  "payroll.close",
+  "payroll.reopen",
+  "payroll.generate_package",
+];
+
 const ownerPermissions: PermissionKey[] = [
   "products.read",
   "products.create",
@@ -74,6 +84,7 @@ const ownerPermissions: PermissionKey[] = [
   "schedule.approve_time_off",
   "schedule.override_conflicts",
   ...allTimekeeperPermissions,
+  ...allPayrollPermissions,
   "returns.read",
   "returns.create",
   "returns.approve",
@@ -143,6 +154,10 @@ const storeManagerPermissions: PermissionKey[] = [
       "schedule.approve_time_off",
       "schedule.override_conflicts",
       ...managerTimekeeperPermissions,
+      "payroll.view",
+      "payroll.manage",
+      "payroll.approve",
+      "payroll.export",
       "returns.read",
   "returns.create",
   "returns.approve",
@@ -206,6 +221,7 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "schedule.manage_availability",
       "schedule.manage_time_off",
       ...assistantManagerTimekeeperPermissions,
+      "payroll.view",
       "returns.read",
       "returns.create",
       "pos.access",
@@ -317,6 +333,13 @@ export const roleTemplates: Record<StaffRole, RoleTemplate> = {
       "timekeeper.view_own",
       "timekeeper.view_all",
       "timekeeper.export",
+      "payroll.view",
+      "payroll.export",
+      "payroll.manage",
+      "payroll.approve",
+      "payroll.close",
+      "payroll.reopen",
+      "payroll.generate_package",
       "accounting.read",
       "accounting.refunds",
       "vendors.read",

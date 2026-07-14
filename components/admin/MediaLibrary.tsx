@@ -4,10 +4,8 @@ import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
 import { USE_SUPABASE } from "@/lib/config";
 import type { MediaAsset } from "@/lib/data/mediaRepository";
-import {
-  PRODUCT_MEDIA_BUCKET,
-  uploadProductImage,
-} from "@/lib/storage/mediaStorage";
+import { PRODUCT_MEDIA_BUCKET } from "@/lib/storage/mediaStorage";
+import { uploadProductImage } from "@/lib/storage/mediaStorageActions";
 
 type MediaLibraryProps = {
   mediaAssets: MediaAsset[];
@@ -85,6 +83,32 @@ function AssetImage({ image, sizes }: { image: MediaAsset; sizes: string }) {
       )}
     </div>
   );
+}
+
+async function getImageDimensions(file: File) {
+  return new Promise<{ width: number; height: number } | null>((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new window.Image();
+
+    image.onload = () => {
+      const dimensions = {
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      };
+
+      URL.revokeObjectURL(objectUrl);
+      resolve(
+        dimensions.width > 0 && dimensions.height > 0 ? dimensions : null,
+      );
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(null);
+    };
+
+    image.src = objectUrl;
+  });
 }
 
 export default function MediaLibrary({
@@ -204,9 +228,18 @@ export default function MediaLibrary({
     const failures: string[] = [];
 
     for (const file of selectedFiles) {
-      const result = await uploadProductImage(file, {
-        brandSlug: uploadBrandSlug,
-      });
+      const dimensions = await getImageDimensions(file);
+      const formData = new FormData();
+
+      formData.set("file", file);
+      formData.set("brandSlug", uploadBrandSlug);
+
+      if (dimensions) {
+        formData.set("width", String(dimensions.width));
+        formData.set("height", String(dimensions.height));
+      }
+
+      const result = await uploadProductImage(formData);
 
       if (result.ok) {
         uploaded.push(result.image);

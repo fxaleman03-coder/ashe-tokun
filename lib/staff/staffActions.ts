@@ -18,12 +18,12 @@ import {
   authenticateStaff,
   changeOwnPin,
   deactivateStaffMember,
-  logoutCurrentStaff,
   reactivateStaffMember,
   resetStaffPinAsOwner,
   revokeStaffSessions,
   unlockStaffAccount,
 } from "@/lib/staff/staffAuthService";
+import { logoutStaffAction as performStaffLogout } from "@/lib/staff/staffLogoutAction";
 import type { StaffRole } from "@/lib/staff/staffSession";
 import type { StaffEmploymentStatus } from "@/lib/types/staff";
 
@@ -49,6 +49,13 @@ const editableEmploymentStatuses: StaffEmploymentStatus[] = [
   "retired",
   "archived",
 ];
+
+const ownerOnlyGovernancePermissions = new Set([
+  "ownership.transfer",
+  "ownership.assign_owner",
+  "ownership.remove_last_owner",
+  "system.master_recovery",
+]);
 
 export type StaffActionState = {
   message: string;
@@ -210,6 +217,12 @@ function getSubmittedPermissions(formData: FormData) {
   return normalizePermissionAssignments(submitted);
 }
 
+function includesOwnerOnlyGovernancePermission(permissionKeys: string[]) {
+  return permissionKeys.some((permission) =>
+    ownerOnlyGovernancePermissions.has(permission),
+  );
+}
+
 export async function loginStaffAction(
   _previousState: StaffActionState,
   formData: FormData,
@@ -230,8 +243,7 @@ export async function loginStaffAction(
 }
 
 export async function logoutStaffAction() {
-  await logoutCurrentStaff();
-  redirect("/staff/login?status=logged_out");
+  await performStaffLogout();
 }
 
 export async function changePinAction(
@@ -726,6 +738,16 @@ export async function updateStaffPermissionsAction(
 
   const submittedPermissions = getSubmittedPermissions(formData);
 
+  if (
+    actor.role !== "owner" &&
+    includesOwnerOnlyGovernancePermission(submittedPermissions)
+  ) {
+    return {
+      status: "error",
+      message: "Only Owners can grant reserved ownership governance permissions.",
+    };
+  }
+
   if (target.role === "owner" && (await isFinalActiveOwner(target.id))) {
     const missingCritical = permissions
       .filter((permission) => isOwnerCriticalPermission(permission.key))
@@ -877,6 +899,16 @@ export async function cloneStaffPermissionsAction(
         : sourceDefaultPermissions.has(permission.key),
     )
     .map((permission) => permission.key);
+
+  if (
+    actor.role !== "owner" &&
+    includesOwnerOnlyGovernancePermission(sourceEffective)
+  ) {
+    return {
+      status: "error",
+      message: "Only Owners can clone reserved ownership governance permissions.",
+    };
+  }
 
   if (target.role === "owner" && (await isFinalActiveOwner(target.id))) {
     const missingCritical = permissions

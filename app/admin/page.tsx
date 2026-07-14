@@ -1,10 +1,52 @@
 import Link from "next/link";
 import AdminShell from "@/components/admin/AdminShell";
 import AdminDashboardStats from "@/components/admin/AdminDashboardStats";
+import AdminQuickActions, {
+  type AdminQuickActionKey,
+} from "@/components/admin/AdminQuickActions";
 import { getMediaAssets } from "@/lib/data/mediaRepository";
+import { hasPermission } from "@/lib/staff/permissionHelpers";
+import { getCurrentStaffPermissions } from "@/lib/staff/permissionGuard";
+import type { PermissionKey } from "@/lib/staff/permissionTypes";
+
+const quickActions: {
+  key: AdminQuickActionKey;
+  href: string;
+  permissions: PermissionKey[];
+}[] = [
+  { key: "newEmployee", href: "/admin/staff/new", permissions: ["staff.create"] },
+  {
+    key: "createPayrollPeriod",
+    href: "/admin/payroll/new",
+    permissions: ["payroll.manage"],
+  },
+  {
+    key: "createSchedule",
+    href: "/admin/scheduling/new",
+    permissions: ["schedule.create"],
+  },
+  {
+    key: "addProduct",
+    href: "/admin/products/new",
+    permissions: ["products.create"],
+  },
+  {
+    key: "receiveInventory",
+    href: "/admin/inventory",
+    permissions: ["inventory.adjust"],
+  },
+  { key: "openPOS", href: "/admin/pos", permissions: ["pos.access"] },
+];
 
 export default async function AdminDashboardPage() {
-  const mediaCount = (await getMediaAssets()).length;
+  const [mediaAssets, currentPermissions] = await Promise.all([
+    getMediaAssets(),
+    getCurrentStaffPermissions(),
+  ]);
+  const mediaCount = mediaAssets.length;
+  const allowedQuickActions = quickActions.filter((action) =>
+    hasPermission(currentPermissions ?? [], action.permissions),
+  );
 
   return (
     <AdminShell
@@ -33,6 +75,7 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
       </section>
+      <AdminQuickActions actions={allowedQuickActions} />
       <AdminDashboardStats mediaCount={mediaCount} />
     </AdminShell>
   );

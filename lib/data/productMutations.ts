@@ -1,11 +1,9 @@
-"use client";
+"use server";
 
 import { USE_SUPABASE } from "@/lib/config";
-import { supabase } from "@/lib/supabase";
-import {
-  saveProductOverride,
-  type ProductOverride,
-} from "@/lib/productStore";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
+import type { ProductOverride } from "@/lib/productStore";
 
 type ProductStatus = "draft" | "active" | "archived";
 
@@ -129,6 +127,8 @@ async function resolveLookupId(
   name: string,
   label: string,
 ) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return {
       ok: false as const,
@@ -173,6 +173,8 @@ async function findDuplicateProduct(
   field: "slug" | "sku" | "barcode",
   value: string,
 ) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return {
       ok: false as const,
@@ -233,13 +235,23 @@ export async function updateProduct(
   updates: ProductUpdateInput,
 ): Promise<ProductUpdateResult> {
   if (!USE_SUPABASE) {
-    saveProductOverride(productSlug, updates);
-
     return {
       ok: true,
       source: "local",
     };
   }
+
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      source: "supabase",
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return {
@@ -379,6 +391,18 @@ export async function createProduct(
       source: "local",
     };
   }
+
+  const auth = await requireServerActionPermission("products.create");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      source: "supabase",
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return {

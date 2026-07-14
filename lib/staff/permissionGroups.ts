@@ -37,6 +37,11 @@ export const permissionGroups: PermissionGroupDefinition[] = [
     description: "Actual punches, timecards, attendance exceptions, and review.",
   },
   {
+    id: "payroll",
+    label: "Payroll",
+    description: "Pay periods, approved timecard aggregation, and payroll exports.",
+  },
+  {
     id: "returns",
     label: "Returns",
     description: "Return creation, approvals, receiving, and completion.",

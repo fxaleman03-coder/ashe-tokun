@@ -43,6 +43,7 @@ const navigationGroups: NavigationGroup[] = [
       { href: "/admin/shipping", label: "Shipping", permissions: ["shipping.read"] },
       { href: "/admin/scheduling", label: "Scheduling", permissions: ["schedule.view_all"] },
       { href: "/admin/timekeeper", label: "Timekeeper", permissions: ["timekeeper.view_all"] },
+      { href: "/admin/payroll", label: "Payroll", permissions: ["payroll.view"] },
       { href: "/admin/returns", label: "Returns", permissions: ["returns.read"] },
       { href: "/admin/customers", label: "Customers", permissions: ["customers.read"] },
       { href: "/admin/analytics", label: "Analytics", permissions: ["reports.sales"] },

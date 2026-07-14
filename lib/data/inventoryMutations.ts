@@ -1,7 +1,8 @@
-"use client";
+"use server";
 
 import { USE_SUPABASE } from "@/lib/config";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 
 export type InventoryAdjustmentType =
   | "adjustment"
@@ -112,6 +113,8 @@ function createTransferReferenceId() {
 }
 
 async function readInventoryItem(inventoryItemId: string) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return null;
   }
@@ -130,6 +133,8 @@ async function readInventoryItem(inventoryItemId: string) {
 }
 
 async function readInventoryItemForLocation(productId: string, locationId: string) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return null;
   }
@@ -149,6 +154,8 @@ async function readInventoryItemForLocation(productId: string, locationId: strin
 }
 
 async function readProductCost(productId: string) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     return null;
   }
@@ -183,6 +190,8 @@ async function insertTransaction({
   balanceAfter: number;
   notes?: string;
 }) {
+  const supabase = createSupabaseServiceClient();
+
   if (!supabase) {
     throw new Error("Supabase client is not configured.");
   }
@@ -209,6 +218,17 @@ export async function createInventoryItem(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const auth = await requireServerActionPermission("inventory.adjust");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return configError();
@@ -261,6 +281,17 @@ export async function adjustInventory(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const auth = await requireServerActionPermission("inventory.adjust");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return configError();
@@ -354,12 +385,23 @@ export async function receiveInventory(
     return disabledResult();
   }
 
+  const auth = await requireServerActionPermission("inventory.adjust");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
   if (!Number.isInteger(input.quantityReceived) || input.quantityReceived <= 0) {
     return {
       ok: false,
       error: "Quantity received must be greater than zero.",
     };
   }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return configError();
@@ -442,6 +484,17 @@ export async function transferInventory(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const auth = await requireServerActionPermission("inventory.transfer");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return configError();
@@ -621,6 +674,17 @@ export async function setReorderLevel(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const auth = await requireServerActionPermission("inventory.adjust");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
     return configError();

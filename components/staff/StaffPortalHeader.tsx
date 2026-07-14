@@ -2,18 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import AuthenticatedUserMenu from "@/components/shared/AuthenticatedUserMenu";
+import NotificationCenter from "@/components/shared/NotificationCenter";
 import { useLanguage } from "@/components/LanguageProvider";
 import { languageOptions } from "@/lib/translations";
-import { logoutStaffAction } from "@/lib/staff/staffActions";
 import { getSecurityRoleLabel } from "@/lib/staff/roleLabels";
 import type { StaffSession } from "@/lib/staff/staffSession";
 import { formatDateTime } from "@/lib/utils/dateTimeDisplay";
 
 type StaffPortalHeaderProps = {
   session: StaffSession;
+  businessTitle?: string | null;
 };
 
-export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
+export default function StaffPortalHeader({
+  session,
+  businessTitle,
+}: StaffPortalHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
   const [currentTime, setCurrentTime] = useState("");
 
@@ -36,7 +41,7 @@ export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
             href="/staff"
             className="text-xs font-bold uppercase tracking-[0.34em] text-[#d8a344] transition duration-300 hover:text-[#f7ead2] focus:outline-none focus:ring-2 focus:ring-[#d8a344]/60 focus:ring-offset-2 focus:ring-offset-[#0f0b07]"
           >
-            {t.staff.operations}
+            ASHE TOKUN / {t.staff.operations}
           </Link>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
             <h1 className="font-serif text-2xl font-semibold text-[#f7ead2] sm:text-3xl">
@@ -50,7 +55,14 @@ export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[#e8dcc8]/60">
             <span>
-              {t.staff.role}:{" "}
+              {t.staff.businessTitle}:{" "}
+              <strong className="font-semibold text-[#f7ead2]">
+                {businessTitle || t.staff.global.notAssigned}
+              </strong>
+            </span>
+            <span aria-hidden="true">/</span>
+            <span>
+              {t.staff.securityRole}:{" "}
               <strong className="font-semibold text-[#f7ead2]">
                 {getSecurityRoleLabel(session.role)}
               </strong>
@@ -66,6 +78,7 @@ export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <NotificationCenter />
           <div
             className="inline-flex border border-[#f7ead2]/15 bg-[#0f0b07]/60 p-1"
             aria-label={t.languageToggle.label}
@@ -82,14 +95,14 @@ export default function StaffPortalHeader({ session }: StaffPortalHeaderProps) {
               </button>
             ))}
           </div>
-          <form action={logoutStaffAction}>
-            <button
-              type="submit"
-            className="min-h-11 border border-[#d8a344]/45 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-[#d8a344] transition duration-300 hover:bg-[#d8a344] hover:text-[#0f0b07] focus:outline-none focus:ring-2 focus:ring-[#d8a344]/70 focus:ring-offset-2 focus:ring-offset-[#0f0b07]"
-            >
-              {t.staff.logout}
-            </button>
-          </form>
+          <AuthenticatedUserMenu
+            context="staff"
+            displayName={session.displayName}
+            employeeNumber={session.employeeNumber}
+            businessTitle={businessTitle}
+            securityRole={getSecurityRoleLabel(session.role)}
+            profileHref="/staff"
+          />
         </div>
       </div>
     </header>

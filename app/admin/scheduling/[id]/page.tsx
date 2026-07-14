@@ -46,24 +46,9 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
     getStaffMembers(),
   ]);
   const shifts = shiftsResult.data;
-  const activeShiftCount = shifts.filter((shift) => shift.status !== "cancelled").length;
 
   if (!period) {
     notFound();
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.info("[Scheduling Debug] Schedule detail read", {
-      routeSchedulePeriodId: id,
-      loadedSchedulePeriodId: period.id,
-      schedulePeriodIdMismatch: id !== period.id,
-      rawShiftCount: shiftsResult.debug?.rawCount ?? 0,
-      rawShiftIds: shiftsResult.debug?.rawIds ?? [],
-      rawShiftSchedulePeriodIds: shiftsResult.debug?.rawSchedulePeriodIds ?? [],
-      mappedShiftCount: shiftsResult.debug?.mappedCount ?? shifts.length,
-      activeShiftCount,
-      readError: shiftsResult.error ?? null,
-    });
   }
 
   return (
