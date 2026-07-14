@@ -1,7 +1,9 @@
-"use client";
+"use server";
 
+import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type {
   CreateCustomerAddressInput,
   CreateCustomerInput,
@@ -60,6 +62,23 @@ function localDisabled(): MutationResult {
   };
 }
 
+function getSupabaseClient() {
+  return createSupabaseServiceClient();
+}
+
+function revalidateCustomerPaths(customerId?: string | null) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/customers");
+
+  if (customerId) {
+    revalidatePath(`/admin/customers/${customerId}`);
+  }
+}
+
+function safeMutationError(fallback: string) {
+  return fallback;
+}
+
 function validateCustomerPayload(input: CreateCustomerInput | UpdateCustomerInput) {
   if (input.customer_type && !validCustomerTypes.has(input.customer_type)) {
     return "Customer type is not supported.";
@@ -92,6 +111,8 @@ async function writeCustomerAudit(
   customerId: string | null,
   details: Record<string, unknown>,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return;
   }
@@ -105,6 +126,8 @@ async function writeCustomerAudit(
 }
 
 async function getCustomerById(customerId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return null;
   }
@@ -116,13 +139,15 @@ async function getCustomerById(customerId: string) {
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Customer lookup failed.");
   }
 
   return data;
 }
 
 async function emailExists(email: string, excludedCustomerId?: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return false;
   }
@@ -140,13 +165,15 @@ async function emailExists(email: string, excludedCustomerId?: string) {
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Customer email lookup failed.");
   }
 
   return (data ?? []).length > 0;
 }
 
 async function getNextCustomerNumber() {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return "ASH-CUS-000001";
   }
@@ -159,7 +186,7 @@ async function getNextCustomerNumber() {
     .limit(50);
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Customer number lookup failed.");
   }
 
   const nextNumber =
@@ -176,7 +203,19 @@ async function getNextCustomerNumber() {
 }
 
 export async function createCustomer(input: CreateCustomerInput) {
-  if (!USE_SUPABASE || !supabase) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.create");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return localDisabled();
   }
 
@@ -220,6 +259,7 @@ export async function createCustomer(input: CreateCustomerInput) {
           customer_number: data.customer_number,
           customer_type: data.customer_type,
         });
+        revalidateCustomerPaths(data.id);
 
         return {
           ok: true,
@@ -229,7 +269,7 @@ export async function createCustomer(input: CreateCustomerInput) {
         } as const;
       }
 
-      lastError = error?.message ?? lastError;
+      lastError = error ? "Customer creation failed." : lastError;
 
       if (error?.code !== "23505") {
         break;
@@ -237,10 +277,10 @@ export async function createCustomer(input: CreateCustomerInput) {
     }
 
     return { ok: false, error: lastError };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Customer creation failed.",
+      error: safeMutationError("Customer creation failed."),
     };
   }
 }
@@ -249,7 +289,19 @@ export async function updateCustomer(
   customerId: string,
   updates: UpdateCustomerInput,
 ) {
-  if (!USE_SUPABASE || !supabase) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return localDisabled();
   }
 
@@ -329,12 +381,13 @@ export async function updateCustomer(
       .single();
 
     if (error || !data) {
-      return { ok: false, error: error?.message ?? "Customer update failed." };
+      return { ok: false, error: "Customer update failed." };
     }
 
     await writeCustomerAudit("customer_updated", data.id, {
       customer_number: data.customer_number,
     });
+    revalidateCustomerPaths(data.id);
 
     return {
       ok: true,
@@ -342,15 +395,25 @@ export async function updateCustomer(
       message: "Customer updated.",
       source: "supabase",
     } as const;
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Customer update failed.",
+      error: safeMutationError("Customer update failed."),
     };
   }
 }
 
 export async function deactivateCustomer(customerId: string) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
   const existingCustomer = await getCustomerById(customerId);
 
   if (existingCustomer?.customer_type === "walk_in") {
@@ -361,23 +424,47 @@ export async function deactivateCustomer(customerId: string) {
 
   if (result.ok) {
     await writeCustomerAudit("customer_deactivated", customerId, {});
+    revalidateCustomerPaths(customerId);
   }
 
   return result;
 }
 
 export async function reactivateCustomer(customerId: string) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
   const result = await updateCustomer(customerId, { active: true });
 
   if (result.ok) {
     await writeCustomerAudit("customer_reactivated", customerId, {});
+    revalidateCustomerPaths(customerId);
   }
 
   return result;
 }
 
 export async function addCustomerNote(customerId: string, note: string) {
-  if (!USE_SUPABASE || !supabase) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return localDisabled();
   }
 
@@ -403,12 +490,13 @@ export async function addCustomerNote(customerId: string, note: string) {
       .single();
 
     if (error || !data) {
-      return { ok: false, error: error?.message ?? "Note save failed." };
+      return { ok: false, error: "Note save failed." };
     }
 
     await writeCustomerAudit("customer_note_added", customerId, {
       note: trimmedNote,
     });
+    revalidateCustomerPaths(customerId);
 
     return {
       ok: true,
@@ -416,10 +504,10 @@ export async function addCustomerNote(customerId: string, note: string) {
       message: "Customer note added.",
       source: "supabase",
     } as const;
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Note save failed.",
+      error: safeMutationError("Note save failed."),
     };
   }
 }
@@ -445,6 +533,8 @@ function validateAddress(input: CreateCustomerAddressInput | UpdateCustomerAddre
 }
 
 async function clearDefaultAddresses(customerId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return;
   }
@@ -456,7 +546,19 @@ async function clearDefaultAddresses(customerId: string) {
 }
 
 export async function createCustomerAddress(input: CreateCustomerAddressInput) {
-  if (!USE_SUPABASE || !supabase) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return localDisabled();
   }
 
@@ -497,8 +599,9 @@ export async function createCustomerAddress(input: CreateCustomerAddressInput) {
       .single();
 
     if (error || !data) {
-      return { ok: false, error: error?.message ?? "Address creation failed." };
+      return { ok: false, error: "Address creation failed." };
     }
+    revalidateCustomerPaths(input.customer_id);
 
     return {
       ok: true,
@@ -506,10 +609,10 @@ export async function createCustomerAddress(input: CreateCustomerAddressInput) {
       message: "Address created.",
       source: "supabase",
     } as const;
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Address creation failed.",
+      error: safeMutationError("Address creation failed."),
     };
   }
 }
@@ -518,7 +621,19 @@ export async function updateCustomerAddress(
   addressId: string,
   updates: UpdateCustomerAddressInput,
 ) {
-  if (!USE_SUPABASE || !supabase) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return localDisabled();
   }
 
@@ -536,7 +651,7 @@ export async function updateCustomerAddress(
       .maybeSingle();
 
     if (readError || !existingAddress) {
-      return { ok: false, error: readError?.message ?? "Address was not found." };
+      return { ok: false, error: "Address was not found." };
     }
 
     if (updates.default_address) {
@@ -591,8 +706,9 @@ export async function updateCustomerAddress(
       .single();
 
     if (error || !data) {
-      return { ok: false, error: error?.message ?? "Address update failed." };
+      return { ok: false, error: "Address update failed." };
     }
+    revalidateCustomerPaths(existingAddress.customer_id);
 
     return {
       ok: true,
@@ -600,27 +716,43 @@ export async function updateCustomerAddress(
       message: "Address updated.",
       source: "supabase",
     } as const;
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Address update failed.",
+      error: safeMutationError("Address update failed."),
     };
   }
 }
 
 export async function deleteCustomerAddress(addressId: string) {
-  if (!USE_SUPABASE || !supabase) {
+  if (!USE_SUPABASE) {
     return localDisabled();
   }
 
-  const { error } = await supabase
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    return localDisabled();
+  }
+
+  const { data: removedAddress, error } = await supabase
     .from("customer_addresses")
     .delete()
-    .eq("id", addressId);
+    .eq("id", addressId)
+    .select("customer_id")
+    .single<{ customer_id: string }>();
 
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: "Address delete failed." };
   }
+
+  revalidateCustomerPaths(removedAddress?.customer_id);
 
   return {
     ok: true,
@@ -633,7 +765,19 @@ export async function setDefaultCustomerAddress(
   customerId: string,
   addressId: string,
 ) {
-  if (!USE_SUPABASE || !supabase) {
+  if (!USE_SUPABASE) {
+    return localDisabled();
+  }
+
+  const auth = await requireServerActionPermission("customers.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return localDisabled();
   }
 
@@ -648,8 +792,9 @@ export async function setDefaultCustomerAddress(
     .single();
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? "Default address update failed." };
+    return { ok: false, error: "Default address update failed." };
   }
+  revalidateCustomerPaths(customerId);
 
   return {
     ok: true,

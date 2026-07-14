@@ -1,16 +1,38 @@
-"use client";
+"use server";
 
+import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
 import {
   getShippingOriginById,
   validateShippingOrigin,
 } from "@/lib/data/shippingOriginsRepository";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type {
   CreateShippingOriginInput,
   ShippingOriginMutationResult,
   UpdateShippingOriginInput,
 } from "@/lib/types/shippingOrigin";
+
+function getSupabaseClient() {
+  return createSupabaseServiceClient();
+}
+
+async function requireShippingOriginPermission(): Promise<ShippingOriginMutationResult | null> {
+  const auth = await requireServerActionPermission("shipping.origins.manage");
+
+  return auth.ok ? null : { ok: false, error: auth.error };
+}
+
+function revalidateShippingOriginPaths(originId?: string | null) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/settings/shipping-origins");
+  revalidatePath("/admin/shipping");
+
+  if (originId) {
+    revalidatePath(`/admin/settings/shipping-origins/${originId}`);
+  }
+}
 
 function disabledResult(): ShippingOriginMutationResult {
   return {
@@ -62,6 +84,14 @@ export async function createShippingOrigin(
     return disabledResult();
   }
 
+  const authError = await requireShippingOriginPermission();
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -103,9 +133,13 @@ export async function createShippingOrigin(
   if (insertError || !data) {
     return {
       ok: false,
-      error: insertError?.message ?? "Shipping origin creation failed.",
+      error: insertError?.code === "23505"
+        ? "Shipping origin code already exists."
+        : "Shipping origin creation failed.",
     };
   }
+
+  revalidateShippingOriginPaths(data.id);
 
   return {
     ok: true,
@@ -121,6 +155,14 @@ export async function updateShippingOrigin(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const authError = await requireShippingOriginPermission();
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return configError();
@@ -161,8 +203,10 @@ export async function updateShippingOrigin(
       return { ok: false, error: "Shipping origin code already exists." };
     }
 
-    return { ok: false, error: updateError.message };
+    return { ok: false, error: "Shipping origin update failed." };
   }
+
+  revalidateShippingOriginPaths(id);
 
   return { ok: true, message: "Shipping origin updated.", originId: id };
 }
@@ -222,6 +266,14 @@ export async function setDefaultShippingOrigin(id: string) {
     return disabledResult();
   }
 
+  const authError = await requireShippingOriginPermission();
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -241,8 +293,10 @@ export async function setDefaultShippingOrigin(id: string) {
     .eq("id", id);
 
   if (setResult.error) {
-    return { ok: false, error: setResult.error.message };
+    return { ok: false, error: "Default shipping origin update failed." };
   }
+
+  revalidateShippingOriginPaths(id);
 
   return { ok: true, message: "Default shipping origin updated.", originId: id };
 }

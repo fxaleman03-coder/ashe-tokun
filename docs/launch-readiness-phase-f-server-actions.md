@@ -14,11 +14,11 @@ No SQL was executed. No migrations were applied. No schema or Supabase data was 
 | Product media links | Browser anon via `lib/data/productMediaMutations.ts` | Server Action + service-role client | `setPrimaryProductMedia`, gallery relationship helpers | `products.edit` | High |
 | Media upload metadata | Browser anon via `lib/storage/mediaStorage.ts` | Server Action + service-role client | `uploadProductImage` in `mediaStorageActions.ts` | `products.edit` | High |
 | Inventory adjustments | Browser anon via `lib/data/inventoryMutations.ts` | Server Action + service-role client | `adjustInventory`, `receiveInventory`, `transferInventory`, `setReorderLevel` | `inventory.adjust`, `inventory.transfer` | Critical |
-| Orders | Browser anon via `lib/data/orderMutations.ts` | Future Server Actions | Existing client mutation module | `orders.edit`, `orders.cancel` | Critical |
-| Customers | Browser anon via `lib/data/customerMutations.ts` | Future Server Actions | Existing client mutation module | `customers.create`, `customers.edit` | Critical |
-| POS | Browser anon via `lib/data/posMutations.ts` | Future transactional Server Action/RPC | Existing client mutation module | `pos.access` plus inventory/order/payment permissions | Critical |
-| Returns | Browser anon via `lib/data/returnMutations.ts` | Future Server Actions | Existing client mutation module | `returns.create`, `returns.approve`, `returns.complete` | Critical |
-| Shipping | Browser anon via `lib/data/shippingMutations.ts`, `shippingOriginMutations.ts` | Future Server Actions | Existing client mutation modules | `shipping.create`, `shipping.edit`, `shipping.origins.manage` | Critical |
+| Orders | Browser anon via `lib/data/orderMutations.ts` before Phase F.1 | Server Action + service-role client | `updateOrderStatus`, `updatePaymentStatus`, `addOrderNote`, `holdOrder`, `completeHeldOrder`, `cancelOrder` | `orders.edit`, `orders.cancel` | Critical |
+| Customers | Browser anon via `lib/data/customerMutations.ts` before Phase F.1 | Server Action + service-role client | customer create/update/archive/restore/note/address helpers | `customers.create`, `customers.edit` | Critical |
+| POS | Browser anon via `lib/data/posMutations.ts` before Phase F.3 | Server Action + service-role client; future RPC recommended for atomicity | `completePosSale` | `pos.checkout` | Critical |
+| Returns | Browser anon via `lib/data/returnMutations.ts` before Phase F.2 | Server Action + service-role client; future RPC recommended for atomic completion | return create/approve/receive/complete/cancel/note helpers | `returns.create`, `returns.approve`, `returns.complete` | Critical |
+| Shipping | Browser anon via `lib/data/shippingMutations.ts`, `shippingOriginMutations.ts` before Phase F.2 | Server Action + service-role client; future RPC recommended for atomic shipment creation | shipment and shipping origin helpers | `shipping.create`, `shipping.edit`, `shipping.origins.manage` | Critical |
 
 ## Migrated Modules
 
@@ -28,6 +28,10 @@ Phase F migrated the first priority group:
 - Product media relationship writes
 - Media upload metadata and Storage upload call
 - Inventory item adjustments, receiving, transfers, and reorder-level updates
+- Orders management mutations
+- Customer management mutations
+- Returns, Shipping, and Shipping Origins mutation workflows
+- POS complete-sale transaction workflow
 
 The client components still call the same exported functions, but those functions now run as Server Actions and create the Supabase service client on the server. Client components no longer execute those migrated privileged Supabase writes directly.
 
@@ -105,14 +109,10 @@ Remaining inventory work:
 
 Still pending migration:
 
-- `lib/data/orderMutations.ts`
-- `lib/data/customerMutations.ts`
-- `lib/data/posMutations.ts`
-- `lib/data/returnMutations.ts`
-- `lib/data/shippingMutations.ts`
-- `lib/data/shippingOriginMutations.ts`
+- no remaining Returns, Shipping, or POS browser-side mutation modules
+- legacy browser-capable `lib/storage/mediaStorage.ts` remains in source until fully retired
 
-POS should remain a later phase because it touches orders, order items, payments, receipts, inventory quantities, and inventory ledger rows. It needs an atomic transaction/RPC design rather than a direct lift-and-shift.
+POS no longer performs browser-side Supabase writes, but the sale workflow still touches orders, order items, payments, receipts, inventory quantities, and inventory ledger rows across multiple statements. A transaction-safe RPC/database function is still recommended before live high-volume use.
 
 ## Migration Order
 
@@ -121,11 +121,9 @@ Recommended next order:
 1. Products complete-out: archive/publish/duplicate/delete actions if exposed.
 2. Media complete-out: metadata rename/delete plus product gallery mutations.
 3. Inventory transaction/RPC hardening.
-4. Customers.
-5. Orders.
-6. Returns.
-7. Shipping.
-8. POS transactional sale flow.
+4. Returns transaction/RPC hardening.
+5. Shipping transaction/RPC hardening.
+6. POS transactional RPC hardening.
 
 Products, media, and inventory were prioritized first because they directly block applying the Phase E catalog/media/inventory RLS hardening and have narrower write surfaces than POS.
 
@@ -150,18 +148,62 @@ Safe to harden after this phase:
 - Product media relationship writes now have server-side permission checks.
 - Admin media upload writes now have server-side permission checks.
 - Inventory adjustment/receiving/transfer/reorder writes now have server-side permission checks.
+- Admin order management writes now have server-side permission checks.
+- Admin customer management writes now have server-side permission checks.
+- Admin returns writes now have server-side permission checks.
+- Admin shipping writes now have server-side permission checks.
+- Admin shipping origin writes now have server-side permission checks.
+- Admin POS sale completion writes now have server-side permission checks.
 
 Not yet safe to fully apply all Phase E RLS migrations:
 
-- customer, order, POS, returns, and shipping browser-side mutations still depend on development anon policies
 - older media storage helper remains in source until fully retired
+- multi-step operational workflows still need transaction/RPC hardening before live production use
 
 ## Remaining Risks
 
 - Multi-step inventory writes are still not transactionally atomic.
 - Local fallback product edits cannot write browser localStorage from server actions.
-- Browser-side POS, orders, customer, returns, and shipping writes remain production blockers.
-- Applying all Phase E policies now would break remaining browser-side operational modules.
+- Browser-side returns, shipping, and POS writes have been removed from the migrated mutation modules.
+- POS sale writes are server-side, but still need an atomic database transaction/RPC before live operational use.
+- Returns and shipping writes are server-side, but still need atomic database transaction/RPC hardening for multi-step completion/creation flows.
+- Applying all Phase E policies still requires review for legacy media upload helpers and read-path RLS compatibility.
+
+## Phase F.1 Orders And Customers
+
+See `docs/launch-readiness-phase-f1-orders-customers.md`.
+
+Phase F.1 migrated:
+
+- order status, payment status, notes, hold/complete-held, and cancellation actions
+- customer create/update/deactivate/reactivate/note actions
+- customer address create/update/delete/default actions
+
+No public storefront checkout/customer architecture was changed.
+
+## Phase F.2 Returns, Shipping And Shipping Origins
+
+See `docs/launch-readiness-phase-f2-returns-shipping.md`.
+
+Phase F.2 migrated:
+
+- return create/approve/receive/complete/cancel/note workflows
+- shipment create/status/package/tracking/event/cancel/delivery/pickup workflows
+- shipping origin create/update/activate/deactivate/default workflows
+
+The return, refund, inventory restoration, shipment, tracking, pickup, origin validation, order, and customer business rules were preserved.
+
+## Phase F.3 POS Transaction Hardening
+
+See `docs/launch-readiness-phase-f3-pos.md`.
+
+Phase F.3 migrated:
+
+- POS complete-sale writes from browser-side anon Supabase access to an authenticated Server Action
+- order, order item, payment, receipt, inventory update, and inventory transaction writes through the server-side service client
+- POS path revalidation after successful sale completion
+
+The POS UI, cart calculations, tax handling, discount handling, receipt numbering, order numbering, and inventory deduction behavior were preserved.
 
 ## Verification
 

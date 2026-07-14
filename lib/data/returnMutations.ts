@@ -1,12 +1,15 @@
-"use client";
+"use server";
 
+import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
 import {
   getReturnById,
   getReturnItems,
   getReturnableOrderItems,
 } from "@/lib/data/returnsRepository";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
+import type { PermissionKey } from "@/lib/staff/permissionTypes";
 import type {
   ReceivedReturnItemInput,
   ReturnCompletionInput,
@@ -75,6 +78,26 @@ const allowedTransitions: Record<ReturnStatus, ReturnStatus[]> = {
   cancelled: [],
 };
 
+function getSupabaseClient() {
+  return createSupabaseServiceClient();
+}
+
+async function requireReturnPermission(required: PermissionKey): Promise<ReturnResult | null> {
+  const auth = await requireServerActionPermission(required);
+
+  return auth.ok ? null : { ok: false, error: auth.error };
+}
+
+function revalidateReturnPaths(returnId?: string | null) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/returns");
+  revalidatePath("/admin/orders");
+
+  if (returnId) {
+    revalidatePath(`/admin/returns/${returnId}`);
+  }
+}
+
 function disabledResult(): ReturnResult {
   return {
     ok: false,
@@ -133,6 +156,8 @@ function validateTransition(currentStatus: ReturnStatus, nextStatus: ReturnStatu
 }
 
 async function writeAudit(action: string, returnId: string | null, details: unknown) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return;
   }
@@ -147,6 +172,8 @@ async function writeAudit(action: string, returnId: string | null, details: unkn
 }
 
 async function readOrder(orderId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return null;
   }
@@ -165,6 +192,8 @@ async function readOrder(orderId: string) {
 }
 
 async function getNextReturnNumber() {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return "ASH-RET-000001";
   }
@@ -198,6 +227,8 @@ async function updateReturnStatus(
   status: ReturnStatus,
   note: string,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     throw new Error("Supabase client is not configured.");
   }
@@ -231,6 +262,7 @@ async function updateReturnStatus(
     to: status,
     note,
   });
+  revalidateReturnPaths(returnId);
 
   return { ok: true, message: "Return status updated.", returnId };
 }
@@ -239,6 +271,14 @@ export async function createReturn(input: ReturnInput): Promise<ReturnResult> {
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const authError = await requireReturnPermission("returns.create");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return configError();
@@ -342,7 +382,7 @@ export async function createReturn(input: ReturnInput): Promise<ReturnResult> {
         .single<{ id: string; return_number: string }>();
 
       if (returnError || !returnData) {
-        lastError = returnError?.message ?? lastError;
+        lastError = returnError ? "Return request creation failed." : lastError;
 
         if (returnError?.code === "23505") {
           continue;
@@ -366,7 +406,7 @@ export async function createReturn(input: ReturnInput): Promise<ReturnResult> {
           ok: false,
           critical: true,
           returnId: returnData.id,
-          error: `Return ${returnData.return_number} was created, but return item creation failed: ${itemsError?.message ?? "missing returned rows"}. Manual review required.`,
+          error: `Return ${returnData.return_number} was created, but return item creation failed. Manual review required.`,
         };
       }
 
@@ -376,6 +416,7 @@ export async function createReturn(input: ReturnInput): Promise<ReturnResult> {
         return_type: input.return_type,
         refund_total: refundTotal,
       });
+      revalidateReturnPaths(returnData.id);
 
       return {
         ok: true,
@@ -399,8 +440,10 @@ export async function approveReturn(returnId: string, notes?: string) {
     return disabledResult();
   }
 
-  if (!supabase) {
-    return configError();
+  const authError = await requireReturnPermission("returns.approve");
+
+  if (authError) {
+    return authError;
   }
 
   return updateReturnStatus(
@@ -417,6 +460,14 @@ export async function receiveReturn(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const authError = await requireReturnPermission("returns.complete");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return configError();
@@ -502,6 +553,8 @@ async function readInventoryItemForReturn(
   orderId: string,
   productId: string | null,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase || !productId) {
     return null;
   }
@@ -548,6 +601,8 @@ async function restoreInventoryForReturnItem(
   returnItem: Awaited<ReturnType<typeof getReturnItems>>[number],
   condition: ReturnCondition,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase || !returnRecord.order_id) {
     throw new Error("Return is not linked to an original order.");
   }
@@ -599,6 +654,8 @@ async function createStoreCredit(
   returnRecord: NonNullable<Awaited<ReturnType<typeof getReturnById>>>,
   amount: number,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     throw new Error("Supabase client is not configured.");
   }
@@ -640,6 +697,8 @@ async function recordRefundPayment(
   method: string,
   amount: number,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase || !returnRecord.order_id) {
     return;
   }
@@ -672,6 +731,14 @@ export async function completeReturn(
     return disabledResult();
   }
 
+  const authError = await requireReturnPermission("returns.complete");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -701,7 +768,7 @@ export async function completeReturn(
       .eq("transaction_type", "return");
 
     if (existingReturnTransactions.error) {
-      return { ok: false, error: existingReturnTransactions.error.message };
+      return { ok: false, error: "Return completion validation failed." };
     }
 
     if ((existingReturnTransactions.data ?? []).length > 0) {
@@ -800,7 +867,8 @@ export async function completeReturn(
         ok: false,
         critical: true,
         returnId,
-        error: `Return inventory/refund steps may have completed, but status update failed: ${error.message}. Manual review required.`,
+        error:
+          "Return inventory/refund steps may have completed, but status update failed. Manual review required.",
       };
     }
 
@@ -808,6 +876,7 @@ export async function completeReturn(
       return_type: returnRecord.return_type,
       refund_total: returnRecord.refund_total,
     });
+    revalidateReturnPaths(returnId);
 
     return { ok: true, message: "Return completed.", returnId };
   } catch (error) {
@@ -825,8 +894,10 @@ export async function cancelReturn(returnId: string, reason: string) {
     return disabledResult();
   }
 
-  if (!supabase) {
-    return configError();
+  const authError = await requireReturnPermission("returns.approve");
+
+  if (authError) {
+    return authError;
   }
 
   if (!reason.trim()) {
@@ -841,8 +912,10 @@ export async function addReturnNote(returnId: string, note: string) {
     return disabledResult();
   }
 
-  if (!supabase) {
-    return configError();
+  const authError = await requireReturnPermission("returns.approve");
+
+  if (authError) {
+    return authError;
   }
 
   if (!note.trim()) {
@@ -862,6 +935,8 @@ export async function addReturnNote(returnId: string, note: string) {
     };
   }
 
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -876,6 +951,7 @@ export async function addReturnNote(returnId: string, note: string) {
   }
 
   await writeAudit("return_note_added", returnId, { note });
+  revalidateReturnPaths(returnId);
 
   return { ok: true, message: "Return note added.", returnId };
 }

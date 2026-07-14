@@ -576,6 +576,37 @@ Warnings:
 - Notifications are UI foundation only and do not create persisted records.
 - Account Settings and Activity Log remain unavailable until future pages are implemented.
 
+## Launch Readiness Phase F / F.1 / F.2 / F.3 Server-Side Mutation Migration
+
+Manual review:
+
+1. Review `docs/launch-readiness-phase-e-supabase.md`.
+2. Review `docs/launch-readiness-phase-f-server-actions.md`.
+3. Review `docs/launch-readiness-phase-f1-orders-customers.md`.
+4. Review `docs/launch-readiness-phase-f2-returns-shipping.md`.
+5. Review `docs/launch-readiness-phase-f3-pos.md`.
+6. Confirm no SQL is required for Phase F, F.1, F.2, or F.3.
+7. Confirm Product, Media, Inventory, Orders, Customers, Returns, Shipping, Shipping Origins, and POS admin writes use Server Actions.
+
+Expected result:
+
+- Admin Product writes run behind staff permission checks.
+- Admin Media uploads run behind staff permission checks.
+- Admin Inventory writes run behind staff permission checks.
+- Admin Orders writes run behind staff permission checks.
+- Admin Customers writes run behind staff permission checks.
+- Admin Returns writes run behind staff permission checks.
+- Admin Shipping writes run behind staff permission checks.
+- Admin Shipping Origin writes run behind staff permission checks.
+- Admin POS sale completion writes run behind staff permission checks.
+
+Warnings:
+
+- Review legacy media upload helpers and admin read-path RLS compatibility before applying all Phase E production RLS migrations.
+- No Supabase migration should be executed for Phase F/F.1/F.2/F.3.
+- Returns and Shipping are server-side after Phase F.2, but still require future transactional RPC/database designs for multi-step completion and shipment creation flows.
+- POS is server-side after Phase F.3, but still requires a future transactional RPC/database design because it touches orders, order items, payments, receipts, inventory, and ledger rows.
+
 ## 4. Rollback Notes
 
 - This execution is for development only.

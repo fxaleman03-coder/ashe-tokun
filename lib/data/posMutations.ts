@@ -1,8 +1,9 @@
-"use client";
+"use server";
 
+import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
-import { getNextOrderNumber, getNextReceiptNumber } from "@/lib/data/posRepository";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type { PosPaymentInput, PosSaleInput, PosSaleResult } from "@/lib/types/pos";
 
 type ProductValidationRow = {
@@ -27,6 +28,11 @@ type InventoryItemRow = {
   incoming_quantity: number;
   reorder_level: number;
   inventory_value: number | string;
+};
+
+type NumberedRow = {
+  order_number?: string | null;
+  receipt_number?: string | null;
 };
 
 const validPaymentMethods = new Set<PosPaymentInput["method"]>([
@@ -60,6 +66,72 @@ function sum(values: number[]) {
 
 function availableQuantity(onHand: number, reserved: number) {
   return onHand - reserved;
+}
+
+function getSupabaseClient() {
+  return createSupabaseServiceClient();
+}
+
+function getNextNumberFromRows(
+  rows: NumberedRow[] | null,
+  field: keyof NumberedRow,
+  prefix: string,
+) {
+  const nextNumber =
+    (rows ?? [])
+      .map((row) => row[field])
+      .filter(Boolean)
+      .map((value) => {
+        const match = String(value).match(/(\d+)$/);
+        return match ? Number(match[1]) : 0;
+      })
+      .reduce((highest, value) => Math.max(highest, value), 0) + 1;
+
+  return `${prefix}${String(nextNumber).padStart(6, "0")}`;
+}
+
+async function getNextOrderNumber() {
+  const supabase = getSupabaseClient();
+
+  if (!USE_SUPABASE || !supabase) {
+    return "ASH-ORD-000001";
+  }
+
+  const { data } = await supabase
+    .from("orders")
+    .select("order_number")
+    .like("order_number", "ASH-ORD-%")
+    .order("order_number", { ascending: false })
+    .limit(25);
+
+  return getNextNumberFromRows(data, "order_number", "ASH-ORD-");
+}
+
+async function getNextReceiptNumber() {
+  const supabase = getSupabaseClient();
+
+  if (!USE_SUPABASE || !supabase) {
+    return "ASH-000001";
+  }
+
+  const { data } = await supabase
+    .from("receipts")
+    .select("receipt_number")
+    .like("receipt_number", "ASH-%")
+    .order("receipt_number", { ascending: false })
+    .limit(25);
+
+  return getNextNumberFromRows(data, "receipt_number", "ASH-");
+}
+
+function revalidatePosPaths(orderId?: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/pos");
+  revalidatePath("/admin/orders");
+
+  if (orderId) {
+    revalidatePath(`/admin/orders/${orderId}`);
+  }
 }
 
 function calculateDiscountCents(
@@ -100,6 +172,8 @@ function allocateAmount(totalAmount: number, lineBases: number[]) {
 }
 
 async function readDevelopmentTaxRate() {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return 0;
   }
@@ -120,6 +194,8 @@ async function readDevelopmentTaxRate() {
 }
 
 async function readProductMap(productIds: string[]) {
+  const supabase = getSupabaseClient();
+
   if (!supabase || productIds.length === 0) {
     return new Map<string, ProductValidationRow>();
   }
@@ -130,7 +206,7 @@ async function readProductMap(productIds: string[]) {
     .in("id", productIds);
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Product validation failed.");
   }
 
   return new Map(
@@ -142,6 +218,8 @@ async function readProductMap(productIds: string[]) {
 }
 
 async function readInventoryItem(productId: string, locationId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return null;
   }
@@ -154,13 +232,15 @@ async function readInventoryItem(productId: string, locationId: string) {
     .maybeSingle<InventoryItemRow>();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Inventory lookup failed.");
   }
 
   return data ?? null;
 }
 
 async function readInventoryLocation(locationId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return null;
   }
@@ -173,7 +253,7 @@ async function readInventoryLocation(locationId: string) {
     .maybeSingle<{ id: string; active: boolean }>();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Inventory location lookup failed.");
   }
 
   return data ?? null;
@@ -187,6 +267,8 @@ async function insertOrderWithRetry(orderPayload: {
   grand_total: number;
   notes: string | null;
 }) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     throw new Error("Supabase client is not configured.");
   }
@@ -218,7 +300,7 @@ async function insertOrderWithRetry(orderPayload: {
       return data;
     }
 
-    lastError = error?.message ?? "Order insert failed.";
+    lastError = error ? "Order insert failed." : lastError;
 
     if (error?.code !== "23505") {
       break;
@@ -229,6 +311,8 @@ async function insertOrderWithRetry(orderPayload: {
 }
 
 async function insertReceiptWithRetry(orderId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     throw new Error("Supabase client is not configured.");
   }
@@ -254,7 +338,7 @@ async function insertReceiptWithRetry(orderId: string) {
       return data;
     }
 
-    lastError = error?.message ?? "Receipt insert failed.";
+    lastError = error ? "Receipt insert failed." : lastError;
 
     if (error?.code !== "23505") {
       break;
@@ -275,6 +359,17 @@ export async function completePosSale(
         "Sale preview completed locally. Live POS writes require Supabase mode.",
     };
   }
+
+  const auth = await requireServerActionPermission("pos.checkout");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return {
@@ -431,7 +526,7 @@ export async function completePosSale(
       .insert(orderItemsPayload);
 
     if (orderItemsResult.error) {
-      throw new Error(`Order items failed: ${orderItemsResult.error.message}`);
+      throw new Error("Order items failed.");
     }
 
     const paymentResult = await supabase.from("payments").insert({
@@ -449,7 +544,7 @@ export async function completePosSale(
     });
 
     if (paymentResult.error) {
-      throw new Error(`Payment failed: ${paymentResult.error.message}`);
+      throw new Error("Payment failed.");
     }
 
     const receipt = await insertReceiptWithRetry(order.id);
@@ -490,9 +585,7 @@ export async function completePosSale(
         .eq("id", inventoryItem.id);
 
       if (inventoryUpdate.error) {
-        throw new Error(
-          `Inventory update failed for ${item.name}: ${inventoryUpdate.error.message}`,
-        );
+        throw new Error(`Inventory update failed for ${item.name}.`);
       }
 
       const transactionResult = await supabase
@@ -509,11 +602,11 @@ export async function completePosSale(
         });
 
       if (transactionResult.error) {
-        throw new Error(
-          `Inventory ledger failed for ${item.name}: ${transactionResult.error.message}`,
-        );
+        throw new Error(`Inventory ledger failed for ${item.name}.`);
       }
     }
+
+    revalidatePosPaths(order.id);
 
     return {
       ok: true,
@@ -543,7 +636,7 @@ export async function completePosSale(
       orderNumber: order?.order_number,
       error: `Sale failed${
         order ? ` after order ${order.order_number} was created` : ""
-      }: ${error instanceof Error ? error.message : "Unknown error"}. Manual review may be required. A production RPC/database transaction is required before live operational use.`,
+      }. Manual review may be required. A production RPC/database transaction is required before live operational use.`,
     };
   }
 }

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { createShipment, deriveTrackingUrl } from "@/lib/data/shippingMutations";
+import { createShipment } from "@/lib/data/shippingMutations";
 import type { AdminOrder } from "@/lib/data/ordersRepository";
 import type { CustomerAddress } from "@/lib/types/customer";
 import type {
@@ -12,6 +12,7 @@ import type {
   ShipmentAddressInput,
 } from "@/lib/types/shipping";
 import type { ShippingOrigin } from "@/lib/types/shippingOrigin";
+import { deriveTrackingUrl } from "@/lib/utils/shippingTracking";
 
 type ShipmentCreationWizardProps = {
   orders: AdminOrder[];

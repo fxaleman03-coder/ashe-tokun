@@ -1,7 +1,9 @@
-"use client";
+"use server";
 
+import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type { OrderStatus, PaymentStatus } from "@/lib/data/ordersRepository";
 
 type MutationResult =
@@ -73,6 +75,20 @@ function configError(): MutationResult {
   };
 }
 
+function getSupabaseClient() {
+  return createSupabaseServiceClient();
+}
+
+function safeMutationError(fallback: string) {
+  return fallback;
+}
+
+function revalidateOrderPaths(orderId: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
+}
+
 function toNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined) {
     return 0;
@@ -95,6 +111,8 @@ function availableQuantity(onHand: number, reserved: number) {
 }
 
 async function readOrder(orderId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return null;
   }
@@ -106,13 +124,19 @@ async function readOrder(orderId: string) {
     .maybeSingle<OrderRow>();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Order lookup failed.");
   }
 
   return data ?? null;
 }
 
-async function writeAudit(action: string, orderId: string, details: unknown) {
+async function writeAudit(
+  action: string,
+  orderId: string,
+  details: unknown,
+) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return;
   }
@@ -130,6 +154,8 @@ async function updateOrderFields(
   orderId: string,
   fields: Partial<Pick<OrderRow, "order_status" | "payment_status" | "notes">>,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     throw new Error("Supabase client is not configured.");
   }
@@ -137,7 +163,7 @@ async function updateOrderFields(
   const { error } = await supabase.from("orders").update(fields).eq("id", orderId);
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Order update failed.");
   }
 }
 
@@ -170,12 +196,22 @@ export async function updateOrderStatus(
     return disabledResult();
   }
 
-  if (!supabase) {
-    return configError();
-  }
-
   if (!allowedOrderStatuses.includes(status)) {
     return { ok: false, error: "Unsupported order status." };
+  }
+
+  if (status === "cancelled") {
+    return cancelOrder(orderId, notes || "Order cancelled by admin.");
+  }
+
+  const auth = await requireServerActionPermission("orders.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  if (!getSupabaseClient()) {
+    return configError();
   }
 
   try {
@@ -183,10 +219,6 @@ export async function updateOrderStatus(
 
     if (!order) {
       return { ok: false, error: "Order was not found." };
-    }
-
-    if (status === "cancelled") {
-      return cancelOrder(orderId, notes || "Order cancelled by admin.");
     }
 
     const transitionError = validateTransition(order.order_status, status);
@@ -215,12 +247,13 @@ export async function updateOrderStatus(
       to: status,
       notes: notes ?? null,
     });
+    revalidateOrderPaths(orderId);
 
     return { ok: true, message: "Order status updated." };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Order status update failed.",
+      error: safeMutationError("Order status update failed."),
     };
   }
 }
@@ -234,7 +267,13 @@ export async function updatePaymentStatus(
     return disabledResult();
   }
 
-  if (!supabase) {
+  const auth = await requireServerActionPermission("orders.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  if (!getSupabaseClient()) {
     return configError();
   }
 
@@ -270,13 +309,14 @@ export async function updatePaymentStatus(
       to: status,
       notes: notes ?? null,
     });
+    revalidateOrderPaths(orderId);
 
     return { ok: true, message: "Payment status updated." };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       error:
-        error instanceof Error ? error.message : "Payment status update failed.",
+        safeMutationError("Payment status update failed."),
     };
   }
 }
@@ -289,7 +329,13 @@ export async function addOrderNote(
     return disabledResult();
   }
 
-  if (!supabase) {
+  const auth = await requireServerActionPermission("orders.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  if (!getSupabaseClient()) {
     return configError();
   }
 
@@ -308,12 +354,13 @@ export async function addOrderNote(
       notes: appendNote(order.notes, `Note: ${note}`),
     });
     await writeAudit("order_note_added", orderId, { note });
+    revalidateOrderPaths(orderId);
 
     return { ok: true, message: "Order note added." };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Order note failed.",
+      error: safeMutationError("Order note failed."),
     };
   }
 }
@@ -330,6 +377,8 @@ export async function completeHeldOrder(orderId: string): Promise<MutationResult
 }
 
 async function readSaleTransactions(orderId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return [];
   }
@@ -342,13 +391,15 @@ async function readSaleTransactions(orderId: string) {
     .eq("transaction_type", "sale");
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Sale transaction lookup failed.");
   }
 
   return (data ?? []) as InventoryTransactionRow[];
 }
 
 async function readRestorationTransactions(orderId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return [];
   }
@@ -361,13 +412,15 @@ async function readRestorationTransactions(orderId: string) {
     .eq("transaction_type", "return");
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Restoration transaction lookup failed.");
   }
 
   return data ?? [];
 }
 
 async function readInventoryItem(inventoryItemId: string) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return null;
   }
@@ -379,7 +432,7 @@ async function readInventoryItem(inventoryItemId: string) {
     .maybeSingle<InventoryItemRow>();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Inventory item lookup failed.");
   }
 
   return data ?? null;
@@ -392,6 +445,14 @@ export async function cancelOrder(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const auth = await requireServerActionPermission("orders.cancel");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error, orderId };
+  }
+
+  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return configError();
@@ -444,7 +505,7 @@ export async function cancelOrder(
             ok: false,
             critical: true,
             orderId,
-            error: `Inventory item ${transaction.inventory_item_id} was not found.`,
+            error: "Inventory item required for restoration was not found.",
           };
         }
 
@@ -469,7 +530,7 @@ export async function cancelOrder(
             ok: false,
             critical: true,
             orderId,
-            error: `Inventory restoration failed: ${updateResult.error.message}`,
+            error: "Inventory restoration failed. Manual review required.",
           };
         }
 
@@ -489,7 +550,7 @@ export async function cancelOrder(
             ok: false,
             critical: true,
             orderId,
-            error: `Inventory restoration ledger failed: ${ledgerResult.error.message}`,
+            error: "Inventory restoration ledger failed. Manual review required.",
           };
         }
       }
@@ -503,16 +564,16 @@ export async function cancelOrder(
       reason,
       previousStatus: order.order_status,
     });
+    revalidateOrderPaths(orderId);
 
     return { ok: true, message: "Order cancelled." };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       critical: Boolean(order),
       orderId,
-      error: `Cancellation failed: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }. A production RPC/database transaction is required before live operational use.`,
+      error:
+        "Cancellation failed. A production RPC/database transaction is required before live operational use.",
     };
   }
 }

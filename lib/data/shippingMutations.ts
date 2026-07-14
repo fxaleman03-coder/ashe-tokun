@@ -1,5 +1,6 @@
-"use client";
+"use server";
 
+import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
 import { getOrderById } from "@/lib/data/ordersRepository";
 import {
@@ -11,7 +12,9 @@ import {
   getDefaultShippingOrigin,
   getShippingOriginById,
 } from "@/lib/data/shippingOriginsRepository";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
+import type { PermissionKey } from "@/lib/staff/permissionTypes";
 import type {
   AddTrackingInput,
   CreateShipmentInput,
@@ -24,6 +27,7 @@ import type {
   UpdateShipmentInput,
 } from "@/lib/types/shipping";
 import type { ShippingOrigin } from "@/lib/types/shippingOrigin";
+import { deriveTrackingUrl } from "@/lib/utils/shippingTracking";
 
 const allowedStatuses: ShipmentStatus[] = [
   "pending",
@@ -89,38 +93,31 @@ function appendNote(existingNotes: string | null, note?: string | null) {
   return [existingNotes, nextNote].filter(Boolean).join("\n");
 }
 
-function normalizeCarrier(value: string) {
-  return value.trim().toLowerCase();
+function getSupabaseClient() {
+  return createSupabaseServiceClient();
 }
 
-export function deriveTrackingUrl(carrier: string, trackingNumber: string) {
-  const normalizedCarrier = normalizeCarrier(carrier);
-  const encodedTracking = encodeURIComponent(trackingNumber.trim());
+async function requireShippingPermission(
+  required: PermissionKey,
+): Promise<ShippingMutationResult | null> {
+  const auth = await requireServerActionPermission(required);
 
-  if (!encodedTracking) {
-    return "";
+  return auth.ok ? null : { ok: false, error: auth.error };
+}
+
+function revalidateShippingPaths(shipmentId?: string | null) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/shipping");
+  revalidatePath("/admin/orders");
+
+  if (shipmentId) {
+    revalidatePath(`/admin/shipping/${shipmentId}`);
   }
-
-  if (normalizedCarrier === "usps") {
-    return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodedTracking}`;
-  }
-
-  if (normalizedCarrier === "ups") {
-    return `https://www.ups.com/track?tracknum=${encodedTracking}`;
-  }
-
-  if (normalizedCarrier === "fedex") {
-    return `https://www.fedex.com/fedextrack/?trknbr=${encodedTracking}`;
-  }
-
-  if (normalizedCarrier === "dhl") {
-    return `https://www.dhl.com/us-en/home/tracking/tracking-express.html?submit=1&tracking-id=${encodedTracking}`;
-  }
-
-  return "";
 }
 
 async function writeAudit(action: string, shipmentId: string, details: unknown) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return;
   }
@@ -140,6 +137,8 @@ async function addEvent(
   status: ShipmentStatus,
   description?: string | null,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return;
   }
@@ -313,6 +312,14 @@ export async function createShipment(
     return disabledResult();
   }
 
+  const authError = await requireShippingPermission("shipping.create");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -354,7 +361,7 @@ export async function createShipment(
     if (shipmentError || !shipment) {
       return {
         ok: false,
-        error: shipmentError?.message ?? "Shipment creation failed.",
+        error: "Shipment creation failed.",
       };
     }
 
@@ -373,7 +380,8 @@ export async function createShipment(
         ok: false,
         critical: true,
         shipmentId,
-        error: `Shipment was created, but shipment items failed: ${itemError.message}. Manual review required.`,
+        error:
+          "Shipment was created, but shipment items failed. Manual review required.",
       };
     }
 
@@ -399,7 +407,8 @@ export async function createShipment(
           ok: false,
           critical: true,
           shipmentId,
-          error: `Shipment was created, but address snapshots failed: ${addressError.message}. Manual review required.`,
+          error:
+            "Shipment was created, but address snapshots failed. Manual review required.",
         };
       }
 
@@ -412,7 +421,8 @@ export async function createShipment(
           ok: false,
           critical: true,
           shipmentId,
-          error: `Shipment was created, but packages failed: ${packageError.message}. Manual review required.`,
+          error:
+            "Shipment was created, but packages failed. Manual review required.",
         };
       }
     }
@@ -426,6 +436,7 @@ export async function createShipment(
         : "Shipment created.",
     );
     await writeAudit("shipment_created", shipmentId, input);
+    revalidateShippingPaths(shipmentId);
 
     return {
       ok: true,
@@ -469,6 +480,8 @@ async function updateShipmentFields(
   shipmentId: string,
   fields: UpdateShipmentInput,
 ) {
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     throw new Error("Supabase client is not configured.");
   }
@@ -491,6 +504,14 @@ export async function updateShipmentStatus(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const authError = await requireShippingPermission("shipping.edit");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return configError();
@@ -537,6 +558,7 @@ export async function updateShipmentStatus(
       to: status,
       notes: notes ?? null,
     });
+    revalidateShippingPaths(shipmentId);
 
     return { ok: true, message: "Shipment status updated.", shipmentId };
   } catch (error) {
@@ -556,6 +578,14 @@ export async function addShipmentPackage(
     return disabledResult();
   }
 
+  const authError = await requireShippingPermission("shipping.edit");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -570,6 +600,7 @@ export async function addShipmentPackage(
 
   await addEvent(shipmentId, "package_added", "pending", "Package added.");
   await writeAudit("package_added", shipmentId, packageInput);
+  revalidateShippingPaths(shipmentId);
 
   return { ok: true, message: "Package added.", shipmentId };
 }
@@ -582,6 +613,14 @@ export async function updateShipmentPackage(
     return disabledResult();
   }
 
+  const authError = await requireShippingPermission("shipping.edit");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -591,9 +630,13 @@ export async function updateShipmentPackage(
     .update(updates)
     .eq("id", packageId);
 
-  return error
-    ? { ok: false, error: error.message }
-    : { ok: true, message: "Package updated." };
+  if (error) {
+    return { ok: false, error: "Package update failed." };
+  }
+
+  revalidateShippingPaths();
+
+  return { ok: true, message: "Package updated." };
 }
 
 export async function removeShipmentPackage(
@@ -602,6 +645,14 @@ export async function removeShipmentPackage(
   if (!USE_SUPABASE) {
     return disabledResult();
   }
+
+  const authError = await requireShippingPermission("shipping.edit");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return configError();
@@ -612,15 +663,25 @@ export async function removeShipmentPackage(
     .delete()
     .eq("id", packageId);
 
-  return error
-    ? { ok: false, error: error.message }
-    : { ok: true, message: "Package removed." };
+  if (error) {
+    return { ok: false, error: "Package removal failed." };
+  }
+
+  revalidateShippingPaths();
+
+  return { ok: true, message: "Package removed." };
 }
 
 export async function addTrackingInformation(
   shipmentId: string,
   input: AddTrackingInput,
 ): Promise<ShippingMutationResult> {
+  const authError = await requireShippingPermission("shipping.edit");
+
+  if (authError) {
+    return authError;
+  }
+
   const trackingUrl =
     input.tracking_url ||
     deriveTrackingUrl(input.carrier, input.tracking_number) ||
@@ -639,6 +700,7 @@ export async function addTrackingInformation(
 
   await addEvent(shipmentId, "tracking_added", "shipped", "Tracking added.");
   await writeAudit("tracking_added", shipmentId, input);
+  revalidateShippingPaths(shipmentId);
 
   return { ok: true, message: "Tracking information saved.", shipmentId };
 }
@@ -651,12 +713,21 @@ async function updateShipmentFieldsSafely(
     return disabledResult();
   }
 
+  const authError = await requireShippingPermission("shipping.edit");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
 
   try {
     await updateShipmentFields(shipmentId, fields);
+    revalidateShippingPaths(shipmentId);
 
     return { ok: true, message: "Shipment updated.", shipmentId };
   } catch (error) {
@@ -675,6 +746,14 @@ export async function addShipmentEvent(
     return disabledResult();
   }
 
+  const authError = await requireShippingPermission("shipping.edit");
+
+  if (authError) {
+    return authError;
+  }
+
+  const supabase = getSupabaseClient();
+
   if (!supabase) {
     return configError();
   }
@@ -688,16 +767,23 @@ export async function addShipmentEvent(
     event_time: new Date().toISOString(),
   });
 
-  return error
-    ? { ok: false, error: error.message }
-    : { ok: true, message: "Shipment event added.", shipmentId };
+  if (error) {
+    return { ok: false, error: "Shipment event creation failed." };
+  }
+
+  revalidateShippingPaths(shipmentId);
+
+  return { ok: true, message: "Shipment event added.", shipmentId };
 }
 
-export function cancelShipment(shipmentId: string, reason: string) {
+export async function cancelShipment(shipmentId: string, reason: string) {
   return updateShipmentStatus(shipmentId, "cancelled", reason);
 }
 
-export function markShipmentDelivered(shipmentId: string, deliveredAt?: string) {
+export async function markShipmentDelivered(
+  shipmentId: string,
+  deliveredAt?: string,
+) {
   if (deliveredAt) {
     return updateShipmentFieldsSafely(shipmentId, {
       shipment_status: "delivered",
@@ -708,7 +794,7 @@ export function markShipmentDelivered(shipmentId: string, deliveredAt?: string) 
   return updateShipmentStatus(shipmentId, "delivered", "Shipment delivered.");
 }
 
-export function createLocalPickup(
+export async function createLocalPickup(
   orderId: string,
   input: Omit<CreateShipmentInput, "order_id" | "fulfillment_type">,
 ) {
@@ -720,10 +806,10 @@ export function createLocalPickup(
   });
 }
 
-export function markPickupReady(shipmentId: string) {
+export async function markPickupReady(shipmentId: string) {
   return updateShipmentStatus(shipmentId, "ready", "Pickup is ready.");
 }
 
-export function markPickupCompleted(shipmentId: string) {
+export async function markPickupCompleted(shipmentId: string) {
   return updateShipmentStatus(shipmentId, "delivered", "Pickup completed.");
 }
