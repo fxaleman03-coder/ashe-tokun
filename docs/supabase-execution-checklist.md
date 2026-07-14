@@ -607,6 +607,38 @@ Warnings:
 - Returns and Shipping are server-side after Phase F.2, but still require future transactional RPC/database designs for multi-step completion and shipment creation flows.
 - POS is server-side after Phase F.3, but still requires a future transactional RPC/database design because it touches orders, order items, payments, receipts, inventory, and ledger rows.
 
+## Launch Readiness Phase F.4 Transactional Database Hardening
+
+Manual review only:
+
+1. Review `docs/launch-readiness-phase-f4-transactional-hardening.md`.
+2. Review `supabase/migrations/phase-f4-transactional-hardening.sql`.
+3. Confirm the migration has not been executed.
+4. Confirm Server Actions still use the existing sequential paths until manual activation.
+
+Future activation order:
+
+1. Backup Supabase.
+2. Review the migration.
+3. Run transaction migration in development.
+4. Verify functions exist.
+5. Switch POS Server Action to RPC.
+6. Test POS sale.
+7. Switch Return Server Action to RPC.
+8. Test return completion/restock.
+9. Switch Shipping Server Action to RPC.
+10. Test shipment finalization.
+11. Verify rollback scenarios.
+12. Verify audit/event rows.
+13. Run lint/build.
+14. Apply production RLS hardening only after all active writes are server/RPC safe.
+
+Warnings:
+
+- Do not execute `supabase/migrations/phase-f4-transactional-hardening.sql` from the application.
+- The functions are prepared for review only and are not active until manually applied and wired.
+- Do not claim POS, Returns, or Shipping are transaction-safe until RPC integration and rollback tests pass.
+
 ## 4. Rollback Notes
 
 - This execution is for development only.

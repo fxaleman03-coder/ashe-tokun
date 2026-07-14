@@ -205,6 +205,21 @@ Phase F.3 migrated:
 
 The POS UI, cart calculations, tax handling, discount handling, receipt numbering, order numbering, and inventory deduction behavior were preserved.
 
+## Phase F.4 Transactional Database Hardening
+
+See `docs/launch-readiness-phase-f4-transactional-hardening.md`.
+
+Phase F.4 prepared but did not execute:
+
+- `supabase/migrations/phase-f4-transactional-hardening.sql`
+- `complete_pos_sale_transaction(...)`
+- `complete_return_transaction(...)`
+- `finalize_shipment_transaction(...)`
+
+The prepared migration adds a shared idempotency table and transaction-safe RPC drafts for POS sale completion, return completion/restock, and shipment creation. These RPCs are not active until the migration is manually applied and the Server Actions are intentionally switched to call them.
+
+Do not claim the workflows are transaction-safe yet. Current live code remains the existing server-side sequential implementation.
+
 ## Verification
 
 Required:
