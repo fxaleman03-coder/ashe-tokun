@@ -6,7 +6,10 @@ import AdminQuickActions, {
 } from "@/components/admin/AdminQuickActions";
 import { getMediaAssets } from "@/lib/data/mediaRepository";
 import { hasPermission } from "@/lib/staff/permissionHelpers";
-import { getCurrentStaffPermissions } from "@/lib/staff/permissionGuard";
+import {
+  getCurrentStaffPermissions,
+  requirePermission,
+} from "@/lib/staff/permissionGuard";
 import type { PermissionKey } from "@/lib/staff/permissionTypes";
 
 const quickActions: {
@@ -39,6 +42,8 @@ const quickActions: {
 ];
 
 export default async function AdminDashboardPage() {
+  await requirePermission("reports.sales");
+
   const [mediaAssets, currentPermissions] = await Promise.all([
     getMediaAssets(),
     getCurrentStaffPermissions(),

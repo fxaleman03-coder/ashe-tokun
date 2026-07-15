@@ -4,8 +4,11 @@ import {
   getOrders,
   getOrderSummaryMetrics,
 } from "@/lib/data/ordersRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminOrdersPage() {
+  await requirePermission("orders.read");
+
   const [orders, metrics] = await Promise.all([
     getOrders(),
     getOrderSummaryMetrics(),

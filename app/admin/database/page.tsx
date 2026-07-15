@@ -6,6 +6,7 @@ import {
   getProductRepositoryDiagnostics,
   getProducts,
 } from "@/lib/data/productsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 const environmentChecks = [
   {
@@ -127,6 +128,8 @@ const productMigrationCards = [
 ];
 
 export default async function AdminDatabasePage() {
+  await requirePermission("settings.security");
+
   const [brandReadResult, productDiagnostics, repositoryProducts, featuredProducts] =
     await Promise.all([
       getBrandsResult(),

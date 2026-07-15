@@ -7,6 +7,7 @@ import {
   getTimecards,
   getTimekeeperMetrics,
 } from "@/lib/data/timekeeperRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 import type {
   StaffTimecard,
   StaffTimecardException,
@@ -16,6 +17,8 @@ import type {
 export const dynamic = "force-dynamic";
 
 export default async function AdminTimekeeperPage() {
+  await requirePermission("timekeeper.view_all");
+
   let readError: string | null = null;
   let timecards: StaffTimecard[] = [];
   let exceptions: StaffTimecardException[] = [];
