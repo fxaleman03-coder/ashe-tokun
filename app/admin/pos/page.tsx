@@ -9,8 +9,11 @@ import {
   getWalkInCustomer,
 } from "@/lib/data/posRepository";
 import { getInventorySummary } from "@/lib/data/inventoryRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminPOSPage() {
+  await requirePermission("pos.access");
+
   const [
     products,
     locations,

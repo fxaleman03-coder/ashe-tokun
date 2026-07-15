@@ -3,8 +3,11 @@ import ProductCreationWizard from "@/components/admin/ProductCreationWizard";
 import { getCategories } from "@/lib/data/categories";
 import { getMediaAssets } from "@/lib/data/mediaRepository";
 import { getProductTypes } from "@/lib/data/productTypes";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminNewProductPage() {
+  await requirePermission("products.create");
+
   const [mediaAssets, categories, productTypes] = await Promise.all([
     getMediaAssets(),
     getCategories(),

@@ -4,6 +4,7 @@ import {
   getInventoryLocations,
   summarizeInventoryForLocation,
 } from "@/lib/data/inventoryRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -15,6 +16,8 @@ function formatCurrency(value: number) {
 }
 
 export default async function InventoryLocationsPage() {
+  await requirePermission("inventory.read");
+
   const [locations, items] = await Promise.all([
     getInventoryLocations(),
     getInventoryItems(),

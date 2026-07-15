@@ -7,8 +7,11 @@ import {
   getFulfillableOrderItems,
 } from "@/lib/data/shippingRepository";
 import { getShippingOrigins } from "@/lib/data/shippingOriginsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function NewShipmentPage() {
+  await requirePermission("shipping.create");
+
   const orders = await getEligibleShippingOrders();
   const shippingOrigins = await getShippingOrigins();
   const fulfillableEntries = await Promise.all(

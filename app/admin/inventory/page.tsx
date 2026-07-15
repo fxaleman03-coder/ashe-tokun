@@ -5,8 +5,11 @@ import {
   getInventoryLocations,
   getInventorySummary,
 } from "@/lib/data/inventoryRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminInventoryPage() {
+  await requirePermission("inventory.read");
+
   const [items, locations, summary] = await Promise.all([
     getInventoryItems(),
     getInventoryLocations(),

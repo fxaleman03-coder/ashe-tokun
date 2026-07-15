@@ -5,8 +5,11 @@ import {
   getEligibleReturnOrders,
   getReturnableOrderItems,
 } from "@/lib/data/returnsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function NewReturnPage() {
+  await requirePermission("returns.create");
+
   const orders = await getEligibleReturnOrders();
   const returnablePairs = await Promise.all(
     orders.map(async (order) => [

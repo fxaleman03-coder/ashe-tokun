@@ -5,8 +5,11 @@ import {
   getShippingMetrics,
 } from "@/lib/data/shippingRepository";
 import { getShippingOrigins } from "@/lib/data/shippingOriginsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminShippingPage() {
+  await requirePermission("shipping.read");
+
   const [shipments, metrics, origins] = await Promise.all([
     getShipments(),
     getShippingMetrics(),

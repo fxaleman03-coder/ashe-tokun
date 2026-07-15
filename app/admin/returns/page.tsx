@@ -4,8 +4,11 @@ import {
   getReturnMetrics,
   getReturns,
 } from "@/lib/data/returnsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminReturnsPage() {
+  await requirePermission("returns.read");
+
   const [returns, metrics] = await Promise.all([
     getReturns(),
     getReturnMetrics(),
