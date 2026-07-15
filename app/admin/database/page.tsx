@@ -137,7 +137,7 @@ export default async function AdminDatabasePage() {
   const brands = brandReadResult.brands;
   const brandSourceLabel =
     brandReadResult.source === "supabase" ? "Supabase" : "Local fallback";
-  const sampleProductSku = repositoryProducts[0]?.sku ?? "Pending";
+  const repositoryProductSku = repositoryProducts[0]?.sku ?? "Pending";
   const productRepositoryCards = [
     { label: "Source Status", value: productDiagnostics.source },
     {
@@ -153,7 +153,7 @@ export default async function AdminDatabasePage() {
       value: productDiagnostics.fallbackUsed ? "Yes" : "No",
     },
     { label: "Featured Products", value: String(featuredProducts.length) },
-    { label: "Sample Product SKU", value: sampleProductSku },
+    { label: "Repository Product SKU", value: repositoryProductSku },
   ];
 
   return (

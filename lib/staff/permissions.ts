@@ -269,7 +269,7 @@ export const permissions: PermissionDefinition[] = [
     key: "payroll.manage",
     group: "payroll",
     label: "Manage Payroll",
-    description: "Prepare payroll periods and payroll package placeholders.",
+    description: "Prepare payroll periods and payroll package workflows.",
     sensitive: true,
   },
   {

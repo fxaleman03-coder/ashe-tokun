@@ -190,20 +190,25 @@ function ChoiceCard({
   description,
   selected,
   onClick,
+  disabled = false,
 }: {
   title: string;
   description: string;
   selected: boolean;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-32 border p-5 text-left transition duration-500 ease-out ${
+      disabled={disabled}
+      className={`min-h-32 border p-5 text-left transition duration-500 ease-out disabled:cursor-not-allowed disabled:opacity-45 ${
         selected
           ? "border-[#d8a344]/70 bg-[#d8a344]/10 shadow-[0_0_34px_rgba(216,163,68,0.13)]"
-          : "border-[#f7ead2]/10 bg-[#0f0b07] hover:border-[#d8a344]/45"
+          : disabled
+            ? "border-[#f7ead2]/10 bg-[#0f0b07]"
+            : "border-[#f7ead2]/10 bg-[#0f0b07] hover:border-[#d8a344]/45"
       }`}
     >
       <span className="block text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
@@ -583,12 +588,11 @@ export default function ProductCreationWizard({
                   />
                 ))}
                 <ChoiceCard
-                  title="Create Vendor"
-                  description="Future vendor creation placeholder."
+                  title="Vendor Creation Unavailable"
+                  description="Add vendors from the Vendors admin area when vendor management is enabled."
                   selected={false}
-                  onClick={() =>
-                    setMessage("Create Vendor will connect in a future phase.")
-                  }
+                  disabled
+                  onClick={() => undefined}
                 />
               </div>
             </div>

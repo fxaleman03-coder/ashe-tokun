@@ -166,6 +166,6 @@ export const traditions: Tradition[] = traditionSeeds.map(
   id,
   name,
   description,
-  storefrontVisibility: "Visible placeholder",
+  storefrontVisibility: "Visible",
 }),
 );

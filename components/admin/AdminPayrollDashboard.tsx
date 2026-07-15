@@ -166,9 +166,12 @@ export default function AdminPayrollDashboard({ data }: AdminPayrollDashboardPro
         {["Pay Period", "Employee", "Location", "Department", "Approval Status"].map((label) => (
           <div key={label} className="border border-[#f7ead2]/10 bg-[#0f0b07] p-3">
             <p className="text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]/72">
-              Filter
+              Coming Soon
             </p>
             <p className="mt-1">{label}</p>
+            <p className="mt-2 text-xs text-[#e8dcc8]/42">
+              Filter control not enabled yet.
+            </p>
           </div>
         ))}
       </section>

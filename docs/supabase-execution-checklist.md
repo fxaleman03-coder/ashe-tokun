@@ -639,6 +639,25 @@ Warnings:
 - The functions are prepared for review only and are not active until manually applied and wired.
 - Do not claim POS, Returns, or Shipping are transaction-safe until RPC integration and rollback tests pass.
 
+## Launch Readiness Phase F.4A RPC Activation Checkpoint
+
+Status:
+
+- Blocked before SQL execution.
+
+Reason:
+
+- No safe development database backup/export checkpoint was confirmed from local project context.
+
+Manual next step:
+
+1. Create or confirm a development Supabase backup/export checkpoint.
+2. Review `docs/launch-readiness-phase-f4a-rpc-activation.md`.
+3. Review `supabase/migrations/phase-f4-transactional-hardening.sql`.
+4. Execute the migration manually against development only.
+5. Confirm the functions and grants exist.
+6. Resume RPC adapter and Server Action integration only after successful confirmation.
+
 ## 4. Rollback Notes
 
 - This execution is for development only.

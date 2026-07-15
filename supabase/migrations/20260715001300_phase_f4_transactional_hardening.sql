@@ -80,11 +80,9 @@ declare
   v_order_id uuid;
   v_order_number text;
   v_receipt_number text;
-  v_receipt_id uuid;
   v_item jsonb;
   v_product record;
   v_inventory record;
-  v_brand_name text;
   v_quantity integer;
   v_line_subtotal_cents bigint;
   v_subtotal_cents bigint := 0;
@@ -299,6 +297,12 @@ begin
     left join public.brands b on b.id = p.brand_id
     where p.id = (v_item->>'product_id')::uuid;
 
+    if not found then
+      raise exception using
+        errcode = 'P0001',
+        message = 'Product was not found.';
+    end if;
+
     select *
     into v_inventory
     from public.inventory_items
@@ -431,8 +435,7 @@ begin
   where receipt_number like 'ASH-%';
 
   insert into public.receipts (order_id, receipt_number, printed, emailed)
-  values (v_order_id, v_receipt_number, false, false)
-  returning id into v_receipt_id;
+  values (v_order_id, v_receipt_number, false, false);
 
   insert into public.audit_logs (staff_user_id, action, entity_type, entity_id, details)
   values (
@@ -472,7 +475,7 @@ exception
   when others then
     raise exception using
       errcode = 'P0001',
-      message = coalesce(sqlerrm, 'POS sale transaction failed.');
+      message = 'POS sale transaction failed.';
 end;
 $$;
 
@@ -527,7 +530,7 @@ begin
   where id = p_return_id
   for update;
 
-  if v_return.id is null then
+  if not found then
     raise exception using
       errcode = 'P0001',
       message = 'Return was not found.';
@@ -565,6 +568,8 @@ begin
     where return_id = p_return_id
     order by created_at asc
   loop
+    v_restock := null;
+
     select value
     into v_restock
     from jsonb_array_elements(coalesce(p_completion->'restockItems', '[]'::jsonb)) as value
@@ -751,7 +756,7 @@ exception
   when others then
     raise exception using
       errcode = 'P0001',
-      message = coalesce(sqlerrm, 'Return completion transaction failed.');
+      message = 'Return completion transaction failed.';
 end;
 $$;
 
@@ -832,7 +837,7 @@ begin
   where id = p_order_id
   for update;
 
-  if v_order.id is null then
+  if not found then
     raise exception using
       errcode = 'P0001',
       message = 'Order was not found.';
@@ -865,7 +870,7 @@ begin
     where id = p_shipping_origin_id
     for update;
 
-    if v_origin.id is null or v_origin.active is not true then
+    if not found or v_origin.active is not true then
       raise exception using
         errcode = 'P0001',
         message = 'Ship From origin was not found or is inactive.';
@@ -923,7 +928,7 @@ begin
       and order_id = p_order_id
     for update;
 
-    if v_order_item.id is null then
+    if not found then
       raise exception using
         errcode = 'P0001',
         message = 'Shipment item does not belong to the order.';
@@ -1135,7 +1140,7 @@ exception
   when others then
     raise exception using
       errcode = 'P0001',
-      message = coalesce(sqlerrm, 'Shipment transaction failed.');
+      message = 'Shipment transaction failed.';
 end;
 $$;
 

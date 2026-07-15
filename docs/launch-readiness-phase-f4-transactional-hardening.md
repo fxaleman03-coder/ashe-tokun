@@ -396,6 +396,7 @@ Do not run rollback statements without backup and manual review.
 ## Remaining Risks
 
 - The migration has not been executed or integration-tested.
+- Phase F.4A reached the activation checkpoint and stopped because no safe development database backup/export checkpoint was available from local project context.
 - Server Actions still use the sequential path until future activation.
 - Function input payloads must be validated against live UI payloads before switching.
 - Order, receipt, shipment, and credit number generation still use max-plus-one logic and should be load-tested for concurrency.
@@ -410,3 +411,9 @@ Do not claim transaction-safe operations yet. The current system is server-side 
 2. Server Actions are switched to the RPC functions,
 3. rollback scenarios are tested,
 4. Phase E production RLS is reviewed against the final active write paths.
+
+## Phase F.4A Activation Checkpoint
+
+See `docs/launch-readiness-phase-f4a-rpc-activation.md`.
+
+F.4A performed the pre-execution compatibility and security audit, corrected the unexecuted migration where needed, and stopped before SQL execution because a safe development backup/checkpoint was not confirmed.

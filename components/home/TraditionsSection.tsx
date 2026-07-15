@@ -3,11 +3,21 @@
 import { useTranslations } from "@/components/LanguageProvider";
 import TraditionCard from "@/components/home/TraditionCard";
 
+const traditionCardHrefs = [
+  "/shop/category/opele",
+  "/shop/category/elekes",
+  "/shop/category/iruke",
+  "/shop/category/ide",
+] as const;
+
 export default function TraditionsSection() {
   const t = useTranslations();
 
   return (
-    <section className="bg-[#0f0b07] px-6 py-24 sm:px-8 sm:py-28 lg:px-10 lg:py-32">
+    <section
+      id="traditions"
+      className="bg-[#0f0b07] px-6 py-24 sm:px-8 sm:py-28 lg:px-10 lg:py-32"
+    >
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-14 max-w-3xl">
           <p className="mb-5 text-xs font-bold uppercase tracking-[0.42em] text-[#d8a344]">
@@ -22,7 +32,7 @@ export default function TraditionsSection() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-2">
-          {t.traditions.cards.map((card) => (
+          {t.traditions.cards.map((card, index) => (
             <TraditionCard
               key={card.title}
               title={card.title}
@@ -30,6 +40,7 @@ export default function TraditionsSection() {
               imageSrc={card.imageSrc}
               imageAlt={card.imageAlt}
               buttonLabel={t.traditions.cardButton}
+              href={traditionCardHrefs[index] ?? "/shop"}
             />
           ))}
         </div>

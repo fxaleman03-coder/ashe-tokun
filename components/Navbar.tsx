@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 import { languageOptions } from "@/lib/translations";
 
-const navHrefs = ["/", "/shop", "/about", "/contact"] as const;
+const navHrefs = ["/", "/shop", "/#traditions", "/shop/category/ide"] as const;
 
 export default function Navbar() {
   const { language, setLanguage, t } = useLanguage();

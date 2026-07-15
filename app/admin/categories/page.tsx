@@ -45,7 +45,7 @@ export default async function AdminCategoriesPage() {
             {
               label: "Parent",
               render: (category) =>
-                category.parent_category_id ?? "Parent placeholder",
+                category.parent_category_id ?? "No parent",
             },
             {
               label: "Status",

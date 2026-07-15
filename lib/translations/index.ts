@@ -400,7 +400,9 @@ export const translations = {
 export const languageOptions = [
   { code: "en", label: "EN" },
   { code: "es", label: "ES" },
-  { code: "yo", label: "YORÙBÁ" },
-] as const;
+] as const satisfies ReadonlyArray<{
+  code: Exclude<Language, "yo">;
+  label: string;
+}>;
 
 export type Language = keyof typeof translations;

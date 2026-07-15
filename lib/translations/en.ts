@@ -6,7 +6,7 @@ const en: Translation = {
     homeLabel: "ASHE TOKUN home",
   },
   nav: {
-    links: ["Home", "Shop", "About", "Contact"],
+    links: ["Home", "Shop", "Traditions", "Categories"],
     cta: "Visit Store",
   },
   hero: {
@@ -30,28 +30,28 @@ const en: Translation = {
         description:
           "Traditional articles and tools connected to wisdom, guidance, and sacred study.",
         imageSrc: "/categories/ifa.svg",
-        imageAlt: "Ifá category placeholder",
+        imageAlt: "Ifá category image",
       },
       {
         title: "Òrìṣà",
         description:
           "Devotional pieces and ceremonial essentials honoring revered spiritual traditions.",
         imageSrc: "/categories/orisa.svg",
-        imageAlt: "Òrìṣà category placeholder",
+        imageAlt: "Òrìṣà category image",
       },
       {
         title: "Spiritual Supplies",
         description:
           "Premium supplies for cleansing, preparation, offerings, and intentional practice.",
         imageSrc: "/categories/spiritual-supplies.svg",
-        imageAlt: "Spiritual supplies category placeholder",
+        imageAlt: "Spiritual supplies category image",
       },
       {
         title: "Devotional Articles",
         description:
           "Elegant religious articles crafted for daily reverence, reflection, and devotion.",
         imageSrc: "/categories/devotional-articles.svg",
-        imageAlt: "Devotional articles category placeholder",
+        imageAlt: "Devotional articles category image",
       },
     ],
   },

@@ -186,7 +186,7 @@ function formatEstimatedMargin(price: string, cost: string) {
     !Number.isFinite(parsedCost) ||
     parsedPrice <= 0
   ) {
-    return "Estimated margin display placeholder";
+    return "Enter price and cost to calculate margin.";
   }
 
   const margin = ((parsedPrice - parsedCost) / parsedPrice) * 100;
@@ -671,7 +671,7 @@ function ProductStudioForm({
                 onChange={(event) =>
                   updateField("fullDescription", event.target.value)
                 }
-                placeholder="Long-form product story, care instructions, and cultural context placeholder."
+                placeholder="Long-form product story, care instructions, and cultural context."
                 className={`${textareaClass} min-h-36`}
               />
             </FieldLabel>
@@ -886,7 +886,7 @@ function ProductStudioForm({
                 step="0.01"
                 value={formState.cost}
                 onChange={(event) => updateField("cost", event.target.value)}
-                placeholder="Cost placeholder"
+                placeholder="Cost"
                 className={inputClass}
               />
             </FieldLabel>
@@ -1100,7 +1100,7 @@ function ProductStudioForm({
                 type="text"
                 value={formState.seoTitle}
                 onChange={(event) => updateField("seoTitle", event.target.value)}
-                placeholder="SEO Title placeholder"
+                placeholder="SEO title"
                 className={inputClass}
               />
             </FieldLabel>
@@ -1110,7 +1110,7 @@ function ProductStudioForm({
                 onChange={(event) =>
                   updateField("seoDescription", event.target.value)
                 }
-                placeholder="SEO Description placeholder"
+                placeholder="SEO description"
                 className={`${textareaClass} min-h-28`}
               />
             </FieldLabel>

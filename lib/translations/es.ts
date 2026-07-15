@@ -6,7 +6,7 @@ const es: Translation = {
     homeLabel: "ASHE TOKUN home",
   },
   nav: {
-    links: ["Inicio", "Tienda", "Nosotros", "Contacto"],
+    links: ["Inicio", "Tienda", "Tradiciones", "Categorías"],
     cta: "Visitar Tienda",
   },
   hero: {

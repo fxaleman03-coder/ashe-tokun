@@ -220,6 +220,12 @@ The prepared migration adds a shared idempotency table and transaction-safe RPC 
 
 Do not claim the workflows are transaction-safe yet. Current live code remains the existing server-side sequential implementation.
 
+## Phase F.4A RPC Activation Checkpoint
+
+See `docs/launch-readiness-phase-f4a-rpc-activation.md`.
+
+Phase F.4A audited the prepared migration for schema compatibility and RPC security, corrected the unexecuted migration, and stopped before SQL execution because no safe development Supabase backup/export checkpoint was confirmed. Server Actions were not switched to RPCs.
+
 ## Verification
 
 Required:

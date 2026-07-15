@@ -3,16 +3,16 @@ import AdminShell from "@/components/admin/AdminShell";
 
 const settings = [
   ["Store Name", "ASHE TOKUN"],
-  ["Store Mode", "Catalog foundation"],
+  ["Store Mode", "Operational admin"],
   ["Primary Currency", "USD"],
-  ["Fulfillment", "Manual setup pending"],
+  ["Fulfillment", "Shipping origins managed separately"],
 ];
 
 export default function AdminSettingsPage() {
   return (
     <AdminShell
       title="Settings"
-      description="Visual placeholders for future store configuration."
+      description="Production settings currently expose shipping-origin management. Other store settings are read-only until dedicated controls are enabled."
     >
       <section className="grid gap-5 lg:grid-cols-2">
         {settings.map(([label, value]) => (
@@ -24,6 +24,9 @@ export default function AdminSettingsPage() {
               {label}
             </p>
             <p className="mt-4 text-lg font-medium text-[#f7ead2]">{value}</p>
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[#e8dcc8]/42">
+              Read-only
+            </p>
           </article>
         ))}
       </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslations } from "@/components/LanguageProvider";
 
 export default function Hero() {
@@ -26,18 +27,18 @@ export default function Hero() {
           </p>
 
           <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:gap-5">
-            <a
-              href="#"
+            <Link
+              href="/shop"
               className="inline-flex min-h-16 items-center justify-center bg-[#d8a344] px-8 text-[0.82rem] font-bold uppercase tracking-[0.22em] text-[#0f0b07] shadow-[0_18px_42px_rgba(216,163,68,0.16)] transition duration-500 ease-out hover:-translate-y-0.5 hover:bg-[#f0c062] hover:shadow-[0_22px_60px_rgba(216,163,68,0.28)]"
             >
               {t.hero.primaryButton}
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              href="/#traditions"
               className="inline-flex min-h-16 items-center justify-center border border-[#f7ead2]/20 px-8 text-[0.82rem] font-bold uppercase tracking-[0.22em] text-[#f7ead2] shadow-[0_0_0_rgba(216,163,68,0)] transition duration-500 ease-out hover:-translate-y-0.5 hover:border-[#d8a344]/85 hover:text-[#d8a344] hover:shadow-[0_0_36px_rgba(216,163,68,0.14)]"
             >
               {t.hero.secondaryButton}
-            </a>
+            </Link>
           </div>
         </div>
 

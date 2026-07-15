@@ -46,7 +46,7 @@ const navigationGroups: NavigationGroup[] = [
       { href: "/admin/payroll", label: "Payroll", permissions: ["payroll.view"] },
       { href: "/admin/returns", label: "Returns", permissions: ["returns.read"] },
       { href: "/admin/customers", label: "Customers", permissions: ["customers.read"] },
-      { href: "/admin/analytics", label: "Analytics", permissions: ["reports.sales"] },
+      { href: "/admin/analytics", label: "Analytics (Soon)", permissions: ["reports.sales"] },
     ],
   },
   {
@@ -130,10 +130,12 @@ export default function AdminSidebar({
 
       <div className="mt-10 hidden border border-[#d8a344]/20 bg-[#120d08] p-5 lg:block">
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
-          UI Foundation
+          Launch Status
         </p>
         <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/58">
-          Authentication and database access are intentionally not connected yet.
+          Staff authentication and Supabase-backed operations are connected.
+          Production RLS and transactional RPC activation remain gated for
+          launch hardening.
         </p>
       </div>
     </aside>

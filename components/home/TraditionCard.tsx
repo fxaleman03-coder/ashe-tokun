@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 type TraditionCardProps = {
   title: string;
@@ -6,6 +7,7 @@ type TraditionCardProps = {
   imageSrc: string;
   imageAlt: string;
   buttonLabel: string;
+  href: string;
 };
 
 export default function TraditionCard({
@@ -14,6 +16,7 @@ export default function TraditionCard({
   imageSrc,
   imageAlt,
   buttonLabel,
+  href,
 }: TraditionCardProps) {
   return (
     <article className="group relative min-h-[28rem] overflow-hidden border border-[#f7ead2]/10 bg-[#120d08] shadow-[0_22px_70px_rgba(0,0,0,0.24)] transition duration-700 ease-out hover:-translate-y-1 hover:border-[#d8a344]/60 hover:shadow-[0_30px_90px_rgba(0,0,0,0.36),0_0_42px_rgba(216,163,68,0.12)]">
@@ -37,12 +40,12 @@ export default function TraditionCard({
           <p className="mt-4 text-base leading-7 text-[#e8dcc8]/72">
             {description}
           </p>
-          <a
-            href="#"
+          <Link
+            href={href}
             className="mt-7 inline-flex min-h-11 items-center justify-center border border-[#d8a344]/55 px-5 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-[#d8a344] opacity-100 shadow-[0_0_0_rgba(216,163,68,0)] transition duration-700 ease-out hover:bg-[#d8a344] hover:text-[#0f0b07] hover:shadow-[0_0_34px_rgba(216,163,68,0.2)] sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
           >
             {buttonLabel}
-          </a>
+          </Link>
         </div>
       </div>
     </article>
