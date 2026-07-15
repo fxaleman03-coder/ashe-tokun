@@ -3,6 +3,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import ShippingOriginForm from "@/components/admin/ShippingOriginForm";
 import { getShipments } from "@/lib/data/shippingRepository";
 import { getShippingOriginById } from "@/lib/data/shippingOriginsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type ShippingOriginDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -12,6 +13,8 @@ export default async function ShippingOriginDetailPage({
   params,
 }: ShippingOriginDetailPageProps) {
   const { id } = await params;
+  await requirePermission("shipping.origins.manage");
+
   const origin = await getShippingOriginById(id);
 
   if (!origin) {

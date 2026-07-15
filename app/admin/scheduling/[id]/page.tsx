@@ -10,6 +10,7 @@ import {
   getSchedulePeriodById,
   getShiftsResult,
 } from "@/lib/data/schedulingRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type ScheduleDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -25,6 +26,8 @@ function isUuidLike(value: string) {
 
 export default async function ScheduleDetailPage({ params }: ScheduleDetailPageProps) {
   const { id } = await params;
+  await requirePermission("schedule.view_all");
+
   if (!id || !isUuidLike(id)) {
     return (
       <AdminShell

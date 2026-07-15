@@ -6,6 +6,7 @@ import {
   getPunchesForTimecard,
   getTimecardById,
 } from "@/lib/data/timekeeperRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type TimecardDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -21,6 +22,7 @@ function isUuidLike(value: string) {
 
 export default async function TimecardDetailPage({ params }: TimecardDetailPageProps) {
   const { id } = await params;
+  await requirePermission("timekeeper.view_all");
 
   if (!id || !isUuidLike(id)) {
     return (

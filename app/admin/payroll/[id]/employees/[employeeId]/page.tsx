@@ -6,6 +6,7 @@ import {
   getPayrollEmployeeDetail,
   isUuidLike,
 } from "@/lib/data/payrollRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type PayrollEmployeePageProps = {
   params: Promise<{ id: string; employeeId: string }>;
@@ -17,6 +18,8 @@ export default async function PayrollEmployeePage({
   params,
 }: PayrollEmployeePageProps) {
   const { id, employeeId } = await params;
+  await requirePermission("payroll.view");
+
   if (!isUuidLike(id) || !isUuidLike(employeeId)) notFound();
 
   const detail = await getPayrollEmployeeDetail(id, employeeId);

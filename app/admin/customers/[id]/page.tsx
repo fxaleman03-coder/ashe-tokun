@@ -8,6 +8,7 @@ import {
 } from "@/lib/data/customersRepository";
 import { getReturns } from "@/lib/data/returnsRepository";
 import { getShipments } from "@/lib/data/shippingRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type CustomerDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -17,6 +18,8 @@ export default async function CustomerDetailPage({
   params,
 }: CustomerDetailPageProps) {
   const { id } = await params;
+  await requirePermission("customers.read");
+
   const customer = await getCustomerById(id);
 
   if (!customer) {

@@ -11,6 +11,7 @@ import {
   getInventoryForProduct,
   summarizeInventoryForProduct,
 } from "@/lib/data/inventoryRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type AdminEditProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -28,6 +29,8 @@ export default async function AdminEditProductPage({
   params,
 }: AdminEditProductPageProps) {
   const { slug } = await params;
+  await requirePermission("products.edit");
+
   const product = await getProductBySlug(slug);
   const [mediaAssets, productMedia, inventoryItems] = await Promise.all([
     getMediaAssets(),

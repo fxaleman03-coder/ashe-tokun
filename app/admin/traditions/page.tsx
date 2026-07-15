@@ -1,8 +1,11 @@
 import AdminShell from "@/components/admin/AdminShell";
 import { ManagementCard } from "@/components/admin/CatalogViews";
 import { getTraditionsResult } from "@/lib/data/traditions";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminTraditionsPage() {
+  await requirePermission("products.read");
+
   const traditionReadResult = await getTraditionsResult();
   const traditions = traditionReadResult.traditions;
   const dataSource =

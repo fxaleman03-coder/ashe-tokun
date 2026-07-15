@@ -6,10 +6,13 @@ import {
   getShifts,
   getTimeOffRequests,
 } from "@/lib/data/schedulingRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSchedulingPage() {
+  await requirePermission("schedule.view_all");
+
   const [periods, shifts, timeOffRequests, metrics] = await Promise.all([
     getSchedulePeriods(),
     getShifts(),

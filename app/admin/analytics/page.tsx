@@ -1,6 +1,9 @@
 import AdminShell from "@/components/admin/AdminShell";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
-export default function AdminAnalyticsPage() {
+export default async function AdminAnalyticsPage() {
+  await requirePermission("reports.sales");
+
   return (
     <AdminShell
       title="Analytics"

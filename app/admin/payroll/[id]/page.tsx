@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
 import PayrollPeriodDetailManager from "@/components/admin/PayrollPeriodDetailManager";
 import { getPayrollPeriodDetail, isUuidLike } from "@/lib/data/payrollRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type PayrollPeriodPageProps = {
   params: Promise<{ id: string }>;
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 export default async function PayrollPeriodPage({ params }: PayrollPeriodPageProps) {
   const { id } = await params;
+  await requirePermission("payroll.view");
+
   if (!isUuidLike(id)) notFound();
 
   const detail = await getPayrollPeriodDetail(id);

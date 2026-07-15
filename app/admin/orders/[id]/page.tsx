@@ -12,6 +12,7 @@ import {
   getShipmentEvents,
   getShipmentsByOrder,
 } from "@/lib/data/shippingRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type OrderDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -48,6 +49,8 @@ type HeaderDetail = {
 
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { id } = await params;
+  await requirePermission("orders.read");
+
   const order = await getOrderDetail(id);
 
   if (!order) {

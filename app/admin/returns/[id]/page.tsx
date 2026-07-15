@@ -6,6 +6,7 @@ import {
   getReturnItems,
   getReturnTimeline,
 } from "@/lib/data/returnsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type ReturnDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -13,6 +14,8 @@ type ReturnDetailPageProps = {
 
 export default async function ReturnDetailPage({ params }: ReturnDetailPageProps) {
   const { id } = await params;
+  await requirePermission("returns.read");
+
   const returnRecord = await getReturnById(id);
 
   if (!returnRecord) {

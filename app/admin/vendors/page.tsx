@@ -1,8 +1,11 @@
 import AdminShell from "@/components/admin/AdminShell";
 import { ManagementTable } from "@/components/admin/CatalogViews";
 import { getBrandsResult } from "@/lib/data/brands";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminVendorsPage() {
+  await requirePermission("vendors.read");
+
   const brandReadResult = await getBrandsResult();
   const brands = brandReadResult.brands;
   const dataSource =

@@ -2,8 +2,11 @@ import Link from "next/link";
 import AdminShell from "@/components/admin/AdminShell";
 import ShippingOriginsManager from "@/components/admin/ShippingOriginsManager";
 import { getShippingOrigins } from "@/lib/data/shippingOriginsRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function ShippingOriginsPage() {
+  await requirePermission("shipping.origins.manage");
+
   const origins = await getShippingOrigins();
 
   return (

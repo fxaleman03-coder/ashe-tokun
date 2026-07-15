@@ -8,6 +8,7 @@ import {
   getShipmentItems,
   getShipmentPackages,
 } from "@/lib/data/shippingRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type ShipmentDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -17,6 +18,8 @@ export default async function ShipmentDetailPage({
   params,
 }: ShipmentDetailPageProps) {
   const { id } = await params;
+  await requirePermission("shipping.read");
+
   const shipment = await getShipmentById(id);
 
   if (!shipment) {

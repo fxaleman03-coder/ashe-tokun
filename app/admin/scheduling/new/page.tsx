@@ -1,10 +1,13 @@
 import AdminShell from "@/components/admin/AdminShell";
 import SchedulePeriodForm from "@/components/admin/SchedulePeriodForm";
 import { getInventoryLocations } from "@/lib/data/inventoryRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewSchedulePage() {
+  await requirePermission("schedule.create");
+
   const locations = await getInventoryLocations();
 
   return (

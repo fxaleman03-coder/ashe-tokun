@@ -1,8 +1,11 @@
 import AdminShell from "@/components/admin/AdminShell";
 import { ManagementCard } from "@/components/admin/CatalogViews";
 import { getCollectionsResult } from "@/lib/data/collections";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminCollectionsPage() {
+  await requirePermission("products.read");
+
   const collectionReadResult = await getCollectionsResult();
   const collections = collectionReadResult.collections;
   const dataSource =

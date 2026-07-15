@@ -2,6 +2,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import { CatalogStatCard } from "@/components/admin/CatalogViews";
 import { getCatalogMetrics } from "@/lib/data/catalogMetrics";
 import { getMediaAssets } from "@/lib/data/mediaRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 const catalogMap = [
   "ASHE TOKUN Storefront",
@@ -21,6 +22,8 @@ const catalogMap = [
 ];
 
 export default async function AdminCatalogPage() {
+  await requirePermission("products.read");
+
   const metrics = await getCatalogMetrics();
   const mediaCount = (await getMediaAssets()).length;
 

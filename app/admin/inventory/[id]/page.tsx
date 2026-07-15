@@ -6,6 +6,7 @@ import {
   getInventoryLocations,
   getInventoryTransactions,
 } from "@/lib/data/inventoryRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type InventoryItemPageProps = {
   params: Promise<{ id: string }>;
@@ -23,6 +24,8 @@ export default async function InventoryItemPage({
   params,
 }: InventoryItemPageProps) {
   const { id } = await params;
+  await requirePermission("inventory.read");
+
   const [items, locations] = await Promise.all([
     getInventoryItems(),
     getInventoryLocations(),

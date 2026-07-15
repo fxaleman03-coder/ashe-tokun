@@ -2,6 +2,7 @@ import Link from "next/link";
 import AdminShell from "@/components/admin/AdminShell";
 import CustomerForm from "@/components/admin/CustomerForm";
 import { getCustomerById } from "@/lib/data/customersRepository";
+import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type EditCustomerPageProps = {
   params: Promise<{ id: string }>;
@@ -9,6 +10,8 @@ type EditCustomerPageProps = {
 
 export default async function EditCustomerPage({ params }: EditCustomerPageProps) {
   const { id } = await params;
+  await requirePermission("customers.edit");
+
   const customer = await getCustomerById(id);
 
   if (!customer) {
