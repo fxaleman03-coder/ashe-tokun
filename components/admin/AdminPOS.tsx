@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { completePosSale } from "@/lib/data/posMutations";
 import type {
   PosCartItem,
@@ -32,12 +33,7 @@ type AdminPOSProps = {
 type DiscountType = "fixed" | "percentage";
 type PaymentMethod = "cash" | "card" | "zelle" | "other";
 
-const paymentMethods: { label: string; value: PaymentMethod }[] = [
-  { label: "Cash", value: "cash" },
-  { label: "Card", value: "card" },
-  { label: "Zelle", value: "zelle" },
-  { label: "Other", value: "other" },
-];
+const paymentMethods: PaymentMethod[] = ["cash", "card", "zelle", "other"];
 
 const inputClass =
   "min-h-14 w-full border border-[#f7ead2]/10 bg-[#120d08] px-4 text-sm text-[#f7ead2] outline-none transition duration-300 placeholder:text-[#e8dcc8]/38 focus:border-[#d8a344]/70";
@@ -118,6 +114,16 @@ export default function AdminPOS({
   nextReceiptNumber,
   source,
 }: AdminPOSProps) {
+  const { t } = useLanguage();
+  const labels = t.admin.pos;
+  const getPaymentMethodLabel = (method: PaymentMethod | "") => {
+    if (method === "cash") return labels.cash;
+    if (method === "card") return labels.card;
+    if (method === "other") return labels.other;
+    if (method === "zelle") return "Zelle";
+
+    return labels.pending;
+  };
   const defaultLocation =
     locations.find((location) => location.name === "Retail Floor") ??
     locations.find((location) => location.name === "Main Stockroom") ??
@@ -260,7 +266,7 @@ export default function AdminPOS({
     const availableQuantity = getAvailableAtLocation(product, selectedLocationId);
 
     if (availableQuantity <= 0) {
-      setWarning("Not enough stock available.");
+      setWarning(labels.notEnoughStock);
       setSuccess(null);
       return;
     }
@@ -272,7 +278,7 @@ export default function AdminPOS({
 
       if (existingItem) {
         if (existingItem.quantity >= availableQuantity) {
-          setWarning("Not enough stock available.");
+          setWarning(labels.notEnoughStock);
           setSuccess(null);
           return currentItems;
         }
@@ -293,7 +299,7 @@ export default function AdminPOS({
     const normalizedLookup = lookupValue.trim().toLowerCase();
 
     if (!normalizedLookup) {
-      setWarning("Product not found.");
+      setWarning(labels.productNotFound);
       setSuccess(null);
       return;
     }
@@ -305,7 +311,7 @@ export default function AdminPOS({
     );
 
     if (!matchedProduct) {
-      setWarning("Product not found.");
+      setWarning(labels.productNotFound);
       setSuccess(null);
       return;
     }
@@ -322,7 +328,7 @@ export default function AdminPOS({
         }
 
         if (nextQuantity > item.availableQuantity) {
-          setWarning("Not enough stock available.");
+          setWarning(labels.notEnoughStock);
           setSuccess(null);
           return item;
         }
@@ -359,8 +365,7 @@ export default function AdminPOS({
     setSuccess({
       ok: true,
       source: "local",
-      message:
-        "Sale held locally. Resume sale will be connected in a future database phase.",
+      message: labels.heldMessage,
     });
     setWarning("");
   }
@@ -370,7 +375,7 @@ export default function AdminPOS({
       return;
     }
 
-    const shouldCancel = window.confirm("Cancel this POS sale?");
+    const shouldCancel = window.confirm(labels.cancelConfirm);
 
     if (!shouldCancel) {
       return;
@@ -380,7 +385,7 @@ export default function AdminPOS({
     setSuccess({
       ok: true,
       source: "local",
-      message: "Sale canceled.",
+      message: labels.saleCanceled,
     });
     setWarning("");
   }
@@ -391,7 +396,7 @@ export default function AdminPOS({
     }
 
     if (tendered < total) {
-      setWarning("Amount tendered must cover the sale total.");
+      setWarning(labels.tenderedWarning);
       setSuccess(null);
       return;
     }
@@ -400,8 +405,7 @@ export default function AdminPOS({
       setSuccess({
         ok: true,
         source: "local",
-        message:
-          "Sale preview completed locally. Live order writes require Supabase inventory data.",
+        message: labels.localPreviewMessage,
       });
       setWarning("");
       return;
@@ -421,7 +425,7 @@ export default function AdminPOS({
       paymentMethod,
       amountTendered: tendered,
       cashierName: "Admin",
-      notes: "POS sale completed from ASHE TOKUN Control Center.",
+      notes: labels.saleNotes,
     });
 
     setIsCompleting(false);
@@ -468,10 +472,10 @@ export default function AdminPOS({
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-                Barcode / SKU
+                {labels.barcodeSku}
               </p>
               <p className="mt-2 text-sm text-[#e8dcc8]/58">
-                Data Source: {source}
+                {labels.dataSource}: {source}
               </p>
             </div>
             <select
@@ -502,7 +506,7 @@ export default function AdminPOS({
                   addLookupItem();
                 }
               }}
-              placeholder="Scan barcode or enter SKU"
+              placeholder={labels.scanPlaceholder}
               className={inputClass}
             />
             <button
@@ -510,7 +514,7 @@ export default function AdminPOS({
               onClick={addLookupItem}
               className={buttonClass}
             >
-              Add Item
+              {labels.addItem}
             </button>
           </div>
           {warning ? (
@@ -524,14 +528,17 @@ export default function AdminPOS({
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-                Product Lookup
+                {labels.productLookup}
               </p>
               <h2 className="mt-3 font-serif text-2xl font-semibold text-[#f7ead2]">
-                Live POS Catalog
+                {labels.liveCatalog}
               </h2>
             </div>
             <p className="text-sm text-[#e8dcc8]/58">
-              {filteredProducts.length} products available
+              {labels.productsAvailable.replace(
+                "{count}",
+                String(filteredProducts.length),
+              )}
             </p>
           </div>
 
@@ -539,7 +546,7 @@ export default function AdminPOS({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by product name, SKU, barcode, brand, or category"
+            placeholder={labels.productSearchPlaceholder}
             className={`${inputClass} mt-5`}
           />
 
@@ -588,19 +595,23 @@ export default function AdminPOS({
                     </div>
                     <div className="mt-2 grid gap-1 text-xs text-[#e8dcc8]/58 sm:grid-cols-2 xl:grid-cols-4">
                       <p>
-                        <span className="text-[#d8a344]">Brand:</span>{" "}
+                        <span className="text-[#d8a344]">{labels.brand}:</span>{" "}
                         {product.brand}
                       </p>
                       <p>
-                        <span className="text-[#d8a344]">SKU:</span>{" "}
+                        <span className="text-[#d8a344]">{labels.sku}:</span>{" "}
                         {product.sku}
                       </p>
                       <p>
-                        <span className="text-[#d8a344]">Barcode:</span>{" "}
+                        <span className="text-[#d8a344]">
+                          {labels.barcode}:
+                        </span>{" "}
                         {product.barcode}
                       </p>
                       <p>
-                        <span className="text-[#d8a344]">Available:</span>{" "}
+                        <span className="text-[#d8a344]">
+                          {labels.available}:
+                        </span>{" "}
                         {locationAvailable}
                       </p>
                     </div>
@@ -615,7 +626,7 @@ export default function AdminPOS({
                       disabled={locationAvailable <= 0}
                       className={`${subtleButtonClass} disabled:cursor-not-allowed disabled:border-[#f7ead2]/8 disabled:text-[#e8dcc8]/28`}
                     >
-                      Add to Cart
+                      {labels.addToCart}
                     </button>
                   </div>
                 </article>
@@ -634,7 +645,7 @@ export default function AdminPOS({
             return (
               <>
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-            Customer
+            {labels.customer}
           </p>
           <div className="mt-4 border border-[#f7ead2]/10 bg-[#0f0b07] p-4">
             <p className="font-serif text-2xl font-semibold text-[#f7ead2]">
@@ -642,24 +653,26 @@ export default function AdminPOS({
             </p>
             {selectedCustomerDisplay.contactName ? (
               <p className="mt-2 text-sm text-[#e8dcc8]/66">
-                Contact: {selectedCustomerDisplay.contactName}
+                {labels.contact}: {selectedCustomerDisplay.contactName}
               </p>
             ) : null}
             <div className="mt-3 grid gap-2 text-xs leading-5 text-[#e8dcc8]/58">
               <p>
-                <span className="text-[#d8a344]">Number:</span>{" "}
+                <span className="text-[#d8a344]">{labels.number}:</span>{" "}
                 {selectedCustomer.customerNumber}
               </p>
               <p className="capitalize">
-                <span className="text-[#d8a344]">Type:</span>{" "}
+                <span className="text-[#d8a344]">{labels.type}:</span>{" "}
                 {selectedCustomerDisplay.typeLabel}
               </p>
               <p>
-                <span className="text-[#d8a344]">Orders:</span>{" "}
+                <span className="text-[#d8a344]">{labels.orders}:</span>{" "}
                 {selectedCustomer.orderCount}
               </p>
               <p>
-                <span className="text-[#d8a344]">Lifetime Value:</span>{" "}
+                <span className="text-[#d8a344]">
+                  {labels.lifetimeValue}:
+                </span>{" "}
                 {formatCurrency(selectedCustomer.lifetimeValue)}
               </p>
             </div>
@@ -672,7 +685,7 @@ export default function AdminPOS({
               setCustomerQuery(event.target.value);
               setIsCustomerSearchOpen(true);
             }}
-            placeholder="Search customer by name, number, email, or phone"
+            placeholder={labels.customerSearchPlaceholder}
             className={`${inputClass} mt-4 min-h-11`}
           />
           {isCustomerSearchOpen || customerQuery ? (
@@ -700,7 +713,7 @@ export default function AdminPOS({
                     </span>
                     {candidateDisplay.contactName ? (
                       <span className="mt-1 block text-xs text-[#e8dcc8]/58">
-                        Contact: {candidateDisplay.contactName}
+                        {labels.contact}: {candidateDisplay.contactName}
                       </span>
                     ) : null}
                     <span className="mt-1 block text-xs text-[#d8a344]">
@@ -708,7 +721,7 @@ export default function AdminPOS({
                       {getCustomerTypeLabel(candidate)}
                     </span>
                     <span className="mt-1 block text-xs text-[#e8dcc8]/48">
-                      {candidate.orderCount} orders /{" "}
+                      {candidate.orderCount} {labels.orders.toLowerCase()} /{" "}
                       {formatCurrency(candidate.lifetimeValue)}
                     </span>
                         </>
@@ -718,24 +731,24 @@ export default function AdminPOS({
                 ))
               ) : (
                 <p className="px-4 py-4 text-sm text-[#e8dcc8]/54">
-                  No active customers found.
+                  {labels.noActiveCustomers}
                 </p>
               )}
             </div>
           ) : null}
           <div className="mt-4 grid grid-cols-2 gap-3">
             <Link href="/admin/customers/new" className={subtleButtonClass}>
-              New Customer
+              {labels.newCustomer}
             </Link>
             <button
               type="button"
               onClick={() => setIsCustomerSearchOpen(true)}
               className={subtleButtonClass}
             >
-              Search Customer
+              {labels.searchCustomer}
             </button>
             <Link href="/admin/returns/new" className={subtleButtonClass}>
-              Start Return
+              {labels.startReturn}
             </Link>
             <button
               type="button"
@@ -760,7 +773,7 @@ export default function AdminPOS({
               }}
               className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
             >
-              Return to Walk-in Customer
+              {labels.returnToWalkIn}
             </button>
           </div>
               </>
@@ -772,10 +785,10 @@ export default function AdminPOS({
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-                Cart
+                {labels.cart}
               </p>
               <h2 className="mt-3 font-serif text-2xl font-semibold text-[#f7ead2]">
-                Items: {cartItemCount}
+                {labels.items}: {cartItemCount}
               </h2>
             </div>
             <button
@@ -784,7 +797,7 @@ export default function AdminPOS({
               disabled={cartItems.length === 0}
               className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/45 transition hover:text-[#d8a344] disabled:cursor-not-allowed disabled:text-[#e8dcc8]/24"
             >
-              Clear Cart
+              {labels.clearCart}
             </button>
           </div>
 
@@ -792,11 +805,10 @@ export default function AdminPOS({
             {cartItems.length === 0 ? (
               <div className="border border-dashed border-[#d8a344]/24 bg-[#0f0b07] p-6 text-sm leading-6 text-[#e8dcc8]/62">
                 <p className="font-serif text-xl text-[#f7ead2]">
-                  Cart is empty
+                  {labels.cartEmpty}
                 </p>
                 <p className="mt-2">
-                  Scan a SKU, enter a barcode, or add an in-stock item to begin
-                  an in-store sale.
+                  {labels.cartEmptyDescription}
                 </p>
               </div>
             ) : (
@@ -811,7 +823,8 @@ export default function AdminPOS({
                         {item.name}
                       </h3>
                       <p className="mt-1 text-xs text-[#e8dcc8]/50">
-                        SKU {item.sku} / Available {item.availableQuantity}
+                        {labels.sku} {item.sku} / {labels.available}{" "}
+                        {item.availableQuantity}
                       </p>
                     </div>
                     <button
@@ -819,7 +832,7 @@ export default function AdminPOS({
                       onClick={() => removeItem(item.productId)}
                       className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/45 transition hover:text-[#d8a344]"
                     >
-                      Remove
+                      {labels.remove}
                     </button>
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-4">
@@ -862,13 +875,13 @@ export default function AdminPOS({
 
           <div className="mt-6 space-y-3 border-t border-[#f7ead2]/10 pt-5 text-sm text-[#e8dcc8]/68">
             <div className="flex justify-between gap-4">
-              <span>Subtotal</span>
+              <span>{labels.subtotal}</span>
               <span>{formatCurrency(subtotal)}</span>
             </div>
             <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
               <label>
                 <span className="text-xs uppercase tracking-[0.16em] text-[#d8a344]">
-                  Discount Type
+                  {labels.discountType}
                 </span>
                 <select
                   value={discountType}
@@ -877,13 +890,13 @@ export default function AdminPOS({
                   }
                   className="mt-2 min-h-10 w-full border border-[#f7ead2]/10 bg-[#0f0b07] px-3 text-sm text-[#f7ead2] outline-none transition focus:border-[#d8a344]/70"
                 >
-                  <option value="fixed">Amount</option>
-                  <option value="percentage">Percent</option>
+                  <option value="fixed">{labels.amount}</option>
+                  <option value="percentage">{labels.percent}</option>
                 </select>
               </label>
               <label>
                 <span className="text-xs uppercase tracking-[0.16em] text-[#d8a344]">
-                  Value
+                  {labels.value}
                 </span>
                 <input
                   type="number"
@@ -897,11 +910,11 @@ export default function AdminPOS({
               </label>
             </div>
             <div className="flex justify-between gap-4 text-[#e8dcc8]/52">
-              <span>Discount applied</span>
+              <span>{labels.discountApplied}</span>
               <span>-{formatCurrency(discount)}</span>
             </div>
             <label className="grid gap-2 sm:grid-cols-[1fr_8rem] sm:items-center">
-              <span>Tax percentage</span>
+              <span>{labels.taxPercentage}</span>
               <input
                 type="number"
                 min="0"
@@ -913,11 +926,11 @@ export default function AdminPOS({
               />
             </label>
             <div className="flex justify-between gap-4 text-[#e8dcc8]/52">
-              <span>Tax</span>
+              <span>{labels.tax}</span>
               <span>{formatCurrency(tax)}</span>
             </div>
             <div className="flex justify-between gap-4 border-t border-[#f7ead2]/10 pt-4 font-serif text-2xl font-semibold text-[#f7ead2]">
-              <span>Total</span>
+              <span>{labels.total}</span>
               <span>{formatCurrency(total)}</span>
             </div>
           </div>
@@ -925,30 +938,36 @@ export default function AdminPOS({
 
         <div className="border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-            Payment
+            {labels.payment}
           </p>
           <div className="mt-4 grid grid-cols-3 gap-3">
             {paymentMethods.map((method) => (
               <button
-                key={method.value}
+                key={method}
                 type="button"
                 onClick={() => {
-                  setPaymentMethod(method.value);
+                  setPaymentMethod(method);
                   setSuccess(null);
                 }}
                 className={`inline-flex min-h-12 items-center justify-center border px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] transition duration-500 ${
-                  paymentMethod === method.value
+                  paymentMethod === method
                     ? "border-[#d8a344] bg-[#d8a344] text-[#0f0b07] shadow-[0_0_30px_rgba(216,163,68,0.22)]"
                     : "border-[#f7ead2]/12 text-[#f7ead2] hover:border-[#d8a344]/70 hover:text-[#d8a344]"
                 }`}
               >
-                {method.label}
+                {method === "cash"
+                  ? labels.cash
+                  : method === "card"
+                    ? labels.card
+                    : method === "other"
+                      ? labels.other
+                      : "Zelle"}
               </button>
             ))}
           </div>
           <label className="mt-4 block">
             <span className="text-xs uppercase tracking-[0.16em] text-[#d8a344]">
-              Amount Tendered
+              {labels.amountTendered}
             </span>
             <input
               type="number"
@@ -961,7 +980,7 @@ export default function AdminPOS({
             />
           </label>
           <div className="mt-3 flex justify-between gap-4 text-sm text-[#e8dcc8]/62">
-            <span>Change Due</span>
+            <span>{labels.changeDue}</span>
             <span>{formatCurrency(changeDue)}</span>
           </div>
           <button
@@ -975,7 +994,7 @@ export default function AdminPOS({
             }
             className="mt-5 inline-flex min-h-13 w-full items-center justify-center border border-[#d8a344]/45 bg-[#d8a344] px-5 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:shadow-[0_0_36px_rgba(216,163,68,0.26)] disabled:cursor-not-allowed disabled:border-[#f7ead2]/10 disabled:bg-[#f7ead2]/8 disabled:text-[#e8dcc8]/34 disabled:shadow-none"
           >
-            {isCompleting ? "Completing..." : "Complete Sale"}
+            {isCompleting ? labels.completing : labels.completeSale}
           </button>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <button
@@ -984,7 +1003,7 @@ export default function AdminPOS({
               disabled={cartItems.length === 0}
               className="inline-flex min-h-11 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:border-[#f7ead2]/8 disabled:text-[#e8dcc8]/28"
             >
-              Hold Sale
+              {labels.holdSale}
             </button>
             <button
               type="button"
@@ -992,20 +1011,30 @@ export default function AdminPOS({
               disabled={cartItems.length === 0}
               className="inline-flex min-h-11 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:border-[#f7ead2]/8 disabled:text-[#e8dcc8]/28"
             >
-              Cancel Sale
+              {labels.cancelSale}
             </button>
           </div>
           {success ? (
             <div className="mt-4 border border-[#d8a344]/30 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#d8a344]">
               {success.ok && success.source === "supabase" ? (
                 <div className="space-y-1">
-                  <p>Sale completed.</p>
-                  <p>Order: {success.orderNumber}</p>
-                  <p>Receipt: {success.receiptNumber}</p>
-                  <p>Payment status: {success.paymentStatus}</p>
-                  <p>Total paid: {formatCurrency(success.total)}</p>
-                  <p>Change due: {formatCurrency(success.changeDue)}</p>
-                  <p>Inventory updated.</p>
+                  <p>{labels.saleCompleted}</p>
+                  <p>
+                    {labels.order}: {success.orderNumber}
+                  </p>
+                  <p>
+                    {labels.receipt}: {success.receiptNumber}
+                  </p>
+                  <p>
+                    {labels.paymentStatus}: {success.paymentStatus}
+                  </p>
+                  <p>
+                    {labels.totalPaid}: {formatCurrency(success.total)}
+                  </p>
+                  <p>
+                    {labels.changeDue}: {formatCurrency(success.changeDue)}
+                  </p>
+                  <p>{labels.inventoryUpdated}</p>
                 </div>
               ) : success.ok ? (
                 <p>{success.message}</p>
@@ -1015,28 +1044,27 @@ export default function AdminPOS({
           {completedSale ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <button type="button" onClick={startNewSale} className={buttonClass}>
-                New Sale
+                {labels.newSale}
               </button>
               <Link
                 href={`/admin/orders/${completedSale.orderId}`}
                 className={buttonClass}
               >
-                View Order
+                {labels.viewOrder}
               </Link>
               <button type="button" className={subtleButtonClass}>
-                Print Receipt
+                {labels.printReceipt}
               </button>
             </div>
           ) : null}
           <p className="mt-4 text-xs leading-5 text-[#e8dcc8]/50">
-            Sale completion uses development Supabase writes. A production
-            database RPC is required before live operational use.
+            {labels.productionNotice}
           </p>
         </div>
 
         <div className="border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-            Receipt Preview
+            {labels.receiptPreview}
           </p>
           <div className="mt-4 border border-[#f7ead2]/10 bg-[#0f0b07] p-5 text-sm text-[#e8dcc8]/68">
             <div className="border-b border-[#f7ead2]/10 pb-4 text-center">
@@ -1044,27 +1072,30 @@ export default function AdminPOS({
                 ASHE TOKUN
               </p>
               <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#d8a344]">
-                {completedSale?.receiptNumber ?? nextReceiptNumber ?? "Pending"}
+                {completedSale?.receiptNumber ??
+                  nextReceiptNumber ??
+                  labels.pending}
               </p>
               <p className="mt-1 text-xs text-[#e8dcc8]/46">
-                Order {completedSale?.orderNumber ?? nextOrderNumber ?? "Pending"}
+                {labels.order}{" "}
+                {completedSale?.orderNumber ?? nextOrderNumber ?? labels.pending}
               </p>
             </div>
             <dl className="mt-4 grid gap-2 border-b border-[#f7ead2]/10 pb-4 text-xs sm:grid-cols-2">
               <div className="flex justify-between gap-3 sm:block">
-                <dt className="text-[#d8a344]">Date</dt>
+                <dt className="text-[#d8a344]">{labels.date}</dt>
                 <dd className="mt-1 text-[#f7ead2]">{receiptDateTime.date}</dd>
               </div>
               <div className="flex justify-between gap-3 sm:block">
-                <dt className="text-[#d8a344]">Time</dt>
+                <dt className="text-[#d8a344]">{labels.time}</dt>
                 <dd className="mt-1 text-[#f7ead2]">{receiptDateTime.time}</dd>
               </div>
               <div className="flex justify-between gap-3 sm:block">
-                <dt className="text-[#d8a344]">Cashier</dt>
+                <dt className="text-[#d8a344]">{labels.cashier}</dt>
                 <dd className="mt-1 text-[#f7ead2]">Admin</dd>
               </div>
               <div className="flex justify-between gap-3 sm:block">
-                <dt className="text-[#d8a344]">Customer</dt>
+                <dt className="text-[#d8a344]">{labels.customer}</dt>
                 <dd className="mt-1 text-[#f7ead2]">
                   {getCustomerPrimaryName(selectedCustomer)}
                 </dd>
@@ -1073,7 +1104,7 @@ export default function AdminPOS({
             <div className="mt-4 space-y-3">
               {cartItems.length === 0 ? (
                 <p className="text-center text-[#e8dcc8]/46">
-                  No receipt items yet.
+                  {labels.noReceiptItems}
                 </p>
               ) : (
                 cartItems.map((item) => (
@@ -1082,7 +1113,7 @@ export default function AdminPOS({
                       <p className="text-[#f7ead2]">{item.name}</p>
                       <p className="mt-1 text-xs text-[#d8a344]">{item.brand}</p>
                       <p className="mt-1 text-xs text-[#e8dcc8]/42">
-                        SKU {item.sku}
+                        {labels.sku} {item.sku}
                       </p>
                       <p className="mt-1 text-xs text-[#e8dcc8]/42">
                         {item.quantity} x {formatCurrency(item.unitPrice)}
@@ -1095,40 +1126,40 @@ export default function AdminPOS({
             </div>
             <div className="mt-5 space-y-2 border-t border-[#f7ead2]/10 pt-4">
               <div className="flex justify-between gap-4">
-                <span>Subtotal</span>
+                <span>{labels.subtotal}</span>
                 <span>{formatCurrency(completedSale?.subtotal ?? subtotal)}</span>
               </div>
               <div className="flex justify-between gap-4">
-                <span>Discount</span>
+                <span>{labels.discount}</span>
                 <span>
                   -{formatCurrency(completedSale?.discountAmount ?? discount)}
                 </span>
               </div>
               <div className="flex justify-between gap-4">
-                <span>Tax</span>
+                <span>{labels.tax}</span>
                 <span>{formatCurrency(completedSale?.taxAmount ?? tax)}</span>
               </div>
               <div className="flex justify-between gap-4 border-t border-[#f7ead2]/10 pt-3 font-serif text-xl font-semibold text-[#f7ead2]">
-                <span>Total</span>
+                <span>{labels.total}</span>
                 <span>{formatCurrency(completedSale?.total ?? total)}</span>
               </div>
               <div className="flex justify-between gap-4 pt-2">
-                <span>Payment</span>
-                <span>{paymentMethod || "Pending"}</span>
+                <span>{labels.payment}</span>
+                <span>{getPaymentMethodLabel(paymentMethod)}</span>
               </div>
               <div className="flex justify-between gap-4">
-                <span>Amount Tendered</span>
+                <span>{labels.amountTendered}</span>
                 <span>
                   {formatCurrency(completedSale?.amountTendered ?? tendered)}
                 </span>
               </div>
               <div className="flex justify-between gap-4">
-                <span>Change Due</span>
+                <span>{labels.changeDue}</span>
                 <span>{formatCurrency(completedSale?.changeDue ?? changeDue)}</span>
               </div>
             </div>
             <p className="mt-5 border-t border-[#f7ead2]/10 pt-4 text-xs leading-5 text-[#e8dcc8]/46">
-              Receipt printing will be connected in a future phase.
+              {labels.receiptDeferred}
             </p>
           </div>
         </div>

@@ -1,7 +1,8 @@
 import AuthenticatedUserMenu from "@/components/shared/AuthenticatedUserMenu";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import NotificationCenter from "@/components/shared/NotificationCenter";
-import PageHeader from "@/components/shared/PageHeader";
+import AdminLanguageSwitcher from "@/components/admin/AdminLanguageSwitcher";
+import AdminHeaderPageContent from "@/components/admin/AdminHeaderPageContent";
 
 type AdminHeaderProps = {
   eyebrow?: string;
@@ -17,7 +18,7 @@ type AdminHeaderProps = {
 };
 
 export default function AdminHeader({
-  eyebrow = "Control Center",
+  eyebrow,
   title,
   description,
   user,
@@ -28,6 +29,7 @@ export default function AdminHeader({
         <Breadcrumbs />
         <div className="flex items-center gap-3">
           <NotificationCenter />
+          <AdminLanguageSwitcher />
           <AuthenticatedUserMenu
             context="admin"
             displayName={user.displayName}
@@ -38,7 +40,11 @@ export default function AdminHeader({
           />
         </div>
       </div>
-      <PageHeader eyebrow={eyebrow} title={title} description={description} />
+      <AdminHeaderPageContent
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+      />
     </header>
   );
 }

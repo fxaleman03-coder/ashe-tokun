@@ -2,59 +2,60 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/components/LanguageProvider";
 import { hasPermission } from "@/lib/staff/permissionHelpers";
+import type { Translation } from "@/lib/translations";
 import type { PermissionKey } from "@/lib/staff/permissionTypes";
+
+type AdminNavigation = Translation["admin"]["navigation"];
+type NavigationLabelKey = keyof AdminNavigation;
 
 type NavigationLink = {
   href: string;
-  label: string;
+  labelKey: NavigationLabelKey;
   permissions: PermissionKey[];
 };
 
 type NavigationGroup = {
-  title: string;
+  titleKey: NavigationLabelKey;
   links: NavigationLink[];
 };
 
 const navigationGroups: NavigationGroup[] = [
   {
-    title: "Dashboard",
-    links: [{ href: "/admin", label: "Dashboard", permissions: ["reports.sales"] }],
+    titleKey: "dashboardGroup",
+    links: [{ href: "/admin", labelKey: "dashboard", permissions: ["reports.sales"] }],
   },
   {
-    title: "Catalog",
+    titleKey: "catalogGroup",
     links: [
-      { href: "/admin/catalog", label: "Catalog Overview", permissions: ["products.read"] },
-      { href: "/admin/products", label: "Products", permissions: ["products.read"] },
-      { href: "/admin/vendors", label: "Vendors", permissions: ["vendors.read"] },
-      { href: "/admin/collections", label: "Collections", permissions: ["products.read"] },
-      { href: "/admin/categories", label: "Categories", permissions: ["products.read"] },
-      { href: "/admin/product-types", label: "Product Types", permissions: ["products.read"] },
-      { href: "/admin/traditions", label: "Traditions", permissions: ["products.read"] },
-      { href: "/admin/media", label: "Media Library", permissions: ["products.read"] },
+      { href: "/admin/catalog", labelKey: "catalogOverview", permissions: ["products.read"] },
+      { href: "/admin/products", labelKey: "products", permissions: ["products.read"] },
+      { href: "/admin/vendors", labelKey: "vendors", permissions: ["vendors.read"] },
+      { href: "/admin/collections", labelKey: "collections", permissions: ["products.read"] },
+      { href: "/admin/categories", labelKey: "categories", permissions: ["products.read"] },
+      { href: "/admin/product-types", labelKey: "productTypes", permissions: ["products.read"] },
+      { href: "/admin/traditions", labelKey: "traditions", permissions: ["products.read"] },
+      { href: "/admin/media", labelKey: "mediaLibrary", permissions: ["products.read"] },
     ],
   },
   {
-    title: "Commerce",
+    titleKey: "commerceGroup",
     links: [
-      { href: "/admin/pos", label: "POS", permissions: ["pos.access"] },
-      { href: "/admin/inventory", label: "Inventory", permissions: ["inventory.read"] },
-      { href: "/admin/orders", label: "Orders", permissions: ["orders.read"] },
-      { href: "/admin/shipping", label: "Shipping", permissions: ["shipping.read"] },
-      { href: "/admin/scheduling", label: "Scheduling", permissions: ["schedule.view_all"] },
-      { href: "/admin/timekeeper", label: "Timekeeper", permissions: ["timekeeper.view_all"] },
-      { href: "/admin/payroll", label: "Payroll", permissions: ["payroll.view"] },
-      { href: "/admin/returns", label: "Returns", permissions: ["returns.read"] },
-      { href: "/admin/customers", label: "Customers", permissions: ["customers.read"] },
-      { href: "/admin/analytics", label: "Analytics (Soon)", permissions: ["reports.sales"] },
+      { href: "/admin/pos", labelKey: "pos", permissions: ["pos.access"] },
+      { href: "/admin/inventory", labelKey: "inventory", permissions: ["inventory.read"] },
+      { href: "/admin/orders", labelKey: "orders", permissions: ["orders.read"] },
+      { href: "/admin/shipping", labelKey: "shipping", permissions: ["shipping.read"] },
+      { href: "/admin/returns", labelKey: "returns", permissions: ["returns.read"] },
+      { href: "/admin/customers", labelKey: "customers", permissions: ["customers.read"] },
+      { href: "/admin/analytics", labelKey: "analytics", permissions: ["reports.sales"] },
     ],
   },
   {
-    title: "Settings",
+    titleKey: "settingsGroup",
     links: [
-      { href: "/admin/settings", label: "Settings", permissions: ["settings.company"] },
-      { href: "/admin/staff", label: "Staff", permissions: ["staff.read"] },
-      { href: "/admin/database", label: "Database", permissions: ["settings.security"] },
+      { href: "/admin/settings", labelKey: "settings", permissions: ["settings.company"] },
+      { href: "/admin/database", labelKey: "database", permissions: ["settings.security"] },
     ],
   },
 ];
@@ -76,12 +77,16 @@ export default function AdminSidebar({
   permissions: PermissionKey[];
 }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const visibleNavigationGroups = navigationGroups
     .map((group) => ({
-      ...group,
+      title: t.admin.navigation[group.titleKey],
       links: group.links.filter((link) =>
         hasPermission(permissions, link.permissions),
-      ),
+      ).map((link) => ({
+        ...link,
+        label: t.admin.navigation[link.labelKey],
+      })),
     }))
     .filter((group) => group.links.length > 0);
   const activeHref = getActiveHref(pathname);
@@ -93,7 +98,7 @@ export default function AdminSidebar({
           ASHE TOKUN
         </p>
         <p className="mt-2 text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[#d8a344]">
-          Control Center
+          {t.admin.controlCenter}
         </p>
       </Link>
 
@@ -130,12 +135,10 @@ export default function AdminSidebar({
 
       <div className="mt-10 hidden border border-[#d8a344]/20 bg-[#120d08] p-5 lg:block">
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
-          Launch Status
+          {t.admin.launchStatus.label}
         </p>
         <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/58">
-          Staff authentication and Supabase-backed operations are connected.
-          Production RLS and transactional RPC activation remain gated for
-          launch hardening.
+          {t.admin.launchStatus.description}
         </p>
       </div>
     </aside>

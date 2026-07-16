@@ -1,4 +1,4 @@
-import AdminReturnsManager from "@/components/admin/AdminReturnsManager";
+import AdminReturnsPageContent from "@/components/admin/AdminReturnsPageContent";
 import AdminShell from "@/components/admin/AdminShell";
 import {
   getReturnMetrics,
@@ -15,11 +15,8 @@ export default async function AdminReturnsPage() {
   ]);
 
   return (
-    <AdminShell
-      title="Returns & Exchanges"
-      description="Manage return requests, exchanges, store credit, and administrative refund tracking."
-    >
-      <AdminReturnsManager returns={returns} metrics={metrics} />
+    <AdminShell title="">
+      <AdminReturnsPageContent returns={returns} metrics={metrics} />
     </AdminShell>
   );
 }

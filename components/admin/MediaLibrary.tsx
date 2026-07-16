@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { USE_SUPABASE } from "@/lib/config";
 import type { MediaAsset } from "@/lib/data/mediaRepository";
 import { PRODUCT_MEDIA_BUCKET } from "@/lib/storage/mediaStorage";
@@ -114,6 +115,8 @@ async function getImageDimensions(file: File) {
 export default function MediaLibrary({
   mediaAssets,
 }: MediaLibraryProps) {
+  const { t } = useLanguage();
+  const labels = t.admin.media;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [assets, setAssets] = useState(mediaAssets);
   const [query, setQuery] = useState("");
@@ -222,7 +225,7 @@ export default function MediaLibrary({
     }
 
     setUploadStatus("uploading");
-    setUploadMessage("Uploading...");
+    setUploadMessage(labels.uploading);
 
     const uploaded: MediaAsset[] = [];
     const failures: string[] = [];
@@ -270,14 +273,14 @@ export default function MediaLibrary({
           onClick={() => setPreviewImage(image)}
           className="min-h-10 border border-[#f7ead2]/12 px-3 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
         >
-          Preview
+          {labels.preview}
         </button>
         <button
           type="button"
           onClick={() => copyPath(image.url)}
           className="min-h-10 border border-[#f7ead2]/12 px-3 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
         >
-          Copy Path
+          {labels.copyPath}
         </button>
         <button
           type="button"
@@ -305,29 +308,32 @@ export default function MediaLibrary({
         >
           <div>
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-              Upload Zone
+              {labels.uploadZone}
             </p>
             <h2 className="mt-3 font-serif text-2xl font-semibold text-[#f7ead2]">
-              Drag and drop product images here
+              {labels.dragDropTitle}
             </h2>
             <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/62">
-              PNG, JPG, JPEG, or WEBP. Maximum 20 MB. Supabase Storage writes to
-              the {PRODUCT_MEDIA_BUCKET} bucket when enabled.
+              {labels.uploadInstructions}
             </p>
             <div className="mt-5 grid max-w-xl gap-3 sm:grid-cols-2">
               <label className="block">
                 <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
-                  Storage Source
+                  {labels.storageSource}
                 </span>
                 <input
-                  value={USE_SUPABASE ? "Supabase Storage" : "Local fallback"}
+                  value={
+                    USE_SUPABASE
+                      ? labels.supabaseStorage
+                      : labels.localFallbackStorage
+                  }
                   readOnly
                   className={`${inputClass} mt-2 text-[#f7ead2]/70`}
                 />
               </label>
               <label className="block">
                 <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
-                  Bucket
+                  {labels.bucket}
                 </span>
                 <input
                   value={PRODUCT_MEDIA_BUCKET}
@@ -337,7 +343,7 @@ export default function MediaLibrary({
               </label>
               <label className="block sm:col-span-2">
                 <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
-                  Brand Folder
+                  {labels.brandFolder}
                 </span>
                 <select
                   value={uploadBrandSlug}
@@ -380,55 +386,55 @@ export default function MediaLibrary({
             disabled={uploadStatus === "uploading"}
             className="inline-flex min-h-12 items-center justify-center border border-[#d8a344]/45 px-6 text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
           >
-            {uploadStatus === "uploading" ? "Uploading..." : "Browse Files"}
+            {uploadStatus === "uploading" ? labels.uploading : labels.browseFiles}
           </button>
         </div>
       </section>
 
       <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <StatCard
-          label="Total Assets"
+          label={labels.totalAssets}
           value={String(summary.total)}
-          detail="All scanned local media."
+          detail={labels.totalAssetsDetail}
         />
         <StatCard
-          label="Product Images"
+          label={labels.productImages}
           value={String(summary.productImages)}
-          detail="Assets inside product folders."
+          detail={labels.productImagesDetail}
         />
         <StatCard
-          label="AJAKO Originals"
+          label={labels.ajakoOriginals}
           value={String(summary.ajako)}
-          detail="Detected from AJAKO paths."
+          detail={labels.ajakoOriginalsDetail}
         />
         <StatCard
-          label="EDIBERE Creation"
+          label={labels.edibereCreation}
           value={String(summary.edibere)}
-          detail="Detected beadwork assets."
+          detail={labels.edibereCreationDetail}
         />
         <StatCard
-          label="Unassigned Assets"
+          label={labels.unassignedAssets}
           value={String(summary.unassigned)}
-          detail="Awaiting brand mapping."
+          detail={labels.unassignedAssetsDetail}
         />
         <StatCard
-          label="Uploaded Assets"
+          label={labels.uploadedAssets}
           value={String(summary.uploaded)}
-          detail="Loaded from Supabase media_assets."
+          detail={labels.uploadedAssetsDetail}
         />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className="border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)] xl:sticky xl:top-6 xl:self-start">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#d8a344]">
-            Filters
+            {labels.filters}
           </p>
           <div className="mt-5 space-y-4">
             {[
-              ["Vendor / Brand", vendor, setVendor, vendors],
-              ["Asset Type", assetType, setAssetType, assetTypes],
-              ["Folder", folder, setFolder, folders],
-              ["File Type", fileType, setFileType, fileTypes],
+              [labels.vendorBrand, vendor, setVendor, vendors],
+              [labels.assetType, assetType, setAssetType, assetTypes],
+              [labels.folder, folder, setFolder, folders],
+              [labels.fileType, fileType, setFileType, fileTypes],
             ].map(([label, value, setter, options]) => (
               <label key={label as string} className="block">
                 <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
@@ -443,7 +449,7 @@ export default function MediaLibrary({
                 >
                   {(options as string[]).map((option) => (
                     <option key={option} value={option}>
-                      {option === "all" ? "All" : option}
+                      {option === "all" ? labels.all : option}
                     </option>
                   ))}
                 </select>
@@ -458,13 +464,13 @@ export default function MediaLibrary({
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search images..."
+              placeholder={labels.searchImages}
               className={inputClass}
             />
             <div className="grid grid-cols-2 border border-[#f7ead2]/10 bg-[#120d08]">
               {[
-                ["grid", "Grid View"],
-                ["list", "List View"],
+                ["grid", labels.gridView],
+                ["list", labels.listView],
               ].map(([mode, label]) => (
                 <button
                   key={mode}
@@ -483,7 +489,9 @@ export default function MediaLibrary({
           </section>
 
           <p className="mb-5 text-sm text-[#e8dcc8]/58">
-            Showing {filteredImages.length} of {enrichedImages.length} assets.
+            {labels.showingAssets
+              .replace("{filtered}", String(filteredImages.length))
+              .replace("{total}", String(enrichedImages.length))}
           </p>
 
           {viewMode === "grid" ? (
@@ -525,14 +533,14 @@ export default function MediaLibrary({
               <table className="w-full min-w-[1060px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
-                    <th className="px-5 py-4">Thumbnail</th>
-                    <th className="px-5 py-4">Filename</th>
-                    <th className="px-5 py-4">Path</th>
-                    <th className="px-5 py-4">Vendor / Brand</th>
-                    <th className="px-5 py-4">Asset Type</th>
-                    <th className="px-5 py-4">Folder</th>
-                    <th className="px-5 py-4">File Type</th>
-                    <th className="px-5 py-4">Actions</th>
+                    <th className="px-5 py-4">{labels.thumbnail}</th>
+                    <th className="px-5 py-4">{labels.filename}</th>
+                    <th className="px-5 py-4">{labels.path}</th>
+                    <th className="px-5 py-4">{labels.vendorBrand}</th>
+                    <th className="px-5 py-4">{labels.assetType}</th>
+                    <th className="px-5 py-4">{labels.folder}</th>
+                    <th className="px-5 py-4">{labels.fileType}</th>
+                    <th className="px-5 py-4">{labels.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -589,7 +597,7 @@ export default function MediaLibrary({
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#d8a344]">
-                  Product Photo Preview
+                  {labels.previewLabel}
                 </p>
                 <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
                   {previewImage.filename}
@@ -603,7 +611,7 @@ export default function MediaLibrary({
                 onClick={() => setPreviewImage(null)}
                 className="border border-[#f7ead2]/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition hover:border-[#d8a344] hover:text-[#d8a344]"
               >
-                Close
+                {labels.close}
               </button>
             </div>
             <div className="relative mt-6 aspect-[16/11] bg-[#080503]">
@@ -615,7 +623,7 @@ export default function MediaLibrary({
                 onClick={() => copyPath(previewImage.url)}
                 className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
               >
-                Copy Path
+                {labels.copyPath}
               </button>
               <button
                 type="button"
@@ -648,7 +656,7 @@ export default function MediaLibrary({
               onClick={() => setDetailImage(null)}
               className="border border-[#f7ead2]/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition hover:border-[#d8a344] hover:text-[#d8a344]"
             >
-              Close
+              {labels.close}
             </button>
           </div>
           <dl className="mt-8 space-y-5 text-sm text-[#e8dcc8]/68">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   mergeProductCatalog,
   useProductOverrides,
@@ -23,6 +24,8 @@ function formatPrice(price: number) {
 export default function AdminProductsTable({
   products,
 }: AdminProductsTableProps) {
+  const { language, t } = useLanguage();
+  const labels = t.admin.products.table;
   const overrides = useProductOverrides();
   const displayProducts = mergeProductCatalog(products, overrides);
 
@@ -31,15 +34,15 @@ export default function AdminProductsTable({
       <table className="w-full min-w-[940px] border-collapse text-left">
         <thead>
           <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
-            <th className="px-5 py-4">Product</th>
-            <th className="px-5 py-4">SKU</th>
-            <th className="px-5 py-4">Vendor</th>
-            <th className="px-5 py-4">Category</th>
-            <th className="px-5 py-4">Price</th>
-            <th className="px-5 py-4">Stock</th>
-            <th className="px-5 py-4">Status</th>
-            <th className="px-5 py-4">Featured</th>
-            <th className="px-5 py-4">Edit</th>
+            <th className="px-5 py-4">{labels.product}</th>
+            <th className="px-5 py-4">{labels.sku}</th>
+            <th className="px-5 py-4">{labels.vendor}</th>
+            <th className="px-5 py-4">{labels.category}</th>
+            <th className="px-5 py-4">{labels.price}</th>
+            <th className="px-5 py-4">{labels.stock}</th>
+            <th className="px-5 py-4">{labels.status}</th>
+            <th className="px-5 py-4">{labels.featured}</th>
+            <th className="px-5 py-4">{labels.edit}</th>
           </tr>
         </thead>
         <tbody>
@@ -49,26 +52,32 @@ export default function AdminProductsTable({
               className="border-b border-[#f7ead2]/8 text-sm text-[#e8dcc8]/72 last:border-b-0"
             >
               <td className="px-5 py-4 font-medium text-[#f7ead2]">
-                <span className="block">{product.name.en}</span>
+                <span className="block">
+                  {product.name[language] ?? product.name.en}
+                </span>
                 <span className="mt-1 block text-xs font-normal text-[#e8dcc8]/42">
-                  Barcode: {product.barcode}
+                  {labels.barcode}: {product.barcode}
                 </span>
               </td>
               <td className="px-5 py-4">{product.sku}</td>
               <td className="px-5 py-4">{product.vendor}</td>
-              <td className="px-5 py-4">{product.category.en}</td>
+              <td className="px-5 py-4">
+                {product.category[language] ?? product.category.en}
+              </td>
               <td className="px-5 py-4">{formatPrice(product.price)}</td>
               <td className="px-5 py-4">{product.stock}</td>
               <td className="px-5 py-4">
-                {product.inStock ? "Ready to Ship" : "Unavailable"}
+                {product.inStock ? labels.readyToShip : labels.unavailable}
               </td>
-              <td className="px-5 py-4">{product.isFeatured ? "Yes" : "No"}</td>
+              <td className="px-5 py-4">
+                {product.isFeatured ? labels.yes : labels.no}
+              </td>
               <td className="px-5 py-4">
                 <Link
                   href={`/admin/products/${product.slug}/edit`}
                   className="inline-flex min-h-9 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 ease-out hover:bg-[#d8a344] hover:text-[#0f0b07]"
                 >
-                  Edit
+                  {labels.edit}
                 </Link>
               </td>
             </tr>

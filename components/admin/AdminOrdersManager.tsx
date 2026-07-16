@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { cancelOrder, completeHeldOrder } from "@/lib/data/orderMutations";
 import type {
   AdminOrder,
@@ -38,6 +39,8 @@ export default function AdminOrdersManager({
   orders,
   metrics,
 }: AdminOrdersManagerProps) {
+  const { t } = useLanguage();
+  const labels = t.admin.orders;
   const [search, setSearch] = useState("");
   const [customer, setCustomer] = useState("");
   const [salesChannel, setSalesChannel] = useState<"all" | SalesChannel>("all");
@@ -93,45 +96,47 @@ export default function AdminOrdersManager({
   ]);
 
   async function handleCancel(order: AdminOrder) {
-    const reason = window.prompt(
-      "Cancellation reason required. Cancelling a completed order will restore inventory and create reversal ledger entries. Original sale records will remain unchanged.",
-    );
+    const reason = window.prompt(labels.messages.cancellationPrompt);
 
     if (!reason) {
       return;
     }
 
     setWorkingOrderId(order.id);
-    setMessage("Cancelling...");
+    setMessage(labels.messages.cancelling);
 
     const result = await cancelOrder(order.id, reason);
 
     setWorkingOrderId(null);
-    setMessage(result.ok ? "Order Cancelled." : `Cancellation Failed: ${result.error}`);
+    setMessage(
+      result.ok
+        ? labels.messages.cancelled
+        : `${labels.messages.cancellationFailed}: ${result.error}`,
+    );
   }
 
   async function handleCompleteHeld(order: AdminOrder) {
     setWorkingOrderId(order.id);
-    setMessage("Completing held order...");
+    setMessage(labels.messages.completingHeld);
 
     const result = await completeHeldOrder(order.id);
 
     setWorkingOrderId(null);
-    setMessage(result.ok ? "Held order completed." : result.error);
+    setMessage(result.ok ? labels.messages.heldCompleted : result.error);
   }
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Total Orders", metrics.totalOrders],
-          ["POS Orders", metrics.posOrders],
-          ["Paid Orders", metrics.paidOrders],
-          ["Pending Payment", metrics.pendingPaymentOrders],
-          ["Completed", metrics.completedOrders],
-          ["Held", metrics.heldOrders],
-          ["Cancelled", metrics.cancelledOrders],
-          ["Revenue", formatCurrency(metrics.totalRevenue)],
+          [labels.metrics.totalOrders, metrics.totalOrders],
+          [labels.metrics.posOrders, metrics.posOrders],
+          [labels.metrics.paidOrders, metrics.paidOrders],
+          [labels.metrics.pendingPayment, metrics.pendingPaymentOrders],
+          [labels.metrics.completed, metrics.completedOrders],
+          [labels.metrics.held, metrics.heldOrders],
+          [labels.metrics.cancelled, metrics.cancelledOrders],
+          [labels.metrics.revenue, formatCurrency(metrics.totalRevenue)],
         ].map(([label, value]) => (
           <article
             key={label}
@@ -152,14 +157,14 @@ export default function AdminOrdersManager({
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Order or receipt"
+          placeholder={labels.filters.orderOrReceipt}
           className={inputClass}
         />
         <input
           type="search"
           value={customer}
           onChange={(event) => setCustomer(event.target.value)}
-          placeholder="Customer"
+          placeholder={labels.filters.customer}
           className={inputClass}
         />
         <select
@@ -169,7 +174,7 @@ export default function AdminOrdersManager({
           }
           className={inputClass}
         >
-          <option value="all">Channel</option>
+          <option value="all">{labels.filters.channel}</option>
           {["POS", "Website", "Manual", "Phone", "Marketplace", "Mobile"].map(
             (channel) => (
               <option key={channel} value={channel}>
@@ -185,7 +190,7 @@ export default function AdminOrdersManager({
           }
           className={inputClass}
         >
-          <option value="all">Order Status</option>
+          <option value="all">{labels.filters.orderStatus}</option>
           {["draft", "completed", "cancelled", "refunded", "held"].map(
             (status) => (
               <option key={status} value={status}>
@@ -201,7 +206,7 @@ export default function AdminOrdersManager({
           }
           className={inputClass}
         >
-          <option value="all">Payment</option>
+          <option value="all">{labels.filters.payment}</option>
           {["pending", "paid", "partially_paid", "refunded"].map((status) => (
             <option key={status} value={status}>
               {status}
@@ -232,17 +237,17 @@ export default function AdminOrdersManager({
         <table className="w-full min-w-[1180px] border-collapse text-left">
           <thead>
             <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
-              <th className="px-5 py-4">Order Number</th>
-              <th className="px-5 py-4">Date / Time</th>
-              <th className="px-5 py-4">Customer</th>
-              <th className="px-5 py-4">Channel</th>
-              <th className="px-5 py-4">Items</th>
-              <th className="px-5 py-4">Payment</th>
-              <th className="px-5 py-4">Order Status</th>
-              <th className="px-5 py-4">Fulfillment</th>
-              <th className="px-5 py-4">Total</th>
-              <th className="px-5 py-4">Receipt</th>
-              <th className="px-5 py-4">Action</th>
+              <th className="px-5 py-4">{labels.table.orderNumber}</th>
+              <th className="px-5 py-4">{labels.table.dateTime}</th>
+              <th className="px-5 py-4">{labels.table.customer}</th>
+              <th className="px-5 py-4">{labels.table.channel}</th>
+              <th className="px-5 py-4">{labels.table.items}</th>
+              <th className="px-5 py-4">{labels.table.payment}</th>
+              <th className="px-5 py-4">{labels.table.orderStatus}</th>
+              <th className="px-5 py-4">{labels.table.fulfillment}</th>
+              <th className="px-5 py-4">{labels.table.total}</th>
+              <th className="px-5 py-4">{labels.table.receipt}</th>
+              <th className="px-5 py-4">{labels.table.action}</th>
             </tr>
           </thead>
           <tbody>
@@ -274,7 +279,7 @@ export default function AdminOrdersManager({
                       )}
                       {order.customer_contact ? (
                         <p className="mt-1 text-xs text-[#e8dcc8]/50">
-                          Primary Contact: {order.customer_contact}
+                          {labels.table.primaryContact}: {order.customer_contact}
                         </p>
                       ) : null}
                     </div>
@@ -287,14 +292,16 @@ export default function AdminOrdersManager({
                   <td className="px-5 py-4">
                     {formatCurrency(order.grand_total)}
                   </td>
-                  <td className="px-5 py-4">{order.receipt_number ?? "Pending"}</td>
+                  <td className="px-5 py-4">
+                    {order.receipt_number ?? labels.table.pending}
+                  </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap gap-2">
                       <Link
                         href={`/admin/orders/${order.id}`}
                         className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
                       >
-                        View
+                        {labels.table.view}
                       </Link>
                       {canCancel(order) ? (
                         <button
@@ -303,7 +310,7 @@ export default function AdminOrdersManager({
                           disabled={workingOrderId === order.id}
                           className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:text-[#e8dcc8]/32"
                         >
-                          Cancel
+                          {labels.table.cancel}
                         </button>
                       ) : null}
                       {canCompleteHeld(order) ? (
@@ -313,7 +320,7 @@ export default function AdminOrdersManager({
                           disabled={workingOrderId === order.id}
                           className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:text-[#e8dcc8]/32"
                         >
-                          Resume
+                          {labels.table.resume}
                         </button>
                       ) : null}
                     </div>
@@ -326,7 +333,7 @@ export default function AdminOrdersManager({
                   colSpan={11}
                   className="px-5 py-14 text-center text-sm text-[#e8dcc8]/54"
                 >
-                  No orders match the current filters.
+                  {labels.table.noMatches}
                 </td>
               </tr>
             )}

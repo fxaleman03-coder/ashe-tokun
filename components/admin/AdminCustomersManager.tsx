@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   deactivateCustomer,
   reactivateCustomer,
@@ -32,10 +33,28 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function getCustomerTypeLabel(
+  customerType: CustomerType,
+  labels: ReturnType<typeof useLanguage>["t"]["admin"]["customers"],
+) {
+  switch (customerType) {
+    case "walk_in":
+      return labels.filters.walkIn;
+    case "registered":
+      return labels.filters.registered;
+    case "vip":
+      return labels.filters.vip;
+    case "wholesale":
+      return labels.filters.wholesale;
+  }
+}
+
 export default function AdminCustomersManager({
   customers,
   metrics,
 }: AdminCustomersManagerProps) {
+  const { t } = useLanguage();
+  const labels = t.admin.customers;
   const [search, setSearch] = useState("");
   const [customerType, setCustomerType] = useState<"all" | CustomerType>("all");
   const [activeStatus, setActiveStatus] = useState<
@@ -104,7 +123,11 @@ export default function AdminCustomersManager({
 
   async function toggleActive(customer: Customer) {
     setWorkingCustomerId(customer.id);
-    setMessage(customer.active ? "Deactivating..." : "Reactivating...");
+    setMessage(
+      customer.active
+        ? labels.messages.deactivating
+        : labels.messages.reactivating,
+    );
 
     const result = customer.active
       ? await deactivateCustomer(customer.id)
@@ -114,8 +137,8 @@ export default function AdminCustomersManager({
     setMessage(
       result.ok
         ? customer.active
-          ? "Customer deactivated."
-          : "Customer reactivated."
+          ? labels.messages.deactivated
+          : labels.messages.reactivated
         : result.error,
     );
   }
@@ -124,14 +147,20 @@ export default function AdminCustomersManager({
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Total Customers", metrics.totalCustomers],
-          ["Registered", metrics.registeredCustomers],
-          ["VIP", metrics.vipCustomers],
-          ["Wholesale", metrics.wholesaleCustomers],
-          ["Customers with Orders", metrics.customersWithOrders],
-          ["Total Customer Revenue", formatCurrency(metrics.totalCustomerRevenue)],
-          ["Average Customer Value", formatCurrency(metrics.averageCustomerValue)],
-          ["Active Customers", metrics.activeCustomers],
+          [labels.metrics.totalCustomers, metrics.totalCustomers],
+          [labels.metrics.registered, metrics.registeredCustomers],
+          [labels.metrics.vip, metrics.vipCustomers],
+          [labels.metrics.wholesale, metrics.wholesaleCustomers],
+          [labels.metrics.customersWithOrders, metrics.customersWithOrders],
+          [
+            labels.metrics.totalCustomerRevenue,
+            formatCurrency(metrics.totalCustomerRevenue),
+          ],
+          [
+            labels.metrics.averageCustomerValue,
+            formatCurrency(metrics.averageCustomerValue),
+          ],
+          [labels.metrics.activeCustomers, metrics.activeCustomers],
         ].map(([label, value]) => (
           <article
             key={label}
@@ -149,14 +178,13 @@ export default function AdminCustomersManager({
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-sm text-[#e8dcc8]/58">
-          Customer data includes personal information. Keep access restricted
-          before production.
+          {labels.privacyNotice}
         </p>
         <Link
           href="/admin/customers/new"
           className="inline-flex min-h-12 items-center justify-center border border-[#d8a344]/45 bg-[#d8a344] px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#0f0b07] transition duration-500 hover:shadow-[0_0_36px_rgba(216,163,68,0.24)]"
         >
-          New Customer
+          {labels.newCustomer}
         </Link>
       </div>
 
@@ -165,7 +193,7 @@ export default function AdminCustomersManager({
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search customers"
+          placeholder={labels.filters.searchCustomers}
           className={inputClass}
         />
         <select
@@ -175,11 +203,11 @@ export default function AdminCustomersManager({
           }
           className={inputClass}
         >
-          <option value="all">Customer Type</option>
-          <option value="walk_in">Walk-in</option>
-          <option value="registered">Registered</option>
-          <option value="vip">VIP</option>
-          <option value="wholesale">Wholesale</option>
+          <option value="all">{labels.filters.customerType}</option>
+          <option value="walk_in">{labels.filters.walkIn}</option>
+          <option value="registered">{labels.filters.registered}</option>
+          <option value="vip">{labels.filters.vip}</option>
+          <option value="wholesale">{labels.filters.wholesale}</option>
         </select>
         <select
           value={activeStatus}
@@ -188,9 +216,9 @@ export default function AdminCustomersManager({
           }
           className={inputClass}
         >
-          <option value="all">Active / Inactive</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="all">{labels.filters.activeInactive}</option>
+          <option value="active">{labels.filters.active}</option>
+          <option value="inactive">{labels.filters.inactive}</option>
         </select>
         <select
           value={orderStatus}
@@ -199,9 +227,9 @@ export default function AdminCustomersManager({
           }
           className={inputClass}
         >
-          <option value="all">Order Status</option>
-          <option value="with_orders">Has Orders</option>
-          <option value="no_orders">No Orders</option>
+          <option value="all">{labels.filters.orderStatus}</option>
+          <option value="with_orders">{labels.filters.hasOrders}</option>
+          <option value="no_orders">{labels.filters.noOrders}</option>
         </select>
         <input
           type="number"
@@ -209,7 +237,7 @@ export default function AdminCustomersManager({
           step="0.01"
           value={minimumValue}
           onChange={(event) => setMinimumValue(event.target.value)}
-          placeholder="Min lifetime value"
+          placeholder={labels.filters.minimumLifetimeValue}
           className={inputClass}
         />
         <input
@@ -218,7 +246,7 @@ export default function AdminCustomersManager({
           step="0.01"
           value={maximumValue}
           onChange={(event) => setMaximumValue(event.target.value)}
-          placeholder="Max lifetime value"
+          placeholder={labels.filters.maximumLifetimeValue}
           className={inputClass}
         />
       </div>
@@ -233,16 +261,16 @@ export default function AdminCustomersManager({
         <table className="w-full min-w-[1220px] border-collapse text-left">
           <thead>
             <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
-              <th className="px-5 py-4">Customer Number</th>
-              <th className="px-5 py-4">Customer</th>
-              <th className="px-5 py-4">Type</th>
-              <th className="px-5 py-4">Email</th>
-              <th className="px-5 py-4">Phone</th>
-              <th className="px-5 py-4">Orders</th>
-              <th className="px-5 py-4">Lifetime Value</th>
-              <th className="px-5 py-4">Last Order</th>
-              <th className="px-5 py-4">Status</th>
-              <th className="px-5 py-4">Action</th>
+              <th className="px-5 py-4">{labels.table.customerNumber}</th>
+              <th className="px-5 py-4">{labels.table.customer}</th>
+              <th className="px-5 py-4">{labels.table.type}</th>
+              <th className="px-5 py-4">{labels.table.email}</th>
+              <th className="px-5 py-4">{labels.table.phone}</th>
+              <th className="px-5 py-4">{labels.table.orders}</th>
+              <th className="px-5 py-4">{labels.table.lifetimeValue}</th>
+              <th className="px-5 py-4">{labels.table.lastOrder}</th>
+              <th className="px-5 py-4">{labels.table.status}</th>
+              <th className="px-5 py-4">{labels.table.action}</th>
             </tr>
           </thead>
           <tbody>
@@ -272,7 +300,8 @@ export default function AdminCustomersManager({
                             </p>
                             {display.contactName ? (
                               <p className="mt-1 text-xs text-[#e8dcc8]/52">
-                                Primary Contact: {display.contactName}
+                                {labels.table.primaryContact}:{" "}
+                                {display.contactName}
                               </p>
                             ) : null}
                           </div>
@@ -281,10 +310,14 @@ export default function AdminCustomersManager({
                     })()}
                   </td>
                   <td className="px-5 py-4 capitalize">
-                    {customer.customer_type.replace("_", " ")}
+                    {getCustomerTypeLabel(customer.customer_type, labels)}
                   </td>
-                  <td className="px-5 py-4">{customer.email ?? "Pending"}</td>
-                  <td className="px-5 py-4">{customer.phone ?? "Pending"}</td>
+                  <td className="px-5 py-4">
+                    {customer.email ?? labels.table.pending}
+                  </td>
+                  <td className="px-5 py-4">
+                    {customer.phone ?? labels.table.pending}
+                  </td>
                   <td className="px-5 py-4">{customer.order_count}</td>
                   <td className="px-5 py-4">
                     {formatCurrency(customer.lifetime_value)}
@@ -292,10 +325,10 @@ export default function AdminCustomersManager({
                   <td className="px-5 py-4">
                     {customer.last_order_at
                       ? new Date(customer.last_order_at).toLocaleDateString()
-                      : "Pending"}
+                      : labels.table.pending}
                   </td>
                   <td className="px-5 py-4">
-                    {customer.active ? "Active" : "Inactive"}
+                    {customer.active ? labels.table.active : labels.table.inactive}
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap gap-2">
@@ -303,13 +336,13 @@ export default function AdminCustomersManager({
                         href={`/admin/customers/${customer.id}`}
                         className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
                       >
-                        View
+                        {labels.table.view}
                       </Link>
                       <Link
                         href={`/admin/customers/${customer.id}/edit`}
                         className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
                       >
-                        Edit
+                        {labels.table.edit}
                       </Link>
                       <button
                         type="button"
@@ -320,7 +353,9 @@ export default function AdminCustomersManager({
                         }
                         className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:text-[#e8dcc8]/32"
                       >
-                        {customer.active ? "Deactivate" : "Reactivate"}
+                        {customer.active
+                          ? labels.table.deactivate
+                          : labels.table.reactivate}
                       </button>
                     </div>
                   </td>
@@ -332,7 +367,7 @@ export default function AdminCustomersManager({
                   colSpan={10}
                   className="px-5 py-14 text-center text-sm text-[#e8dcc8]/54"
                 >
-                  No customers match the current filters.
+                  {labels.table.noMatches}
                 </td>
               </tr>
             )}

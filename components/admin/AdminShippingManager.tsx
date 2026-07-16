@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   cancelShipment,
   updateShipmentStatus,
@@ -56,6 +57,8 @@ export default function AdminShippingManager({
   metrics,
   origins,
 }: AdminShippingManagerProps) {
+  const { t } = useLanguage();
+  const labels = t.admin.shipping;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | ShipmentStatus>("all");
   const [fulfillmentType, setFulfillmentType] =
@@ -118,7 +121,7 @@ export default function AdminShippingManager({
     }
 
     setWorkingShipmentId(shipment.id);
-    setMessage("Updating shipment...");
+    setMessage(labels.messages.updating);
 
     const result = await updateShipmentStatus(
       shipment.id,
@@ -127,39 +130,39 @@ export default function AdminShippingManager({
     );
 
     setWorkingShipmentId(null);
-    setMessage(result.ok ? "Shipment updated." : result.error);
+    setMessage(result.ok ? labels.messages.updated : result.error);
   }
 
   async function handleCancel(shipment: Shipment) {
-    const reason = window.prompt("Cancellation reason required.");
+    const reason = window.prompt(labels.messages.cancellationPrompt);
 
     if (!reason) {
       return;
     }
 
     setWorkingShipmentId(shipment.id);
-    setMessage("Cancelling shipment...");
+    setMessage(labels.messages.cancelling);
 
     const result = await cancelShipment(shipment.id, reason);
 
     setWorkingShipmentId(null);
-    setMessage(result.ok ? "Shipment cancelled." : result.error);
+    setMessage(result.ok ? labels.messages.cancelled : result.error);
   }
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
-          ["Total Shipments", metrics.totalShipments],
-          ["Pending", metrics.pending],
-          ["Ready", metrics.ready],
-          ["Packed", metrics.packed],
-          ["Shipped", metrics.shipped],
-          ["In Transit", metrics.inTransit],
-          ["Delivered", metrics.delivered],
-          ["Exceptions", metrics.exceptions],
-          ["Local Pickup", metrics.localPickup],
-          ["Avg. Shipping", formatCurrency(metrics.averageShippingCost)],
+          [labels.metrics.totalShipments, metrics.totalShipments],
+          [labels.metrics.pending, metrics.pending],
+          [labels.metrics.ready, metrics.ready],
+          [labels.metrics.packed, metrics.packed],
+          [labels.metrics.shipped, metrics.shipped],
+          [labels.metrics.inTransit, metrics.inTransit],
+          [labels.metrics.delivered, metrics.delivered],
+          [labels.metrics.exceptions, metrics.exceptions],
+          [labels.metrics.localPickup, metrics.localPickup],
+          [labels.metrics.averageShipping, formatCurrency(metrics.averageShippingCost)],
         ].map(([label, value]) => (
           <article
             key={label}
@@ -180,10 +183,10 @@ export default function AdminShippingManager({
           href="/admin/shipping/new"
           className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
         >
-          Create Shipment
+          {labels.createShipment}
         </Link>
         <p className="text-sm text-[#e8dcc8]/54">
-          Live carrier rates and label purchases remain deferred.
+          {labels.deferredNotice}
         </p>
       </div>
 
@@ -192,7 +195,7 @@ export default function AdminShippingManager({
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Shipment, order, tracking"
+          placeholder={labels.filters.searchPlaceholder}
           className={inputClass}
         />
         <select
@@ -200,7 +203,7 @@ export default function AdminShippingManager({
           onChange={(event) => setStatus(event.target.value as "all" | ShipmentStatus)}
           className={inputClass}
         >
-          <option value="all">Status</option>
+          <option value="all">{labels.filters.status}</option>
           {[
             "pending",
             "ready",
@@ -223,15 +226,15 @@ export default function AdminShippingManager({
           }
           className={inputClass}
         >
-          <option value="all">Fulfillment</option>
-          <option value="shipping">Shipping</option>
-          <option value="local_pickup">Local Pickup</option>
+          <option value="all">{labels.filters.fulfillment}</option>
+          <option value="shipping">{labels.filters.shipping}</option>
+          <option value="local_pickup">{labels.filters.localPickup}</option>
         </select>
         <input
           type="search"
           value={carrier}
           onChange={(event) => setCarrier(event.target.value)}
-          placeholder="Carrier"
+          placeholder={labels.filters.carrier}
           className={inputClass}
         />
         <select
@@ -239,7 +242,7 @@ export default function AdminShippingManager({
           onChange={(event) => setShippingOrigin(event.target.value)}
           className={inputClass}
         >
-          <option value="all">Ship From Origin</option>
+          <option value="all">{labels.filters.shipFromOrigin}</option>
           {origins.map((origin) => (
             <option key={origin.id} value={origin.id}>
               {origin.name}
@@ -270,18 +273,18 @@ export default function AdminShippingManager({
         <table className="w-full min-w-[1320px] border-collapse text-left">
           <thead>
             <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
-              <th className="px-5 py-4">Shipment Number</th>
-              <th className="px-5 py-4">Order Number</th>
-              <th className="px-5 py-4">Customer</th>
-              <th className="px-5 py-4">Fulfillment</th>
-              <th className="px-5 py-4">Status</th>
-              <th className="px-5 py-4">Packages</th>
-              <th className="px-5 py-4">Carrier</th>
-              <th className="px-5 py-4">Ship From</th>
-              <th className="px-5 py-4">Tracking</th>
-              <th className="px-5 py-4">Shipping Cost</th>
-              <th className="px-5 py-4">Created</th>
-              <th className="px-5 py-4">Action</th>
+              <th className="px-5 py-4">{labels.table.shipmentNumber}</th>
+              <th className="px-5 py-4">{labels.table.orderNumber}</th>
+              <th className="px-5 py-4">{labels.table.customer}</th>
+              <th className="px-5 py-4">{labels.table.fulfillment}</th>
+              <th className="px-5 py-4">{labels.table.status}</th>
+              <th className="px-5 py-4">{labels.table.packages}</th>
+              <th className="px-5 py-4">{labels.table.carrier}</th>
+              <th className="px-5 py-4">{labels.table.shipFrom}</th>
+              <th className="px-5 py-4">{labels.table.tracking}</th>
+              <th className="px-5 py-4">{labels.table.shippingCost}</th>
+              <th className="px-5 py-4">{labels.table.created}</th>
+              <th className="px-5 py-4">{labels.table.action}</th>
             </tr>
           </thead>
           <tbody>
@@ -298,14 +301,14 @@ export default function AdminShippingManager({
                       {shipment.shipment_number}
                     </td>
                     <td className="px-5 py-4">
-                      {shipment.order_number ?? "Pending"}
+                      {shipment.order_number ?? labels.table.pending}
                     </td>
                     <td className="px-5 py-4">
                       <div>
                         <p>{shipment.customer}</p>
                         {shipment.customer_contact ? (
                           <p className="mt-1 text-xs text-[#e8dcc8]/50">
-                            Contact: {shipment.customer_contact}
+                            {labels.table.contact}: {shipment.customer_contact}
                           </p>
                         ) : null}
                       </div>
@@ -317,9 +320,12 @@ export default function AdminShippingManager({
                       {shipment.shipment_status.replace("_", " ")}
                     </td>
                     <td className="px-5 py-4">{shipment.package_count}</td>
-                    <td className="px-5 py-4">{shipment.carrier ?? "Pending"}</td>
                     <td className="px-5 py-4">
-                      {shipment.shipping_origin_name ?? "Historical Snapshot"}
+                      {shipment.carrier ?? labels.table.pending}
+                    </td>
+                    <td className="px-5 py-4">
+                      {shipment.shipping_origin_name ??
+                        labels.table.historicalSnapshot}
                     </td>
                     <td className="px-5 py-4">
                       {shipment.tracking_url ? (
@@ -329,10 +335,10 @@ export default function AdminShippingManager({
                           rel="noreferrer"
                           className="text-[#d8a344] transition hover:text-[#f7ead2]"
                         >
-                          {shipment.tracking_number ?? "Track"}
+                          {shipment.tracking_number ?? labels.table.track}
                         </a>
                       ) : (
-                        shipment.tracking_number ?? "Pending"
+                        shipment.tracking_number ?? labels.table.pending
                       )}
                     </td>
                     <td className="px-5 py-4">
@@ -347,7 +353,7 @@ export default function AdminShippingManager({
                           href={`/admin/shipping/${shipment.id}`}
                           className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
                         >
-                          View
+                          {labels.table.view}
                         </Link>
                         {nextStatus ? (
                           <button
@@ -356,7 +362,7 @@ export default function AdminShippingManager({
                             disabled={workingShipmentId === shipment.id}
                             className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:text-[#e8dcc8]/32"
                           >
-                            Mark {nextStatus.replace("_", " ")}
+                            {labels.table.mark} {nextStatus.replace("_", " ")}
                           </button>
                         ) : null}
                         {canCancel(shipment) ? (
@@ -366,7 +372,7 @@ export default function AdminShippingManager({
                             disabled={workingShipmentId === shipment.id}
                             className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:cursor-not-allowed disabled:text-[#e8dcc8]/32"
                           >
-                            Cancel
+                            {labels.table.cancel}
                           </button>
                         ) : null}
                       </div>
@@ -380,7 +386,7 @@ export default function AdminShippingManager({
                   colSpan={12}
                   className="px-5 py-14 text-center text-sm text-[#e8dcc8]/54"
                 >
-                  No shipments match the current filters.
+                  {labels.table.noMatches}
                 </td>
               </tr>
             )}

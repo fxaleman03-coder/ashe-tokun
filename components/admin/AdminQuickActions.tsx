@@ -4,9 +4,6 @@ import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export type AdminQuickActionKey =
-  | "newEmployee"
-  | "createPayrollPeriod"
-  | "createSchedule"
   | "addProduct"
   | "receiveInventory"
   | "openPOS";

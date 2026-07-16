@@ -1,5 +1,5 @@
 import AdminShell from "@/components/admin/AdminShell";
-import AdminShippingManager from "@/components/admin/AdminShippingManager";
+import AdminShippingPageContent from "@/components/admin/AdminShippingPageContent";
 import {
   getShipments,
   getShippingMetrics,
@@ -17,11 +17,12 @@ export default async function AdminShippingPage() {
   ]);
 
   return (
-    <AdminShell
-      title="Shipping"
-      description="Manage fulfillment status, shipment records, packages, tracking, and local pickup."
-    >
-      <AdminShippingManager shipments={shipments} metrics={metrics} origins={origins} />
+    <AdminShell title="">
+      <AdminShippingPageContent
+        shipments={shipments}
+        metrics={metrics}
+        origins={origins}
+      />
     </AdminShell>
   );
 }

@@ -1,4 +1,4 @@
-import AdminCustomersManager from "@/components/admin/AdminCustomersManager";
+import AdminCustomersPageContent from "@/components/admin/AdminCustomersPageContent";
 import AdminShell from "@/components/admin/AdminShell";
 import {
   getCustomerMetrics,
@@ -15,11 +15,8 @@ export default async function AdminCustomersPage() {
   ]);
 
   return (
-    <AdminShell
-      title="Customers"
-      description="Manage customer records, purchase history, contact information, and POS customer assignment."
-    >
-      <AdminCustomersManager customers={customers} metrics={metrics} />
+    <AdminShell title="">
+      <AdminCustomersPageContent customers={customers} metrics={metrics} />
     </AdminShell>
   );
 }

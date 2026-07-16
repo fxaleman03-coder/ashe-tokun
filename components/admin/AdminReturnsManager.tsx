@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   approveReturn,
   cancelReturn,
@@ -41,6 +42,8 @@ export default function AdminReturnsManager({
   returns,
   metrics,
 }: AdminReturnsManagerProps) {
+  const { t } = useLanguage();
+  const labels = t.admin.returns;
   const [search, setSearch] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [customer, setCustomer] = useState("");
@@ -98,23 +101,27 @@ export default function AdminReturnsManager({
     setWorkingId(returnRecord.id);
     const result = await action();
     setWorkingId(null);
-    setMessage(result.ok ? result.message ?? "Updated." : result.error ?? "Action failed.");
+    setMessage(
+      result.ok
+        ? result.message ?? labels.messages.updated
+        : result.error ?? labels.messages.actionFailed,
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
-          ["Total Returns", metrics.totalReturns],
-          ["Requested", metrics.requestedReturns],
-          ["Approved", metrics.approvedReturns],
-          ["Received", metrics.receivedReturns],
-          ["Completed", metrics.completedReturns],
-          ["Cancelled", metrics.cancelledReturns],
-          ["Total Refunded", formatCurrency(metrics.totalRefunded)],
-          ["Exchanges", metrics.exchangeReturns],
-          ["Store Credits", metrics.storeCreditReturns],
-          ["Returned Units", metrics.totalReturnedUnits],
+          [labels.metrics.totalReturns, metrics.totalReturns],
+          [labels.metrics.requested, metrics.requestedReturns],
+          [labels.metrics.approved, metrics.approvedReturns],
+          [labels.metrics.received, metrics.receivedReturns],
+          [labels.metrics.completed, metrics.completedReturns],
+          [labels.metrics.cancelled, metrics.cancelledReturns],
+          [labels.metrics.totalRefunded, formatCurrency(metrics.totalRefunded)],
+          [labels.metrics.exchanges, metrics.exchangeReturns],
+          [labels.metrics.storeCredits, metrics.storeCreditReturns],
+          [labels.metrics.returnedUnits, metrics.totalReturnedUnits],
         ].map(([label, value]) => (
           <article
             key={label}
@@ -132,14 +139,13 @@ export default function AdminReturnsManager({
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-sm text-[#e8dcc8]/58">
-          Returns preserve original sale records and track refunds
-          administratively only.
+          {labels.notice}
         </p>
         <Link
           href="/admin/returns/new"
           className="inline-flex min-h-12 items-center justify-center border border-[#d8a344]/45 bg-[#d8a344] px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#0f0b07] transition duration-500 hover:shadow-[0_0_36px_rgba(216,163,68,0.24)]"
         >
-          New Return
+          {labels.newReturn}
         </Link>
       </div>
 
@@ -147,19 +153,19 @@ export default function AdminReturnsManager({
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Return number"
+          placeholder={labels.filters.returnNumber}
           className={inputClass}
         />
         <input
           value={orderNumber}
           onChange={(event) => setOrderNumber(event.target.value)}
-          placeholder="Order number"
+          placeholder={labels.filters.orderNumber}
           className={inputClass}
         />
         <input
           value={customer}
           onChange={(event) => setCustomer(event.target.value)}
-          placeholder="Customer"
+          placeholder={labels.filters.customer}
           className={inputClass}
         />
         <select
@@ -169,10 +175,10 @@ export default function AdminReturnsManager({
           }
           className={inputClass}
         >
-          <option value="all">Type</option>
-          <option value="refund">Refund</option>
-          <option value="exchange">Exchange</option>
-          <option value="store_credit">Store Credit</option>
+          <option value="all">{labels.filters.type}</option>
+          <option value="refund">{labels.filters.refund}</option>
+          <option value="exchange">{labels.filters.exchange}</option>
+          <option value="store_credit">{labels.filters.storeCredit}</option>
         </select>
         <select
           value={returnStatus}
@@ -181,7 +187,7 @@ export default function AdminReturnsManager({
           }
           className={inputClass}
         >
-          <option value="all">Status</option>
+          <option value="all">{labels.filters.status}</option>
           {["requested", "approved", "received", "completed", "cancelled"].map(
             (status) => (
               <option key={status} value={status}>
@@ -214,15 +220,15 @@ export default function AdminReturnsManager({
         <table className="w-full min-w-[1180px] border-collapse text-left">
           <thead>
             <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
-              <th className="px-5 py-4">Return Number</th>
-              <th className="px-5 py-4">Original Order</th>
-              <th className="px-5 py-4">Customer</th>
-              <th className="px-5 py-4">Type</th>
-              <th className="px-5 py-4">Items</th>
-              <th className="px-5 py-4">Value</th>
-              <th className="px-5 py-4">Status</th>
-              <th className="px-5 py-4">Date</th>
-              <th className="px-5 py-4">Action</th>
+              <th className="px-5 py-4">{labels.table.returnNumber}</th>
+              <th className="px-5 py-4">{labels.table.originalOrder}</th>
+              <th className="px-5 py-4">{labels.table.customer}</th>
+              <th className="px-5 py-4">{labels.table.type}</th>
+              <th className="px-5 py-4">{labels.table.items}</th>
+              <th className="px-5 py-4">{labels.table.value}</th>
+              <th className="px-5 py-4">{labels.table.status}</th>
+              <th className="px-5 py-4">{labels.table.date}</th>
+              <th className="px-5 py-4">{labels.table.action}</th>
             </tr>
           </thead>
           <tbody>
@@ -247,14 +253,15 @@ export default function AdminReturnsManager({
                           {returnRecord.order_number}
                         </Link>
                       ) : (
-                        "Pending"
+                        labels.table.pending
                       )}
                     </td>
                     <td className="px-5 py-4">
                       <p>{returnRecord.customer_name}</p>
                       {returnRecord.customer_contact ? (
                         <p className="mt-1 text-xs text-[#e8dcc8]/50">
-                          Primary Contact: {returnRecord.customer_contact}
+                          {labels.table.primaryContact}:{" "}
+                          {returnRecord.customer_contact}
                         </p>
                       ) : null}
                     </td>
@@ -275,7 +282,7 @@ export default function AdminReturnsManager({
                           href={`/admin/returns/${returnRecord.id}`}
                           className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
                         >
-                          View
+                          {labels.table.view}
                         </Link>
                         {actions.approve ? (
                           <button
@@ -288,7 +295,7 @@ export default function AdminReturnsManager({
                             }
                             className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:opacity-50"
                           >
-                            Approve
+                            {labels.table.approve}
                           </button>
                         ) : null}
                         {actions.receive ? (
@@ -296,7 +303,7 @@ export default function AdminReturnsManager({
                             href={`/admin/returns/${returnRecord.id}`}
                             className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
                           >
-                            Receive
+                            {labels.table.receive}
                           </Link>
                         ) : null}
                         {actions.complete ? (
@@ -304,7 +311,7 @@ export default function AdminReturnsManager({
                             href={`/admin/returns/${returnRecord.id}`}
                             className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
                           >
-                            Complete
+                            {labels.table.complete}
                           </Link>
                         ) : null}
                         {actions.cancel ? (
@@ -313,7 +320,7 @@ export default function AdminReturnsManager({
                             disabled={workingId === returnRecord.id}
                             onClick={() => {
                               const reason = window.prompt(
-                                "Cancellation reason required.",
+                                labels.messages.cancellationPrompt,
                               );
 
                               if (reason) {
@@ -324,7 +331,7 @@ export default function AdminReturnsManager({
                             }}
                             className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:opacity-50"
                           >
-                            Cancel
+                            {labels.table.cancel}
                           </button>
                         ) : null}
                       </div>
@@ -338,7 +345,7 @@ export default function AdminReturnsManager({
                   colSpan={9}
                   className="px-5 py-14 text-center text-sm text-[#e8dcc8]/54"
                 >
-                  No returns match the current filters.
+                  {labels.table.noMatches}
                 </td>
               </tr>
             )}

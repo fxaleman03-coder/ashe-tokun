@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "@/components/LanguageProvider";
 import AdminStatCard from "@/components/admin/AdminStatCard";
 import { useProductCatalog } from "@/lib/productStore";
 
@@ -10,6 +11,8 @@ type AdminDashboardStatsProps = {
 export default function AdminDashboardStats({
   mediaCount,
 }: AdminDashboardStatsProps) {
+  const { t } = useLanguage();
+  const stats = t.admin.dashboard.stats;
   const products = useProductCatalog();
   const featuredCount = products.filter((product) => product.isFeatured).length;
   const inventoryCount = products.filter((product) => product.inStock).length;
@@ -17,57 +20,57 @@ export default function AdminDashboardStats({
   return (
     <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
       <AdminStatCard
-        label="Products"
+        label={stats.products}
         value={String(products.length)}
-        detail={`${featuredCount} featured on the storefront preview.`}
+        detail={stats.productsDetail.replace("{count}", String(featuredCount))}
         marker="P"
       />
       <AdminStatCard
-        label="Featured Items"
+        label={stats.featuredItems}
         value={String(featuredCount)}
-        detail="Curated products highlighted on the homepage."
+        detail={stats.featuredItemsDetail}
         marker="F"
       />
       <AdminStatCard
-        label="Inventory Items"
+        label={stats.inventoryItems}
         value={String(inventoryCount)}
-        detail="Products currently marked ready to ship."
+        detail={stats.inventoryItemsDetail}
         marker="I"
       />
       <AdminStatCard
-        label="Media"
+        label={stats.media}
         value={String(mediaCount)}
-        detail="Images discovered inside the public product media library."
+        detail={stats.mediaDetail}
         marker="M"
       />
       <AdminStatCard
-        label="Orders"
+        label={stats.orders}
         value="0"
-        detail="Orders are not connected until backend setup begins."
+        detail={stats.ordersDetail}
         marker="O"
       />
       <AdminStatCard
-        label="POS"
-        value="Ready"
-        detail="Local sale workflow ready for future store checkout."
+        label={stats.pos}
+        value={stats.posReady}
+        detail={stats.posDetail}
         marker="P"
       />
       <AdminStatCard
-        label="Customers"
+        label={stats.customers}
         value="0"
-        detail="Customer records will appear after auth and checkout setup."
+        detail={stats.customersDetail}
         marker="C"
       />
       <AdminStatCard
-        label="Revenue"
+        label={stats.revenue}
         value="$0.00"
-        detail="Revenue analytics will connect in a future phase."
+        detail={stats.revenueDetail}
         marker="$"
       />
       <AdminStatCard
-        label="Store Status"
-        value="Draft"
-        detail="Catalog and storefront UI are in foundation mode."
+        label={stats.storeStatus}
+        value={stats.operational}
+        detail={stats.storeStatusDetail}
         marker="S"
       />
     </section>

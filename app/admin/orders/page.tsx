@@ -1,5 +1,5 @@
 import AdminShell from "@/components/admin/AdminShell";
-import AdminOrdersManager from "@/components/admin/AdminOrdersManager";
+import AdminOrdersPageContent from "@/components/admin/AdminOrdersPageContent";
 import {
   getOrders,
   getOrderSummaryMetrics,
@@ -15,11 +15,8 @@ export default async function AdminOrdersPage() {
   ]);
 
   return (
-    <AdminShell
-      title="Orders"
-      description="Manage order statuses, payment visibility, notes, cancellation, and operational history."
-    >
-      <AdminOrdersManager orders={orders} metrics={metrics} />
+    <AdminShell title="">
+      <AdminOrdersPageContent orders={orders} metrics={metrics} />
     </AdminShell>
   );
 }

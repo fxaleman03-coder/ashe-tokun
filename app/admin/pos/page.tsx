@@ -1,5 +1,5 @@
 import AdminShell from "@/components/admin/AdminShell";
-import AdminPOS from "@/components/admin/AdminPOS";
+import AdminPOSPageContent from "@/components/admin/AdminPOSPageContent";
 import {
   getNextOrderNumber,
   getNextReceiptNumber,
@@ -34,11 +34,8 @@ export default async function AdminPOSPage() {
     ]);
 
   return (
-    <AdminShell
-      title="Point of Sale"
-      description="Scan, search, and complete in-store sales using the live catalog and inventory foundation."
-    >
-      <AdminPOS
+    <AdminShell title="">
+      <AdminPOSPageContent
         products={products}
         locations={locations}
         customer={customer}

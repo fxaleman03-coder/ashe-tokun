@@ -1,5 +1,5 @@
 import AdminShell from "@/components/admin/AdminShell";
-import AdminInventoryTable from "@/components/admin/AdminInventoryTable";
+import AdminInventoryPageContent from "@/components/admin/AdminInventoryPageContent";
 import {
   getInventoryItems,
   getInventoryLocations,
@@ -17,11 +17,8 @@ export default async function AdminInventoryPage() {
   ]);
 
   return (
-    <AdminShell
-      title="Inventory"
-      description="Unified inventory foundation for future barcode scanning, POS, and stock controls."
-    >
-      <AdminInventoryTable
+    <AdminShell title="">
+      <AdminInventoryPageContent
         items={items}
         locations={locations}
         summary={summary}
