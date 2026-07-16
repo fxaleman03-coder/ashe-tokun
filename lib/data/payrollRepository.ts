@@ -377,6 +377,11 @@ export async function getPayrollDashboardData(): Promise<PayrollDashboardData> {
     periods.find(
       (period) =>
         period.status === "draft" &&
+        period.end_date < today,
+    ) ??
+    periods.find(
+      (period) =>
+        period.status === "draft" &&
         period.start_date <= today &&
         period.end_date >= today,
     ) ??

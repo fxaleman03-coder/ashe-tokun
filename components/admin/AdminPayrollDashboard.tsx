@@ -5,7 +5,10 @@ import PayrollEmployeeTable from "@/components/admin/PayrollEmployeeTable";
 import PayrollPeriodCard from "@/components/admin/PayrollPeriodCard";
 import PayrollActionButton from "@/components/admin/PayrollActionButton";
 import {
+  approvePayrollPeriod,
+  closePayrollPeriod,
   generatePayrollPeriod,
+  reopenPayrollPeriod,
   refreshPayrollPeriod,
 } from "@/lib/data/payrollMutations";
 import type { PayrollDashboardData } from "@/lib/types/payroll";
@@ -22,6 +25,22 @@ function formatPayrollHours(minutes: number) {
 export default function AdminPayrollDashboard({ data }: AdminPayrollDashboardProps) {
   const isPersistedPeriod = data.hasPersistedPeriod;
   const needsPersistedPeriod = "Create or select a persisted payroll period first.";
+  const allEmployeesFinalized =
+    data.employees.length > 0 &&
+    data.employees.every((employee) =>
+      ["approved", "excluded"].includes(employee.approval_status),
+    );
+  const canApprovePeriod =
+    isPersistedPeriod &&
+    data.hasGeneratedRows &&
+    data.currentPeriod.status === "processing" &&
+    allEmployeesFinalized;
+  const canClosePeriod =
+    isPersistedPeriod &&
+    data.currentPeriod.status === "approved";
+  const canReopenPeriod =
+    isPersistedPeriod &&
+    ["approved", "closed"].includes(data.currentPeriod.status);
   const metricCards = [
     ["Employees", data.metrics.employee_count],
     ["Approved Timecards", data.metrics.approved_timecards],
@@ -160,6 +179,90 @@ export default function AdminPayrollDashboard({ data }: AdminPayrollDashboardPro
             ) : null}
           </article>
         ))}
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <article className="border border-[#f7ead2]/10 bg-[#120d08] p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+            Approve Payroll Period
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/62">
+            Finalize a processing payroll period after every employee row is approved or excluded.
+          </p>
+          <div className="mt-4">
+            <PayrollActionButton
+              label="Approve Payroll Period"
+              pendingLabel="Approving..."
+              variant="gold"
+              disabled={!canApprovePeriod}
+              disabledReason={
+                !isPersistedPeriod
+                  ? needsPersistedPeriod
+                  : !data.hasGeneratedRows
+                    ? "Generate payroll rows before approving the period."
+                    : data.currentPeriod.status !== "processing"
+                      ? "Only processing payroll periods can be approved."
+                      : data.employees.length === 0
+                        ? "At least one employee row is required before approval."
+                        : !allEmployeesFinalized
+                          ? "Every employee must be approved or excluded before approving the period."
+                          : undefined
+              }
+              action={() => approvePayrollPeriod(data.currentPeriod.id)}
+            />
+          </div>
+        </article>
+        <article className="border border-[#f7ead2]/10 bg-[#120d08] p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+            Close Payroll Period
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/62">
+            Close an approved payroll period after review and export preparation are complete.
+          </p>
+          <div className="mt-4">
+            <PayrollActionButton
+              label="Close Payroll Period"
+              pendingLabel="Closing..."
+              disabled={!canClosePeriod}
+              disabledReason={
+                !isPersistedPeriod
+                  ? needsPersistedPeriod
+                  : data.currentPeriod.status !== "approved"
+                    ? "Only approved payroll periods can be closed."
+                    : undefined
+              }
+              action={() => closePayrollPeriod(data.currentPeriod.id)}
+            />
+          </div>
+        </article>
+        <article className="border border-[#f7ead2]/10 bg-[#120d08] p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+            Reopen Payroll Period
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/62">
+            Reopen an approved or closed payroll period for authorized correction.
+          </p>
+          <div className="mt-4">
+            <PayrollActionButton
+              label="Reopen Payroll Period"
+              pendingLabel="Reopening..."
+              disabled={!canReopenPeriod}
+              disabledReason={
+                !isPersistedPeriod
+                  ? needsPersistedPeriod
+                  : !["approved", "closed"].includes(data.currentPeriod.status)
+                    ? "Only approved or closed payroll periods can be reopened."
+                    : undefined
+              }
+              action={() =>
+                reopenPayrollPeriod(
+                  data.currentPeriod.id,
+                  "Reopened from payroll dashboard for authorized correction.",
+                )
+              }
+            />
+          </div>
+        </article>
       </section>
 
       <section className="grid gap-3 border border-[#f7ead2]/10 bg-[#120d08] p-5 text-sm text-[#e8dcc8]/62 md:grid-cols-5">
