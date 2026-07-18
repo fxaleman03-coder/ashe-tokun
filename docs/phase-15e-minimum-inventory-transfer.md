@@ -141,6 +141,15 @@ Use the production Admin UI.
 - Production SQL execution: only Phase 15E RPC migration executed.
 - Production data modification: no inventory transfer was executed by Codex.
 
+## Deployment
+
+- Local activation commit: `f613096bc155bceded66555129b3c3225871509a`.
+- Remote production branch SHA: `f613096bc155bceded66555129b3c3225871509a`.
+- Vercel production deployment: `https://ashe-tokun-mf8dc4t0m-fxaleman03-coders-projects.vercel.app`.
+- Vercel deployment ID: `dpl_EU68vbSWw1waqFrwds47YUqNXGgD`.
+- Vercel build commit: `f613096`.
+- Production aliases: `https://ashetokun.com`, `https://ashe-tokun.vercel.app`.
+
 ## Remaining Blockers
 
 No code blocker remains for a one-unit Main Stockroom to Retail Floor transfer.
