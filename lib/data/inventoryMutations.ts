@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { USE_SUPABASE } from "@/lib/config";
 import {
   launchContainment,
@@ -27,10 +28,6 @@ type InventoryItemRow = {
   incoming_quantity: number;
   reorder_level: number;
   inventory_value: number | string;
-};
-
-type ProductCostRow = {
-  cost: number | string | null;
 };
 
 type InventoryMutationResult =
@@ -73,6 +70,12 @@ type TransferInventoryInput = {
   notes?: string;
 };
 
+type InventoryTransferRpcResult = {
+  success?: boolean;
+  transfer_id?: string;
+  destination_inventory_item_id?: string;
+};
+
 function disabledResult(): InventoryMutationResult {
   return {
     ok: true,
@@ -92,28 +95,8 @@ function availableQuantity(onHand: number, reserved: number) {
   return onHand - reserved;
 }
 
-function toNumber(value: number | string | null | undefined) {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  const parsedValue = typeof value === "number" ? value : Number(value);
-
-  return Number.isFinite(parsedValue) ? parsedValue : null;
-}
-
-function createTransferReferenceId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
-    (
-      Number(character) ^
-      (Math.random() * 16) >>
-        (Number(character) / 4)
-    ).toString(16),
-  );
+function createTransferRequestKey() {
+  return `inventory-transfer-${randomUUID()}`;
 }
 
 async function readInventoryItem(inventoryItemId: string) {
@@ -155,26 +138,6 @@ async function readInventoryItemForLocation(productId: string, locationId: strin
   }
 
   return data ?? null;
-}
-
-async function readProductCost(productId: string) {
-  const supabase = createSupabaseServiceClient();
-
-  if (!supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from("products")
-    .select("cost")
-    .eq("id", productId)
-    .maybeSingle<ProductCostRow>();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return toNumber(data?.cost);
 }
 
 async function insertTransaction({
@@ -506,7 +469,7 @@ export async function receiveInventory(
 export async function transferInventory(
   input: TransferInventoryInput,
 ): Promise<InventoryMutationResult> {
-  if (launchContainment.inventoryWrites) {
+  if (launchContainment.inventoryTransfers) {
     return {
       ok: false,
       error: launchContainmentMessages.inventoryWrites,
@@ -573,123 +536,53 @@ export async function transferInventory(
       };
     }
 
-    let destinationItem = await readInventoryItemForLocation(
-      input.productId,
-      input.toLocationId,
+    const { data, error } = await supabase.rpc("transfer_inventory_transaction", {
+      p_request_key: createTransferRequestKey(),
+      p_product_id: input.productId,
+      p_from_location_id: input.fromLocationId,
+      p_to_location_id: input.toLocationId,
+      p_quantity: input.quantity,
+      p_notes: input.notes ?? null,
+      p_performed_by: auth.employeeNumber,
+    });
+
+    if (error) {
+      console.info("[ASHE TOKUN inventory]", "Transfer RPC failed.", {
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+      });
+
+      return {
+        ok: false,
+        error: error.message || "Inventory transfer failed.",
+      };
+    }
+
+    const result = data as InventoryTransferRpcResult | null;
+
+    if (!result?.success || !result.destination_inventory_item_id) {
+      return {
+        ok: false,
+        error: "Inventory transfer did not return a verified transfer result.",
+      };
+    }
+
+    const destinationItem = await readInventoryItem(
+      result.destination_inventory_item_id,
     );
 
     if (!destinationItem) {
-      const createResult = await createInventoryItem({
-        productId: input.productId,
-        locationId: input.toLocationId,
-      });
-
-      if (!createResult.ok || !("item" in createResult)) {
-        return {
-          ok: false,
-          error: "Destination inventory item could not be created.",
-        };
-      }
-
-      destinationItem = createResult.item;
-    }
-
-    const nextSourceOnHand = sourceItem.on_hand_quantity - input.quantity;
-    const nextDestinationOnHand =
-      destinationItem.on_hand_quantity + input.quantity;
-    const productCost = await readProductCost(input.productId);
-    const nextSourceAvailable = availableQuantity(
-      nextSourceOnHand,
-      sourceItem.reserved_quantity,
-    );
-    const nextDestinationAvailable = availableQuantity(
-      nextDestinationOnHand,
-      destinationItem.reserved_quantity,
-    );
-    const sourceInventoryUpdate: Partial<InventoryItemRow> = {
-      on_hand_quantity: nextSourceOnHand,
-      available_quantity: nextSourceAvailable,
-    };
-    const destinationInventoryUpdate: Partial<InventoryItemRow> = {
-      on_hand_quantity: nextDestinationOnHand,
-      available_quantity: nextDestinationAvailable,
-    };
-
-    if (productCost !== null) {
-      sourceInventoryUpdate.inventory_value = productCost * nextSourceOnHand;
-      destinationInventoryUpdate.inventory_value =
-        productCost * nextDestinationOnHand;
-    }
-
-    const transferReferenceId = createTransferReferenceId();
-
-    const sourceUpdate = await supabase
-      .from("inventory_items")
-      .update(sourceInventoryUpdate)
-      .eq("id", sourceItem.id)
-      .select("*")
-      .single<InventoryItemRow>();
-
-    if (sourceUpdate.error || !sourceUpdate.data) {
       return {
         ok: false,
-        error:
-          sourceUpdate.error?.message ??
-          "Source inventory item update was not returned.",
-      };
-    }
-
-    const destinationUpdate = await supabase
-      .from("inventory_items")
-      .update(destinationInventoryUpdate)
-      .eq("id", destinationItem.id)
-      .select("*")
-      .single<InventoryItemRow>();
-
-    if (destinationUpdate.error || !destinationUpdate.data) {
-      return {
-        ok: false,
-        critical: true,
-        error:
-          destinationUpdate.error?.message ??
-          "Destination update failed after source stock changed. Future atomic RPC is required before production writes.",
-      };
-    }
-
-    try {
-      await insertTransaction({
-        inventoryItemId: sourceItem.id,
-        transactionType: "transfer_out",
-        referenceType: "Inventory Transfer",
-        referenceId: transferReferenceId,
-        quantityChange: -input.quantity,
-        balanceAfter: nextSourceOnHand,
-        notes: input.notes,
-      });
-      await insertTransaction({
-        inventoryItemId: destinationItem.id,
-        transactionType: "transfer_in",
-        referenceType: "Inventory Transfer",
-        referenceId: transferReferenceId,
-        quantityChange: input.quantity,
-        balanceAfter: nextDestinationOnHand,
-        notes: input.notes,
-      });
-    } catch (transactionError) {
-      return {
-        ok: false,
-        critical: true,
-        error: `Inventory transfer quantities changed, but ledger insert failed: ${
-          transactionError instanceof Error
-            ? transactionError.message
-            : "Unknown error"
-        }. Future atomic RPC is required before production writes.`,
+        error: "Transferred inventory item was not returned.",
       };
     }
 
     return {
       ok: true,
-      item: destinationUpdate.data,
+      item: destinationItem,
     };
   } catch (error) {
     return {

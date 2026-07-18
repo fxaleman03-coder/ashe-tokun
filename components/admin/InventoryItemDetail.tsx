@@ -120,7 +120,7 @@ export default function InventoryItemDetail({
   const isTransferOverAvailable =
     isTransferQuantityValid && parsedTransferQuantity > item.available_quantity;
   const canTransfer =
-    !launchContainment.inventoryWrites &&
+    !launchContainment.inventoryTransfers &&
     USE_SUPABASE &&
     Boolean(toLocationId) &&
     isTransferQuantityValid &&
@@ -222,7 +222,7 @@ export default function InventoryItemDetail({
   }
 
   async function handleTransfer() {
-    if (launchContainment.inventoryWrites) {
+    if (launchContainment.inventoryTransfers) {
       setMessage(containmentLabels.inventoryActionsUnavailable);
       return;
     }
@@ -289,7 +289,9 @@ export default function InventoryItemDetail({
       ) : null}
 
       <p className="border border-[#d8a344]/30 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/72">
-        {containmentLabels.inventoryReadOnly}
+        {launchContainment.inventoryTransfers
+          ? containmentLabels.inventoryReadOnly
+          : "Adjustment, receiving, and reorder actions remain read-only. Transfer Stock is active for controlled store replenishment."}
       </p>
 
       <section className="grid gap-6 border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)] lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -486,7 +488,7 @@ export default function InventoryItemDetail({
                 value={toLocationId}
                 onChange={(event) => setToLocationId(event.target.value)}
                 className={inputClass}
-                disabled={!USE_SUPABASE || launchContainment.inventoryWrites}
+                disabled={!USE_SUPABASE || launchContainment.inventoryTransfers}
               >
                 {transferLocationOptions.length > 0 ? (
                   transferLocationOptions.map((location) => (
@@ -507,7 +509,7 @@ export default function InventoryItemDetail({
                 value={transferQuantity}
                 onChange={(event) => setTransferQuantity(event.target.value)}
                 className={inputClass}
-                disabled={!USE_SUPABASE || launchContainment.inventoryWrites}
+                disabled={!USE_SUPABASE || launchContainment.inventoryTransfers}
               />
               {isTransferOverAvailable ? (
                 <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d8a344]">
@@ -520,7 +522,7 @@ export default function InventoryItemDetail({
                 value={transferNotes}
                 onChange={(event) => setTransferNotes(event.target.value)}
                 className={`${textareaClass} min-h-28`}
-                disabled={!USE_SUPABASE || launchContainment.inventoryWrites}
+                disabled={!USE_SUPABASE || launchContainment.inventoryTransfers}
               />
             </Field>
             <button
@@ -529,7 +531,7 @@ export default function InventoryItemDetail({
               disabled={!canTransfer}
               className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              {launchContainment.inventoryWrites
+              {launchContainment.inventoryTransfers
                 ? containmentLabels.actionUnavailable
                 : "Transfer Stock"}
             </button>
@@ -643,7 +645,9 @@ export default function InventoryItemDetail({
       </SectionCard>
 
       <p className="text-sm leading-6 text-[#e8dcc8]/52">
-        {containmentLabels.inventoryReadOnly}
+        {launchContainment.inventoryTransfers
+          ? containmentLabels.inventoryReadOnly
+          : "Transfers are enabled for controlled store replenishment. Other inventory write tools remain contained."}
       </p>
     </div>
   );
