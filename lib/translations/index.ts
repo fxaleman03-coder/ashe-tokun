@@ -445,6 +445,7 @@ export type Translation = {
       date: string;
       time: string;
       cashier: string;
+      close: string;
       noReceiptItems: string;
       discount: string;
       receiptDeferred: string;

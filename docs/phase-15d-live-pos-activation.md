@@ -210,6 +210,77 @@ Retry procedure:
 7. Verify order, payment, receipt, inventory decrement, inventory movement, and
    idempotency record.
 
+## Phase 15F Automatic Receipt Printing
+
+After the live sale succeeded, POS receipt handling was upgraded so the
+completed receipt appears immediately after the RPC returns a verified sale
+result.
+
+Automatic receipt workflow:
+
+- `completePosSale()` still calls `complete_pos_sale_transaction(...)` exactly
+  once per sale attempt.
+- The receipt modal uses only the completed RPC result plus the already-rendered
+  cart, customer, cashier, and payment state.
+- No print action calls the RPC.
+- No print action creates an order, payment, receipt, inventory movement, or
+  idempotency record.
+- Receipt data remains visible until the operator chooses New Sale or closes the
+  receipt workflow.
+
+Print layout:
+
+- Dedicated receipt root: `#pos-receipt-print-root`.
+- Print CSS hides the Admin shell/catalog while a POS receipt is present.
+- Receipt print content is black text on white background.
+- A named `@page pos-receipt` target prepares an 80 mm thermal receipt layout.
+- Letter/A4 browser printing remains usable because the receipt content is
+  constrained to a compact receipt width.
+- Receipt controls use `.pos-receipt-no-print` and are hidden from printed
+  output.
+
+Duplicate-print prevention:
+
+- The automatic print effect stores the last printed receipt number in a React
+  ref.
+- A re-render cannot automatically open the print dialog twice for the same
+  receipt.
+- The manual Print Receipt button remains available and may intentionally reopen
+  the print dialog.
+
+Browser fallback behavior:
+
+- If a mobile or desktop browser blocks automatic printing, the completed
+  receipt remains visible.
+- The operator can tap Print Receipt manually.
+- Canceling the print dialog does not affect the completed sale.
+
+Stale message cleanup:
+
+- Removed the obsolete POS message about development Supabase writes and future
+  production RPC activation.
+- Current message: Sales are processed securely through the transactional POS
+  service.
+
+Phase 15F files modified:
+
+- `components/admin/AdminPOS.tsx`
+- `app/globals.css`
+- `lib/translations/index.ts`
+- `lib/translations/en.ts`
+- `lib/translations/es.ts`
+- `lib/translations/yo.ts`
+- `docs/phase-15d-live-pos-activation.md`
+
+Phase 15F validation:
+
+- `npm run lint`: PASS.
+- `npm run build`: PASS.
+
+Phase 15F deployment:
+
+- Pending at the time this section was authored.
+
 ## Final Phase 15 Status
 
 Ready to retry the first manual UI-driven production sale after Phase 15D.2

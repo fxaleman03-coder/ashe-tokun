@@ -554,11 +554,12 @@ const es: Translation = {
       date: "Fecha",
       time: "Hora",
       cashier: "Cajero",
+      close: "Cerrar",
       noReceiptItems: "Aún no hay artículos en el recibo.",
       discount: "Descuento",
-      receiptDeferred: "La impresión de recibos se conectará en una fase futura.",
+      receiptDeferred: "Gracias por comprar con ASHE TOKUN.",
       productionNotice:
-        "La finalización de ventas usa escrituras de Supabase de desarrollo. Se requiere un RPC de base de datos de producción antes del uso operativo en vivo.",
+        "Las ventas se procesan de forma segura mediante el servicio transaccional de POS.",
       notEnoughStock: "No hay suficiente inventario disponible.",
       productNotFound: "Producto no encontrado.",
       heldMessage:

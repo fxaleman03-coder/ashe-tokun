@@ -550,11 +550,12 @@ const en: Translation = {
       date: "Date",
       time: "Time",
       cashier: "Cashier",
+      close: "Close",
       noReceiptItems: "No receipt items yet.",
       discount: "Discount",
-      receiptDeferred: "Receipt printing will be connected in a future phase.",
+      receiptDeferred: "Thank you for shopping with ASHE TOKUN.",
       productionNotice:
-        "Sale completion uses development Supabase writes. A production database RPC is required before live operational use.",
+        "Sales are processed securely through the transactional POS service.",
       notEnoughStock: "Not enough stock available.",
       productNotFound: "Product not found.",
       heldMessage:

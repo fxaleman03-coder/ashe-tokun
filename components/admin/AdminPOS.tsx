@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { completePosSale } from "@/lib/data/posMutations";
 import { launchContainment } from "@/lib/launchContainment";
@@ -44,6 +45,8 @@ const buttonClass =
 
 const subtleButtonClass =
   "inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]";
+
+const cashierName = "Admin";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -163,7 +166,9 @@ export default function AdminPOS({
   const [warning, setWarning] = useState("");
   const [success, setSuccess] = useState<PosSaleResult | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [receiptDateTime] = useState(getReceiptDateTime);
+  const [receiptDateTime, setReceiptDateTime] = useState(getReceiptDateTime);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const autoPrintedReceiptRef = useRef<string | null>(null);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -238,6 +243,24 @@ export default function AdminPOS({
   const tendered = amountTendered ? parsePositiveNumber(amountTendered) : total;
   const changeDue =
     paymentMethod === "cash" ? Math.max(tendered - total, 0) : 0;
+  const completedSale = success?.ok && success.source === "supabase" ? success : null;
+
+  useEffect(() => {
+    if (
+      !completedSale ||
+      !isReceiptOpen ||
+      autoPrintedReceiptRef.current === completedSale.receiptNumber
+    ) {
+      return;
+    }
+
+    autoPrintedReceiptRef.current = completedSale.receiptNumber;
+    const animationFrame = window.requestAnimationFrame(() => {
+      window.print();
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [completedSale, isReceiptOpen]);
 
   function clearMessages() {
     setWarning("");
@@ -361,6 +384,15 @@ export default function AdminPOS({
     setAmountTendered("");
   }
 
+  function printReceipt() {
+    setIsReceiptOpen(true);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.print();
+      });
+    });
+  }
+
   function holdSale() {
     if (cartItems.length === 0) {
       return;
@@ -434,7 +466,7 @@ export default function AdminPOS({
       taxRate,
       paymentMethod,
       amountTendered: tendered,
-      cashierName: "Admin",
+      cashierName,
       notes: labels.saleNotes,
     });
 
@@ -445,6 +477,8 @@ export default function AdminPOS({
       return;
     }
 
+    setReceiptDateTime(getReceiptDateTime());
+    setIsReceiptOpen(result.ok && result.source === "supabase");
     setSuccess(result);
   }
 
@@ -456,6 +490,7 @@ export default function AdminPOS({
     setQuery("");
     setCustomerQuery("");
     setIsCustomerSearchOpen(false);
+    setIsReceiptOpen(false);
     setSelectedCustomer({
       id: customer.id,
       customerNumber: customer.customerNumber,
@@ -472,8 +507,6 @@ export default function AdminPOS({
       source: customer.source,
     });
   }
-
-  const completedSale = success?.ok && success.source === "supabase" ? success : null;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(26rem,0.85fr)]">
@@ -1072,7 +1105,11 @@ export default function AdminPOS({
               >
                 {labels.viewOrder}
               </Link>
-              <button type="button" className={subtleButtonClass}>
+              <button
+                type="button"
+                onClick={printReceipt}
+                className={subtleButtonClass}
+              >
                 {labels.printReceipt}
               </button>
             </div>
@@ -1112,7 +1149,7 @@ export default function AdminPOS({
               </div>
               <div className="flex justify-between gap-3 sm:block">
                 <dt className="text-[#d8a344]">{labels.cashier}</dt>
-                <dd className="mt-1 text-[#f7ead2]">Admin</dd>
+                <dd className="mt-1 text-[#f7ead2]">{cashierName}</dd>
               </div>
               <div className="flex justify-between gap-3 sm:block">
                 <dt className="text-[#d8a344]">{labels.customer}</dt>
@@ -1184,6 +1221,142 @@ export default function AdminPOS({
           </div>
         </div>
       </aside>
+      {completedSale && isReceiptOpen ? (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#050302]/85 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-md border border-[#f7ead2]/12 bg-[#120d08] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.5)]">
+            <div className="pos-receipt-no-print mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[0.66rem] font-bold uppercase tracking-[0.22em] text-[#d8a344]">
+                  {labels.receipt}
+                </p>
+                <p className="mt-1 font-serif text-xl font-semibold text-[#f7ead2]">
+                  {completedSale.receiptNumber}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={printReceipt}
+                  className={subtleButtonClass}
+                >
+                  {labels.printReceipt}
+                </button>
+                <Link
+                  href={`/admin/orders/${completedSale.orderId}`}
+                  className={subtleButtonClass}
+                >
+                  {labels.viewOrder}
+                </Link>
+                <button
+                  type="button"
+                  onClick={startNewSale}
+                  className={subtleButtonClass}
+                >
+                  {labels.newSale}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsReceiptOpen(false)}
+                  className={subtleButtonClass}
+                >
+                  {labels.close}
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="pos-receipt-print-root"
+              className="pos-receipt-print-root bg-white p-5 font-mono text-sm leading-5 text-black"
+            >
+              <div className="text-center">
+                <p className="text-lg font-bold tracking-[0.18em]">ASHE TOKUN</p>
+                <p className="mt-1 text-[0.65rem] uppercase tracking-[0.16em]">
+                  {labels.receipt}
+                </p>
+              </div>
+
+              <div className="mt-4 border-y border-black py-3 text-xs">
+                <div className="flex justify-between gap-3">
+                  <span>{labels.order}</span>
+                  <span>{completedSale.orderNumber}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.receipt}</span>
+                  <span>{completedSale.receiptNumber}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.date}</span>
+                  <span>{receiptDateTime.date}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.time}</span>
+                  <span>{receiptDateTime.time}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.cashier}</span>
+                  <span>{cashierName}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.customer}</span>
+                  <span>{getCustomerPrimaryName(selectedCustomer)}</span>
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-3">
+                {cartItems.map((item) => (
+                  <div key={item.productId}>
+                    <div className="flex justify-between gap-3 font-semibold">
+                      <span>{item.name}</span>
+                      <span>{formatCurrency(item.unitPrice * item.quantity)}</span>
+                    </div>
+                    <div className="mt-1 flex justify-between gap-3 text-xs">
+                      <span>
+                        {item.quantity} x {formatCurrency(item.unitPrice)}
+                      </span>
+                      <span>{labels.sku} {item.sku}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 space-y-1 border-t border-black pt-3">
+                <div className="flex justify-between gap-3">
+                  <span>{labels.subtotal}</span>
+                  <span>{formatCurrency(completedSale.subtotal)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.discount}</span>
+                  <span>-{formatCurrency(completedSale.discountAmount)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.tax}</span>
+                  <span>{formatCurrency(completedSale.taxAmount)}</span>
+                </div>
+                <div className="flex justify-between gap-3 border-t border-black pt-2 text-base font-bold">
+                  <span>{labels.total}</span>
+                  <span>{formatCurrency(completedSale.total)}</span>
+                </div>
+                <div className="flex justify-between gap-3 pt-2">
+                  <span>{labels.payment}</span>
+                  <span>{getPaymentMethodLabel(paymentMethod)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.amountTendered}</span>
+                  <span>{formatCurrency(completedSale.amountTendered)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>{labels.changeDue}</span>
+                  <span>{formatCurrency(completedSale.changeDue)}</span>
+                </div>
+              </div>
+
+              <p className="mt-5 border-t border-black pt-3 text-center text-xs">
+                {labels.receiptDeferred}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

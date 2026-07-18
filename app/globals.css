@@ -33,6 +33,11 @@ body {
   margin: 0.5in;
 }
 
+@page pos-receipt {
+  size: 80mm auto;
+  margin: 4mm;
+}
+
 @media print {
   html,
   body {
@@ -77,6 +82,46 @@ body {
 
   .no-print {
     display: none !important;
+  }
+
+  body:has(#pos-receipt-print-root) * {
+    visibility: hidden !important;
+  }
+
+  body:has(#pos-receipt-print-root) #pos-receipt-print-root,
+  body:has(#pos-receipt-print-root) #pos-receipt-print-root * {
+    visibility: visible !important;
+  }
+
+  body:has(#pos-receipt-print-root) #pos-receipt-print-root {
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: block !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace !important;
+    font-size: 11px !important;
+    height: auto !important;
+    left: 0 !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    page: pos-receipt;
+    position: absolute !important;
+    top: 0 !important;
+    transform: none !important;
+    width: 72mm !important;
+  }
+
+  body:has(#pos-receipt-print-root) .pos-receipt-no-print {
+    display: none !important;
+  }
+
+  body:has(#pos-receipt-print-root) #pos-receipt-print-root div,
+  body:has(#pos-receipt-print-root) #pos-receipt-print-root p {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .staff-print-header {
