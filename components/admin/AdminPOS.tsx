@@ -127,8 +127,10 @@ export default function AdminPOS({
     return labels.pending;
   };
   const defaultLocation =
+    locations.find((location) => location.code === "RETAIL-FLOOR") ??
+    locations.find((location) => location.name === "Store") ??
     locations.find((location) => location.name === "Retail Floor") ??
-    locations.find((location) => location.name === "Main Stockroom") ??
+    locations.find((location) => location.code === "MAIN-STOCKROOM") ??
     locations[0];
   const [selectedLocationId, setSelectedLocationId] = useState(
     defaultLocation?.id ?? "",

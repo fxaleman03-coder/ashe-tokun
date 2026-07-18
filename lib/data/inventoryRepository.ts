@@ -1,6 +1,7 @@
 import { USE_SUPABASE } from "@/lib/config";
 import { products as localProducts } from "@/lib/products";
 import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
 type InventorySource = "Supabase" | "Local fallback";
 
@@ -210,12 +211,13 @@ function getLocalFallbackLocations(): InventoryLocation[] {
 
 async function getPrimaryImagesByProductId(productIds: string[]) {
   const imagesByProductId = new Map<string, string>();
+  const readClient = createSupabaseServiceClient() ?? supabase;
 
-  if (!USE_SUPABASE || !supabase || productIds.length === 0) {
+  if (!USE_SUPABASE || !readClient || productIds.length === 0) {
     return imagesByProductId;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await readClient
     .from("product_media")
     .select("product_id, media_asset:media_assets(public_url, storage_path, active)")
     .in("product_id", productIds)
@@ -248,11 +250,13 @@ async function getPrimaryImagesByProductId(productIds: string[]) {
 }
 
 async function readInventoryItems(): Promise<InventoryItem[]> {
-  if (!USE_SUPABASE || !supabase) {
+  const readClient = createSupabaseServiceClient() ?? supabase;
+
+  if (!USE_SUPABASE || !readClient) {
     return getLocalFallbackInventoryItems();
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await readClient
     .from("inventory_items")
     .select(
       `
@@ -333,11 +337,13 @@ async function readInventoryItems(): Promise<InventoryItem[]> {
 }
 
 export async function getInventoryLocations(): Promise<InventoryLocation[]> {
-  if (!USE_SUPABASE || !supabase) {
+  const readClient = createSupabaseServiceClient() ?? supabase;
+
+  if (!USE_SUPABASE || !readClient) {
     return getLocalFallbackLocations();
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await readClient
     .from("inventory_locations")
     .select("id, name, code, description, location_type, active")
     .eq("active", true)
@@ -377,11 +383,13 @@ export async function getInventoryItemsByLocation(locationId: string) {
 }
 
 export async function getInventoryTransactions(inventoryItemId: string) {
-  if (!USE_SUPABASE || !supabase || inventoryItemId.startsWith("local-")) {
+  const readClient = createSupabaseServiceClient() ?? supabase;
+
+  if (!USE_SUPABASE || !readClient || inventoryItemId.startsWith("local-")) {
     return [] satisfies InventoryTransaction[];
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await readClient
     .from("inventory_transactions")
     .select(
       "id, inventory_item_id, transaction_type, reference_type, reference_id, quantity_change, balance_after, notes, performed_by, created_at",

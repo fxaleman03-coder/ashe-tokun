@@ -8,6 +8,14 @@ The existing inventory detail UI already included a transfer workflow, but it wa
 
 Phase 15E activates only the minimum safe transfer path required to move one unit from Main Stockroom to Retail Floor/Store. Broader inventory write actions remain contained.
 
+Phase 15E.1 resolved the remaining destination selector issue. Production had
+an active store-sales location under the system code `RETAIL-FLOOR`, but its
+display name was `Retail Floor`, not `Store`. Production RLS also caused the
+admin inventory repository's anon reads to return no active destination
+locations. The fix preserves the existing `RETAIL-FLOOR` location ID and code,
+renames the user-facing location to `Store`, and moves admin inventory reads to
+the server/service repository boundary.
+
 ## Blocker Found
 
 Severity: Critical for first live POS sale.
@@ -31,6 +39,17 @@ Read-only production inventory check:
 - Main Stockroom has positive available inventory.
 - Retail Floor has active inventory rows, but several controlled-sale candidates have zero Retail Floor availability.
 - Example candidate: `Ireme Keychain` / `AJO-KEY-003` had Main Stockroom availability and zero Retail Floor availability at the time of validation.
+
+Phase 15E.1 location audit:
+
+- Main Stockroom exists: yes.
+- Store exists: yes, as the existing `RETAIL-FLOOR` location after configuration correction.
+- Store active: yes.
+- Store inventory-capable: yes. The schema has no separate inventory-enabled flag; `location_type = 'retail_floor'` and `active = true` are the active inventory capability signals.
+- Archived/deleted flags: not present in the current `inventory_locations` schema.
+- Production inventory policies: no anon inventory policies are active after production RLS hardening.
+- Admin inventory reads now use the service client from server-rendered, permission-protected admin pages.
+- `Ireme Keychain` / `AJO-KEY-003` remained at Main Stockroom only after the location/configuration update; no Store inventory row was created by Codex.
 
 ## Existing Inventory Architecture
 
@@ -77,6 +96,7 @@ Broader inventory actions remain contained:
 Migration generated and applied:
 
 - `supabase/migrations/20260715001600_phase_15e_inventory_transfer_rpc.sql`
+- `supabase/migrations/20260715001700_phase_15e_1_store_location_activation.sql`
 
 RPC:
 
@@ -89,6 +109,7 @@ Security verification:
 - Execute granted to `service_role`: verified.
 - Execute not granted to `anon` or `authenticated`: verified.
 - `transaction_idempotency_keys` workflow constraint includes `inventory_transfer`: verified.
+- `transfer_inventory_transaction(...)` destination inventory row creation logic: verified.
 
 Unrelated pending migration:
 
@@ -97,9 +118,13 @@ Unrelated pending migration:
 ## Files Modified
 
 - `components/admin/InventoryItemDetail.tsx`
+- `components/admin/AdminPOS.tsx`
 - `lib/data/inventoryMutations.ts`
+- `lib/data/inventoryRepository.ts`
+- `lib/data/posRepository.ts`
 - `lib/launchContainment.ts`
 - `supabase/migrations/20260715001600_phase_15e_inventory_transfer_rpc.sql`
+- `supabase/migrations/20260715001700_phase_15e_1_store_location_activation.sql`
 - `docs/phase-15e-minimum-inventory-transfer.md`
 
 ## Manual Transfer Procedure
@@ -111,18 +136,18 @@ Use the production Admin UI.
 3. Select a product with positive Main Stockroom availability.
 4. Open the Main Stockroom inventory item detail page.
 5. In Transfer Stock:
-   - Destination: Retail Floor / Store.
+   - Destination: Store.
    - Quantity: `1`.
    - Notes: controlled first-sale replenishment.
 6. Submit Transfer Stock once.
 7. Confirm success.
-8. Return to POS and select the Retail Floor/Store location.
+8. Return to POS and select the Store location.
 9. Confirm the product now shows Available: `1`.
 
 ## Validation Checklist After Manual Transfer
 
 - Main Stockroom decreases by exactly 1.
-- Retail Floor/Store increases by exactly 1.
+- Store increases by exactly 1.
 - POS shows Available: 1 for the selected Store location.
 - One transfer-out ledger record exists.
 - One transfer-in ledger record exists.
@@ -140,6 +165,8 @@ Use the production Admin UI.
 - Remote idempotency workflow constraint: verified.
 - Production SQL execution: only Phase 15E RPC migration executed.
 - Production data modification: no inventory transfer was executed by Codex.
+- Phase 15E.1 production SQL execution: only Store location configuration migration executed.
+- Phase 15E.1 production data modification: `inventory_locations` record with code `RETAIL-FLOOR` renamed to `Store`; no inventory quantities changed.
 
 ## Deployment
 
@@ -149,6 +176,13 @@ Use the production Admin UI.
 - Vercel deployment ID: `dpl_EU68vbSWw1waqFrwds47YUqNXGgD`.
 - Vercel build commit: `f613096`.
 - Production aliases: `https://ashetokun.com`, `https://ashe-tokun.vercel.app`.
+
+Phase 15E.1 deployment:
+
+- Store location configuration migration: applied.
+- Migration history: `20260715001700` marked applied.
+- Lint: PASS.
+- Build: PASS.
 
 ## Remaining Blockers
 

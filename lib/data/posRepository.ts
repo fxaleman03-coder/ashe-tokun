@@ -164,11 +164,11 @@ function toNumber(value: number | string | null | undefined) {
 }
 
 function getLocationPriority(location: PosInventoryLocation) {
-  if (location.name === "Retail Floor") {
+  if (location.code === "RETAIL-FLOOR" || location.name === "Store") {
     return 0;
   }
 
-  if (location.name === "Main Stockroom") {
+  if (location.code === "MAIN-STOCKROOM") {
     return 1;
   }
 
