@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
 import {
@@ -34,11 +35,6 @@ type InventoryItemRow = {
   inventory_value: number | string;
 };
 
-type NumberedRow = {
-  order_number?: string | null;
-  receipt_number?: string | null;
-};
-
 const validPaymentMethods = new Set<PosPaymentInput["method"]>([
   "cash",
   "card",
@@ -48,10 +44,6 @@ const validPaymentMethods = new Set<PosPaymentInput["method"]>([
 
 function toCents(value: number) {
   return Math.round(value * 100);
-}
-
-function fromCents(value: number) {
-  return Number((value / 100).toFixed(2));
 }
 
 function toNumber(value: number | string | null | undefined) {
@@ -68,64 +60,8 @@ function sum(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
 }
 
-function availableQuantity(onHand: number, reserved: number) {
-  return onHand - reserved;
-}
-
 function getSupabaseClient() {
   return createSupabaseServiceClient();
-}
-
-function getNextNumberFromRows(
-  rows: NumberedRow[] | null,
-  field: keyof NumberedRow,
-  prefix: string,
-) {
-  const nextNumber =
-    (rows ?? [])
-      .map((row) => row[field])
-      .filter(Boolean)
-      .map((value) => {
-        const match = String(value).match(/(\d+)$/);
-        return match ? Number(match[1]) : 0;
-      })
-      .reduce((highest, value) => Math.max(highest, value), 0) + 1;
-
-  return `${prefix}${String(nextNumber).padStart(6, "0")}`;
-}
-
-async function getNextOrderNumber() {
-  const supabase = getSupabaseClient();
-
-  if (!USE_SUPABASE || !supabase) {
-    return "ASH-ORD-000001";
-  }
-
-  const { data } = await supabase
-    .from("orders")
-    .select("order_number")
-    .like("order_number", "ASH-ORD-%")
-    .order("order_number", { ascending: false })
-    .limit(25);
-
-  return getNextNumberFromRows(data, "order_number", "ASH-ORD-");
-}
-
-async function getNextReceiptNumber() {
-  const supabase = getSupabaseClient();
-
-  if (!USE_SUPABASE || !supabase) {
-    return "ASH-000001";
-  }
-
-  const { data } = await supabase
-    .from("receipts")
-    .select("receipt_number")
-    .like("receipt_number", "ASH-%")
-    .order("receipt_number", { ascending: false })
-    .limit(25);
-
-  return getNextNumberFromRows(data, "receipt_number", "ASH-");
 }
 
 function revalidatePosPaths(orderId?: string) {
@@ -136,43 +72,6 @@ function revalidatePosPaths(orderId?: string) {
   if (orderId) {
     revalidatePath(`/admin/orders/${orderId}`);
   }
-}
-
-function calculateDiscountCents(
-  subtotalCents: number,
-  discountType: PosSaleInput["discountType"],
-  discountValue: number,
-) {
-  if (discountType === "none" || discountValue <= 0) {
-    return 0;
-  }
-
-  if (discountType === "percentage") {
-    const safePercentage = Math.min(Math.max(discountValue, 0), 100);
-    return Math.round(subtotalCents * (safePercentage / 100));
-  }
-
-  return Math.min(toCents(discountValue), subtotalCents);
-}
-
-function allocateAmount(totalAmount: number, lineBases: number[]) {
-  const baseTotal = sum(lineBases);
-
-  if (totalAmount <= 0 || baseTotal <= 0) {
-    return lineBases.map(() => 0);
-  }
-
-  let allocated = 0;
-
-  return lineBases.map((lineBase, index) => {
-    if (index === lineBases.length - 1) {
-      return totalAmount - allocated;
-    }
-
-    const lineAmount = Math.round(totalAmount * (lineBase / baseTotal));
-    allocated += lineAmount;
-    return lineAmount;
-  });
 }
 
 async function readDevelopmentTaxRate() {
@@ -263,93 +162,59 @@ async function readInventoryLocation(locationId: string) {
   return data ?? null;
 }
 
-async function insertOrderWithRetry(orderPayload: {
-  customer_id: string | null;
-  subtotal: number;
-  discount_total: number;
-  tax_total: number;
-  grand_total: number;
-  notes: string | null;
-}) {
-  const supabase = getSupabaseClient();
+type PosSaleRpcResult = {
+  success?: boolean;
+  order_id?: string;
+  order_number?: string;
+  receipt_number?: string;
+  payment_status?: string;
+  subtotal?: number | string;
+  discount_amount?: number | string;
+  tax_amount?: number | string;
+  total?: number | string;
+  amount_tendered?: number | string;
+  change_due?: number | string;
+};
 
-  if (!supabase) {
-    throw new Error("Supabase client is not configured.");
-  }
-
-  let lastError = "";
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const candidateOrderNumber = await getNextOrderNumber();
-    const suffix = attempt === 0 ? "" : `-${attempt + 1}`;
-    const orderNumber = `${candidateOrderNumber}${suffix}`;
-    const { data, error } = await supabase
-      .from("orders")
-      .insert({
-        order_number: orderNumber,
-        customer_id: orderPayload.customer_id,
-        sales_channel: "POS",
-        order_status: "completed",
-        payment_status: "paid",
-        subtotal: orderPayload.subtotal,
-        discount_total: orderPayload.discount_total,
-        tax_total: orderPayload.tax_total,
-        grand_total: orderPayload.grand_total,
-        notes: orderPayload.notes,
-      })
-      .select("id, order_number")
-      .single<{ id: string; order_number: string }>();
-
-    if (!error && data) {
-      return data;
-    }
-
-    lastError = error ? "Order insert failed." : lastError;
-
-    if (error?.code !== "23505") {
-      break;
-    }
-  }
-
-  throw new Error(lastError);
+function createPosSaleRequestKey() {
+  return `pos-sale-${randomUUID()}`;
 }
 
-async function insertReceiptWithRetry(orderId: string) {
-  const supabase = getSupabaseClient();
-
-  if (!supabase) {
-    throw new Error("Supabase client is not configured.");
+function getSafeRpcErrorMessage(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+}) {
+  if (error.code === "PGRST202" || error.code === "42883") {
+    return "POS transaction RPC is not available. Complete Phase 15B migration activation before enabling sale completion.";
   }
 
-  let lastError = "";
+  return error.message || "POS transaction failed.";
+}
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const candidateReceiptNumber = await getNextReceiptNumber();
-    const suffix = attempt === 0 ? "" : `-${attempt + 1}`;
-    const receiptNumber = `${candidateReceiptNumber}${suffix}`;
-    const { data, error } = await supabase
-      .from("receipts")
-      .insert({
-        order_id: orderId,
-        receipt_number: receiptNumber,
-        printed: false,
-        emailed: false,
-      })
-      .select("id, receipt_number")
-      .single<{ id: string; receipt_number: string }>();
-
-    if (!error && data) {
-      return data;
-    }
-
-    lastError = error ? "Receipt insert failed." : lastError;
-
-    if (error?.code !== "23505") {
-      break;
-    }
+function mapRpcResult(data: PosSaleRpcResult | null): PosSaleResult {
+  if (!data?.success || !data.order_id || !data.order_number || !data.receipt_number) {
+    return {
+      ok: false,
+      error: "POS transaction did not return a verified sale result.",
+    };
   }
 
-  throw new Error(lastError);
+  return {
+    ok: true,
+    source: "supabase",
+    orderId: data.order_id,
+    orderNumber: data.order_number,
+    receiptNumber: data.receipt_number,
+    paymentStatus: data.payment_status ?? "paid",
+    subtotal: toNumber(data.subtotal),
+    discountAmount: toNumber(data.discount_amount),
+    taxAmount: toNumber(data.tax_amount),
+    total: toNumber(data.total),
+    amountTendered: toNumber(data.amount_tendered),
+    changeDue: toNumber(data.change_due),
+  };
 }
 
 export async function completePosSale(
@@ -467,11 +332,14 @@ export async function completePosSale(
   }
 
   const subtotalCents = sum(lineSubtotalCents);
-  const discountCents = calculateDiscountCents(
-    subtotalCents,
-    input.discountType,
-    input.discountValue,
-  );
+  const discountCents =
+    input.discountType === "percentage"
+      ? Math.round(
+          subtotalCents * (Math.min(Math.max(input.discountValue, 0), 100) / 100),
+        )
+      : input.discountType === "fixed"
+        ? Math.min(toCents(input.discountValue), subtotalCents)
+        : 0;
   const taxableCents = Math.max(subtotalCents - discountCents, 0);
   const taxRate =
     Number.isFinite(input.taxRate) && input.taxRate >= 0
@@ -485,169 +353,44 @@ export async function completePosSale(
     return { ok: false, error: "Amount tendered must cover the sale total." };
   }
 
-  const changeDueCents =
-    input.paymentMethod === "cash" ? amountTenderedCents - totalCents : 0;
-  const lineDiscountCents = allocateAmount(discountCents, lineSubtotalCents);
-  const lineTaxCents = allocateAmount(taxCents, lineSubtotalCents);
+  const rpcItems = input.cartItems.map((item) => ({
+    product_id: item.productId,
+    quantity: item.quantity,
+  }));
+  const requestKey = createPosSaleRequestKey();
+  const { data, error } = await supabase.rpc("complete_pos_sale_transaction", {
+    p_request_key: requestKey,
+    p_customer_id: input.customerId,
+    p_inventory_location_id: input.inventoryLocationId,
+    p_cashier_name: input.cashierName,
+    p_payment_method: input.paymentMethod,
+    p_discount_type: input.discountType,
+    p_discount_value: input.discountValue,
+    p_tax_rate: taxRate,
+    p_amount_tendered: input.amountTendered,
+    p_notes: input.notes ?? null,
+    p_items: rpcItems,
+  });
 
-  let order:
-    | {
-        id: string;
-        order_number: string;
-      }
-    | null = null;
-
-  try {
-    order = await insertOrderWithRetry({
-      customer_id: input.customerId,
-      subtotal: fromCents(subtotalCents),
-      discount_total: fromCents(discountCents),
-      tax_total: fromCents(taxCents),
-      grand_total: fromCents(totalCents),
-      notes: [
-        input.notes?.trim(),
-        `Cashier: ${input.cashierName}`,
-        `Amount tendered: ${fromCents(amountTenderedCents).toFixed(2)}`,
-        `Change due: ${fromCents(changeDueCents).toFixed(2)}`,
-      ]
-        .filter(Boolean)
-        .join(" | "),
-    });
-
-    const orderItemsPayload = input.cartItems.map((item, index) => {
-      const product = productMap.get(item.productId);
-      const lineTotal =
-        lineSubtotalCents[index] - lineDiscountCents[index] + lineTaxCents[index];
-
-      return {
-        order_id: order?.id,
-        product_id: item.productId,
-        sku: product?.sku ?? item.sku,
-        product_name: product?.name ?? item.name,
-        brand_name: product?.brand?.name ?? item.brand,
-        quantity: item.quantity,
-        unit_price: fromCents(toCents(toNumber(product?.price ?? item.unitPrice))),
-        discount: fromCents(lineDiscountCents[index]),
-        tax: fromCents(lineTaxCents[index]),
-        line_total: fromCents(lineTotal),
-      };
-    });
-    const orderItemsResult = await supabase
-      .from("order_items")
-      .insert(orderItemsPayload);
-
-    if (orderItemsResult.error) {
-      throw new Error("Order items failed.");
-    }
-
-    const paymentResult = await supabase.from("payments").insert({
-      order_id: order.id,
-      payment_method: input.paymentMethod,
-      amount: fromCents(totalCents),
-      reference_number:
-        input.paymentMethod === "cash"
-          ? `Tendered ${fromCents(amountTenderedCents).toFixed(
-              2,
-            )}; Change ${fromCents(changeDueCents).toFixed(2)}`
-          : null,
-      payment_status: "paid",
-      received_at: new Date().toISOString(),
-    });
-
-    if (paymentResult.error) {
-      throw new Error("Payment failed.");
-    }
-
-    const receipt = await insertReceiptWithRetry(order.id);
-
-    for (const item of input.cartItems) {
-      const product = productMap.get(item.productId);
-      const inventoryItem = await readInventoryItem(
-        item.productId,
-        input.inventoryLocationId,
-      );
-
-      if (!inventoryItem) {
-        throw new Error(`Inventory item missing for ${item.name}.`);
-      }
-
-      if (inventoryItem.available_quantity < item.quantity) {
-        throw new Error(`Not enough stock available for ${item.name}.`);
-      }
-
-      const nextOnHand = inventoryItem.on_hand_quantity - item.quantity;
-
-      if (nextOnHand < 0) {
-        throw new Error(`Inventory deduction would make ${item.name} negative.`);
-      }
-
-      const nextAvailable = availableQuantity(
-        nextOnHand,
-        inventoryItem.reserved_quantity,
-      );
-      const cost = toNumber(product?.cost);
-      const inventoryUpdate = await supabase
-        .from("inventory_items")
-        .update({
-          on_hand_quantity: nextOnHand,
-          available_quantity: nextAvailable,
-          inventory_value: fromCents(toCents(cost) * nextOnHand),
-        })
-        .eq("id", inventoryItem.id);
-
-      if (inventoryUpdate.error) {
-        throw new Error(`Inventory update failed for ${item.name}.`);
-      }
-
-      const transactionResult = await supabase
-        .from("inventory_transactions")
-        .insert({
-          inventory_item_id: inventoryItem.id,
-          transaction_type: "sale",
-          reference_type: "POS",
-          reference_id: order.id,
-          quantity_change: -item.quantity,
-          balance_after: nextOnHand,
-          notes: `POS sale ${order.order_number}`,
-          performed_by: input.cashierName,
-        });
-
-      if (transactionResult.error) {
-        throw new Error(`Inventory ledger failed for ${item.name}.`);
-      }
-    }
-
-    revalidatePosPaths(order.id);
-
-    return {
-      ok: true,
-      source: "supabase",
-      orderId: order.id,
-      orderNumber: order.order_number,
-      receiptNumber: receipt.receipt_number,
-      paymentStatus: "paid",
-      subtotal: fromCents(subtotalCents),
-      discountAmount: fromCents(discountCents),
-      taxAmount: fromCents(taxCents),
-      total: fromCents(totalCents),
-      amountTendered: fromCents(amountTenderedCents),
-      changeDue: fromCents(changeDueCents),
-    };
-  } catch (error) {
-    console.info("[ASHE TOKUN POS]", "Sale completion failed.", {
-      orderId: order?.id,
-      orderNumber: order?.order_number,
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
+  if (error) {
+    console.info("[ASHE TOKUN POS]", "RPC sale completion failed.", {
+      errorCode: error.code,
+      errorMessage: error.message,
+      errorDetails: error.details,
+      errorHint: error.hint,
     });
 
     return {
       ok: false,
-      critical: Boolean(order),
-      orderId: order?.id,
-      orderNumber: order?.order_number,
-      error: `Sale failed${
-        order ? ` after order ${order.order_number} was created` : ""
-      }. Manual review may be required. A production RPC/database transaction is required before live operational use.`,
+      error: getSafeRpcErrorMessage(error),
     };
   }
+
+  const result = mapRpcResult(data as PosSaleRpcResult | null);
+
+  if (result.ok && result.source === "supabase") {
+    revalidatePosPaths(result.orderId);
+  }
+
+  return result;
 }
