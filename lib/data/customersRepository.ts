@@ -1,5 +1,6 @@
 import { USE_SUPABASE } from "@/lib/config";
 import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type {
   Customer,
   CustomerAddress,
@@ -163,11 +164,13 @@ function applyCustomerFilters(customers: Customer[], filters?: CustomerFilters) 
 }
 
 async function readCustomerRows() {
-  if (!USE_SUPABASE || !supabase) {
+  const readClient = createSupabaseServiceClient() ?? supabase;
+
+  if (!USE_SUPABASE || !readClient) {
     return [localWalkInCustomer];
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await readClient
     .from("customers")
     .select("*")
     .order("created_at", { ascending: false });
@@ -187,11 +190,13 @@ async function readCustomerRows() {
 }
 
 async function readCustomerOrderRows() {
-  if (!USE_SUPABASE || !supabase) {
+  const readClient = createSupabaseServiceClient() ?? supabase;
+
+  if (!USE_SUPABASE || !readClient) {
     return [];
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await readClient
     .from("orders")
     .select(
       `
@@ -269,11 +274,13 @@ export async function getCustomerByEmail(email: string) {
 }
 
 export async function getCustomerAddresses(customerId: string) {
-  if (!USE_SUPABASE || !supabase) {
+  const readClient = createSupabaseServiceClient() ?? supabase;
+
+  if (!USE_SUPABASE || !readClient) {
     return [];
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await readClient
     .from("customer_addresses")
     .select("*")
     .eq("customer_id", customerId)

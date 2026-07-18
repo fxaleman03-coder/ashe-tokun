@@ -74,13 +74,21 @@ Results:
 
 Deployment status:
 
-- Pending activation commit.
+- PASS
 
 Recorded SHAs:
 
-- Local commit SHA: pending
-- GitHub production branch SHA: pending
-- Vercel production deployment SHA: pending
+- Local commit SHA: `c4dba12650fb9d76c0503507913564fc839ab444`
+- GitHub production branch SHA: `c4dba12650fb9d76c0503507913564fc839ab444`
+- Vercel production deployment SHA: `c4dba12`
+- Vercel deployment ID: `dpl_2i5X1g6ufepQMrFZpxEbUQkSYPgC`
+- Vercel deployment URL: `https://ashe-tokun-918t2bluk-fxaleman03-coders-projects.vercel.app`
+
+Vercel build logs confirmed:
+
+```text
+Cloning github.com/fxaleman03-coder/ashe-tokun (Branch: main, Commit: c4dba12)
+```
 
 ## Production URL Verification
 
@@ -90,7 +98,10 @@ Production URL:
 
 Status:
 
-- Pending post-deployment verification.
+- PASS
+- `https://ashetokun.com/admin/pos` returned `307` to `/staff/login?status=session_required` for an unauthenticated request.
+- Response was served by Vercel.
+- Authentication protection remains active.
 
 ## First Live Sale Protocol
 
@@ -126,8 +137,82 @@ Immediately after the manual sale, verify remotely:
 
 ## Sale Verification Results
 
-Pending manual first UI-driven production sale.
+First manual UI-driven production sale attempt failed safely.
+
+Exact production error from Vercel runtime logs:
+
+```text
+[ASHE TOKUN POS] RPC sale completion failed. {
+  errorCode: '22P02',
+  errorMessage: 'invalid input syntax for type uuid: "local-walk-in-customer"',
+  errorDetails: null,
+  errorHint: null
+}
+```
+
+Observed request path:
+
+- `POST /admin/pos`
+- Server Action: `completePosSale(...)`
+- RPC: `complete_pos_sale_transaction(...)`
+
+Root cause:
+
+- The POS page used the local fallback walk-in customer sentinel
+  `local-walk-in-customer`.
+- Production has a real active walk-in customer:
+  `CUST-WALK-IN`.
+- The customer repository read path used anon Supabase reads, which returned no
+  rows under production RLS.
+- The local sentinel was sent into the RPC parameter `p_customer_id uuid`.
+- Postgres rejected the value before sale creation, so the transaction did not
+  complete and inventory was not decremented.
+
+Security architecture before fix:
+
+- RPC invocation was already server-side through a Server Action.
+- `completePosSale()` already used the server-only service-role Supabase
+  client.
+- The service-role key was not exposed to the browser.
+- The failure was not caused by a browser-side RPC call.
+
+Security architecture after fix:
+
+- Customer repository reads now use the server/service repository boundary on
+  protected admin pages.
+- POS receives the real Supabase walk-in customer UUID when available.
+- `completePosSale()` defensively converts any `local-*` customer sentinel to
+  `null` before calling the UUID-typed RPC.
+- RPC completion remains service-role, server-side, and atomic.
+- No sequential fallback was introduced.
+
+Files modified for Phase 15D.2:
+
+- `lib/data/customersRepository.ts`
+- `lib/data/posMutations.ts`
+- `docs/phase-15d-live-pos-activation.md`
+
+Validation:
+
+- `npm run lint`: PASS.
+- `npm run build`: PASS.
+- Non-destructive production log inspection: PASS.
+- No additional production sale was executed by Codex.
+
+Retry procedure:
+
+1. Open production Admin POS.
+2. Confirm customer is Walk-in Customer.
+3. Select Store.
+4. Add the one stocked product prepared for controlled sale.
+5. Use Cash with exact tendered amount.
+6. Complete one sale only.
+7. Verify order, payment, receipt, inventory decrement, inventory movement, and
+   idempotency record.
 
 ## Final Phase 15 Status
 
-Pending deployment and first-sale verification.
+Ready to retry the first manual UI-driven production sale after Phase 15D.2
+deployment.
+
+Final sale verification remains pending until the user completes the controlled sale.

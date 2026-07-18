@@ -180,6 +180,14 @@ function createPosSaleRequestKey() {
   return `pos-sale-${randomUUID()}`;
 }
 
+function getRpcCustomerId(customerId: string | null) {
+  if (!customerId || customerId.startsWith("local-")) {
+    return null;
+  }
+
+  return customerId;
+}
+
 function getSafeRpcErrorMessage(error: {
   code?: string;
   message?: string;
@@ -360,7 +368,7 @@ export async function completePosSale(
   const requestKey = createPosSaleRequestKey();
   const { data, error } = await supabase.rpc("complete_pos_sale_transaction", {
     p_request_key: requestKey,
-    p_customer_id: input.customerId,
+    p_customer_id: getRpcCustomerId(input.customerId),
     p_inventory_location_id: input.inventoryLocationId,
     p_cashier_name: input.cashierName,
     p_payment_method: input.paymentMethod,
