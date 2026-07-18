@@ -991,9 +991,11 @@ export default function AdminPOS({
             <span>{labels.changeDue}</span>
             <span>{formatCurrency(changeDue)}</span>
           </div>
-          <p className="mt-4 border border-[#d8a344]/25 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#e8dcc8]/70">
-            {containmentLabels.posSaleCompletion}
-          </p>
+          {launchContainment.posSaleCompletion ? (
+            <p className="mt-4 border border-[#d8a344]/25 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#e8dcc8]/70">
+              {containmentLabels.posSaleCompletion}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={completeSale}
