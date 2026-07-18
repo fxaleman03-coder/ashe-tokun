@@ -279,7 +279,14 @@ Phase 15F validation:
 
 Phase 15F deployment:
 
-- Pending at the time this section was authored.
+- Local commit SHA: `17e25131b8fe093247d8b1a321073c1d29eb7bb1`.
+- GitHub production branch SHA: `17e25131b8fe093247d8b1a321073c1d29eb7bb1`.
+- Vercel build commit: `17e2513`.
+- Vercel deployment ID: `dpl_Bcj1wJEHAQ2ALsLZDWgRqoSJxTom`.
+- Vercel deployment URL:
+  `https://ashe-tokun-3ms239ejj-fxaleman03-coders-projects.vercel.app`.
+- Production aliases: `https://ashetokun.com`,
+  `https://ashe-tokun.vercel.app`.
 
 ## Final Phase 15 Status
 
