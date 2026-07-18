@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { completePosSale } from "@/lib/data/posMutations";
+import { launchContainment } from "@/lib/launchContainment";
 import type {
   PosCartItem,
   PosCustomer,
@@ -116,6 +117,7 @@ export default function AdminPOS({
 }: AdminPOSProps) {
   const { t } = useLanguage();
   const labels = t.admin.pos;
+  const containmentLabels = t.admin.launchContainment;
   const getPaymentMethodLabel = (method: PaymentMethod | "") => {
     if (method === "cash") return labels.cash;
     if (method === "card") return labels.card;
@@ -391,6 +393,12 @@ export default function AdminPOS({
   }
 
   async function completeSale() {
+    if (launchContainment.posSaleCompletion) {
+      setWarning(containmentLabels.posSaleCompletion);
+      setSuccess(null);
+      return;
+    }
+
     if (cartItems.length === 0 || !paymentMethod) {
       return;
     }
@@ -983,10 +991,14 @@ export default function AdminPOS({
             <span>{labels.changeDue}</span>
             <span>{formatCurrency(changeDue)}</span>
           </div>
+          <p className="mt-4 border border-[#d8a344]/25 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#e8dcc8]/70">
+            {containmentLabels.posSaleCompletion}
+          </p>
           <button
             type="button"
             onClick={completeSale}
             disabled={
+              launchContainment.posSaleCompletion ||
               cartItems.length === 0 ||
               !paymentMethod ||
               isCompleting ||
@@ -994,7 +1006,11 @@ export default function AdminPOS({
             }
             className="mt-5 inline-flex min-h-13 w-full items-center justify-center border border-[#d8a344]/45 bg-[#d8a344] px-5 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:shadow-[0_0_36px_rgba(216,163,68,0.26)] disabled:cursor-not-allowed disabled:border-[#f7ead2]/10 disabled:bg-[#f7ead2]/8 disabled:text-[#e8dcc8]/34 disabled:shadow-none"
           >
-            {isCompleting ? labels.completing : labels.completeSale}
+            {launchContainment.posSaleCompletion
+              ? containmentLabels.actionUnavailable
+              : isCompleting
+                ? labels.completing
+                : labels.completeSale}
           </button>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <button

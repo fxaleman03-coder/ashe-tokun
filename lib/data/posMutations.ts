@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
+import {
+  launchContainment,
+  launchContainmentMessages,
+} from "@/lib/launchContainment";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type { PosPaymentInput, PosSaleInput, PosSaleResult } from "@/lib/types/pos";
@@ -351,6 +355,13 @@ async function insertReceiptWithRetry(orderId: string) {
 export async function completePosSale(
   input: PosSaleInput,
 ): Promise<PosSaleResult> {
+  if (launchContainment.posSaleCompletion) {
+    return {
+      ok: false,
+      error: launchContainmentMessages.posSaleCompletion,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return {
       ok: true,

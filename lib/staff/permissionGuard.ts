@@ -8,12 +8,23 @@ import type {
   PermissionKey,
   StaffPermissionAssignment,
 } from "@/lib/staff/permissionTypes";
-import { getAuthenticatedStaffReadOnlyResult } from "@/lib/staff/staffAuthService";
+import {
+  getAuthenticatedStaffReadOnlyResult,
+  isUserAccessExecutiveRole,
+} from "@/lib/staff/staffAuthService";
 
 type StaffPermissionRow = {
   permission_key: PermissionKey;
   granted: boolean;
 };
+
+const userAccessPermissions = new Set<PermissionKey>([
+  "staff.read",
+  "staff.create",
+  "staff.edit",
+  "staff.reset_pin",
+  "staff.permissions.manage",
+]);
 
 type AdminRoutePermission = {
   path: string;
@@ -142,6 +153,14 @@ export async function requirePermission(required: PermissionKey | PermissionKey[
 
   const assignments = await getStaffAssignedPermissions(staff.staffId);
   const permissions = getEffectivePermissions(staff.role, assignments);
+  const requiredPermissions = Array.isArray(required) ? required : [required];
+
+  if (
+    requiredPermissions.some((permission) => userAccessPermissions.has(permission)) &&
+    !isUserAccessExecutiveRole(staff.role)
+  ) {
+    forbidden();
+  }
 
   if (!hasPermission(permissions, required)) {
     forbidden();

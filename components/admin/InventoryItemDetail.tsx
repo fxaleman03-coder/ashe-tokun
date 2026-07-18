@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { USE_SUPABASE } from "@/lib/config";
 import {
   adjustInventory,
@@ -12,6 +13,7 @@ import {
   transferInventory,
   type InventoryAdjustmentType,
 } from "@/lib/data/inventoryMutations";
+import { launchContainment } from "@/lib/launchContainment";
 import type {
   InventoryItem,
   InventoryLocation,
@@ -94,6 +96,8 @@ export default function InventoryItemDetail({
   transactions,
 }: InventoryItemDetailProps) {
   const router = useRouter();
+  const { t } = useLanguage();
+  const containmentLabels = t.admin.launchContainment;
   const [message, setMessage] = useState("");
   const [quantityChange, setQuantityChange] = useState("");
   const [transactionType, setTransactionType] =
@@ -116,6 +120,7 @@ export default function InventoryItemDetail({
   const isTransferOverAvailable =
     isTransferQuantityValid && parsedTransferQuantity > item.available_quantity;
   const canTransfer =
+    !launchContainment.inventoryWrites &&
     USE_SUPABASE &&
     Boolean(toLocationId) &&
     isTransferQuantityValid &&
@@ -130,6 +135,11 @@ export default function InventoryItemDetail({
   ];
 
   async function handleAdjustment() {
+    if (launchContainment.inventoryWrites) {
+      setMessage(containmentLabels.inventoryActionsUnavailable);
+      return;
+    }
+
     const parsedQuantity = Number(quantityChange);
 
     if (!Number.isInteger(parsedQuantity) || parsedQuantity === 0) {
@@ -157,6 +167,11 @@ export default function InventoryItemDetail({
   }
 
   async function handleReceive() {
+    if (launchContainment.inventoryWrites) {
+      setMessage(containmentLabels.inventoryActionsUnavailable);
+      return;
+    }
+
     const parsedQuantity = Number(receiveQuantity);
 
     if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0) {
@@ -183,6 +198,11 @@ export default function InventoryItemDetail({
   }
 
   async function handleReorderLevel() {
+    if (launchContainment.inventoryWrites) {
+      setMessage(containmentLabels.inventoryActionsUnavailable);
+      return;
+    }
+
     const parsedReorderLevel = Number(reorderValue);
 
     if (!Number.isInteger(parsedReorderLevel) || parsedReorderLevel < 0) {
@@ -202,6 +222,11 @@ export default function InventoryItemDetail({
   }
 
   async function handleTransfer() {
+    if (launchContainment.inventoryWrites) {
+      setMessage(containmentLabels.inventoryActionsUnavailable);
+      return;
+    }
+
     if (!USE_SUPABASE) {
       setMessage("Transfer failed: Inventory transfers require Supabase mode.");
       return;
@@ -262,6 +287,10 @@ export default function InventoryItemDetail({
           {message}
         </p>
       ) : null}
+
+      <p className="border border-[#d8a344]/30 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/72">
+        {containmentLabels.inventoryReadOnly}
+      </p>
 
       <section className="grid gap-6 border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)] lg:grid-cols-[18rem_minmax(0,1fr)]">
         <div className="relative aspect-square overflow-hidden border border-[#f7ead2]/10 bg-[#080503]">
@@ -326,6 +355,7 @@ export default function InventoryItemDetail({
                 value={quantityChange}
                 onChange={(event) => setQuantityChange(event.target.value)}
                 className={inputClass}
+                disabled={launchContainment.inventoryWrites}
               />
             </Field>
             <Field label="Reason">
@@ -335,6 +365,7 @@ export default function InventoryItemDetail({
                   setTransactionType(event.target.value as InventoryAdjustmentType)
                 }
                 className={inputClass}
+                disabled={launchContainment.inventoryWrites}
               >
                 {[
                   "adjustment",
@@ -356,14 +387,18 @@ export default function InventoryItemDetail({
                 value={adjustmentNotes}
                 onChange={(event) => setAdjustmentNotes(event.target.value)}
                 className={`${textareaClass} min-h-28`}
+                disabled={launchContainment.inventoryWrites}
               />
             </Field>
             <button
               type="button"
               onClick={handleAdjustment}
-              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
+              disabled={launchContainment.inventoryWrites}
+              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              Save Adjustment
+              {launchContainment.inventoryWrites
+                ? containmentLabels.actionUnavailable
+                : "Save Adjustment"}
             </button>
           </div>
         </SectionCard>
@@ -378,6 +413,7 @@ export default function InventoryItemDetail({
                 value={receiveQuantity}
                 onChange={(event) => setReceiveQuantity(event.target.value)}
                 className={inputClass}
+                disabled={launchContainment.inventoryWrites}
               />
             </Field>
             <Field label="Notes">
@@ -385,14 +421,18 @@ export default function InventoryItemDetail({
                 value={receiveNotes}
                 onChange={(event) => setReceiveNotes(event.target.value)}
                 className={`${textareaClass} min-h-28`}
+                disabled={launchContainment.inventoryWrites}
               />
             </Field>
             <button
               type="button"
               onClick={handleReceive}
-              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
+              disabled={launchContainment.inventoryWrites}
+              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              Receive Stock
+              {launchContainment.inventoryWrites
+                ? containmentLabels.actionUnavailable
+                : "Receive Stock"}
             </button>
           </div>
         </SectionCard>
@@ -407,14 +447,18 @@ export default function InventoryItemDetail({
                 value={reorderValue}
                 onChange={(event) => setReorderValue(event.target.value)}
                 className={inputClass}
+                disabled={launchContainment.inventoryWrites}
               />
             </Field>
             <button
               type="button"
               onClick={handleReorderLevel}
-              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062]"
+              disabled={launchContainment.inventoryWrites}
+              className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              Save
+              {launchContainment.inventoryWrites
+                ? containmentLabels.actionUnavailable
+                : "Save"}
             </button>
           </div>
         </SectionCard>
@@ -442,7 +486,7 @@ export default function InventoryItemDetail({
                 value={toLocationId}
                 onChange={(event) => setToLocationId(event.target.value)}
                 className={inputClass}
-                disabled={!USE_SUPABASE}
+                disabled={!USE_SUPABASE || launchContainment.inventoryWrites}
               >
                 {transferLocationOptions.length > 0 ? (
                   transferLocationOptions.map((location) => (
@@ -463,7 +507,7 @@ export default function InventoryItemDetail({
                 value={transferQuantity}
                 onChange={(event) => setTransferQuantity(event.target.value)}
                 className={inputClass}
-                disabled={!USE_SUPABASE}
+                disabled={!USE_SUPABASE || launchContainment.inventoryWrites}
               />
               {isTransferOverAvailable ? (
                 <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d8a344]">
@@ -476,7 +520,7 @@ export default function InventoryItemDetail({
                 value={transferNotes}
                 onChange={(event) => setTransferNotes(event.target.value)}
                 className={`${textareaClass} min-h-28`}
-                disabled={!USE_SUPABASE}
+                disabled={!USE_SUPABASE || launchContainment.inventoryWrites}
               />
             </Field>
             <button
@@ -485,7 +529,9 @@ export default function InventoryItemDetail({
               disabled={!canTransfer}
               className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              Transfer Stock
+              {launchContainment.inventoryWrites
+                ? containmentLabels.actionUnavailable
+                : "Transfer Stock"}
             </button>
           </div>
         </SectionCard>
@@ -597,8 +643,7 @@ export default function InventoryItemDetail({
       </SectionCard>
 
       <p className="text-sm leading-6 text-[#e8dcc8]/52">
-        Inventory adjustments currently use client-side Supabase writes.
-        Production-safe atomic RPC will be added before live operational use.
+        {containmentLabels.inventoryReadOnly}
       </p>
     </div>
   );

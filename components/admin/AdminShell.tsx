@@ -18,6 +18,8 @@ export default async function AdminShell({
 }: AdminShellProps) {
   const { staff, permissions } = await requireAdminRouteAccess();
   const currentStaff = await getStaffMemberById(staff.staffId);
+  const canOpenUserAccess =
+    staff.role === "owner" || staff.role === "managing_partner";
   const staffName =
     currentStaff?.display_name ||
     `${currentStaff?.first_name ?? ""} ${currentStaff?.last_name ?? ""}`.trim() ||
@@ -26,7 +28,7 @@ export default async function AdminShell({
 
   return (
     <div className="min-h-screen bg-[#0f0b07] text-[#f7ead2] lg:flex">
-      <AdminSidebar permissions={permissions} />
+      <AdminSidebar permissions={permissions} role={staff.role} />
       <div className="min-w-0 flex-1">
         <AdminHeader
           title={title}
@@ -36,7 +38,9 @@ export default async function AdminShell({
             employeeNumber: staff.employeeNumber,
             businessTitle: currentStaff?.business_title ?? null,
             securityRole: getSecurityRoleLabel(staff.role),
-            profileHref: `/admin/staff/${staff.staffId}`,
+            profileHref: canOpenUserAccess
+              ? `/admin/staff/${staff.staffId}`
+              : "/staff",
           }}
         />
         <main className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">

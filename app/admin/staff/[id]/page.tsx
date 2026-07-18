@@ -1,14 +1,10 @@
 import { notFound } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
-import StaffMemberDetail from "@/components/admin/StaffMemberDetail";
+import AdminUserAccessDetailPageContent from "@/components/admin/AdminUserAccessDetailPageContent";
 import {
   getStaffEffectivePermissions,
-  getStaffAuthEvents,
-  getStaffMembers,
   getStaffMemberById,
-  getStaffPermissionSnapshot,
   getStaffSessions,
-  staffMemberHasBusinessActivity,
 } from "@/lib/data/staffRepository";
 import { requireStaffManagementAccess } from "@/lib/staff/staffAuthService";
 import { hasPermission } from "@/lib/staff/permissionHelpers";
@@ -24,39 +20,25 @@ export default async function StaffMemberDetailPage({
 }: StaffMemberDetailPageProps) {
   const currentStaff = await requireStaffManagementAccess();
   const { id } = await params;
-  const [member, sessions, events, hasBusinessActivity, staffOptions] = await Promise.all([
+  const [member, sessions] = await Promise.all([
     getStaffMemberById(id),
     getStaffSessions(id),
-    getStaffAuthEvents(id),
-    staffMemberHasBusinessActivity(id),
-    getStaffMembers(),
   ]);
 
   if (!member) {
     notFound();
   }
 
-  const permissionSnapshot = await getStaffPermissionSnapshot(
-    member.id,
-    member.role,
-  );
   const currentPermissions = await getStaffEffectivePermissions(
     currentStaff.staffId,
     currentStaff.role,
   );
 
   return (
-    <AdminShell
-      title={member.display_name || `${member.first_name} ${member.last_name}`}
-      description="Review staff profile, security, lifecycle, sessions, and authentication events."
-    >
-      <StaffMemberDetail
+    <AdminShell title="">
+      <AdminUserAccessDetailPageContent
         member={member}
         sessions={sessions}
-        events={events}
-        hasBusinessActivity={hasBusinessActivity}
-        effectivePermissions={permissionSnapshot.effectivePermissions}
-        staffOptions={staffOptions}
         canEditProfile={hasPermission(currentPermissions, "staff.edit")}
       />
     </AdminShell>

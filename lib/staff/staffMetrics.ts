@@ -25,6 +25,7 @@ export type StaffMetricLabel =
   | "inTransit"
   | "lowStock"
   | "outOfStock"
+  | "authorizedUserAccess"
   | "pinLoginPending"
   | "pendingTimeOffRequest"
   | "preparing"
@@ -43,7 +44,8 @@ export type StaffMetricLabel =
   | "clockedOut"
   | "timekeeperReady"
   | "viewTimecard"
-  | "stockControlReady";
+  | "stockControlReady"
+  | "securePinAccessEnabled";
 
 export type StaffMetricStatus = "operational" | "phase101" | "preview" | "ready";
 
@@ -238,9 +240,9 @@ export async function getStaffCommandCenterMetrics(): Promise<StaffCommandCenter
       status: "preview",
     },
     staff_settings: {
-      primary: { label: "pinLoginPending" },
-      secondary: { label: "roleControlsPrepared" },
-      status: "phase101",
+      primary: { label: "authorizedUserAccess" },
+      secondary: { label: "securePinAccessEnabled" },
+      status: "ready",
     },
   };
 }

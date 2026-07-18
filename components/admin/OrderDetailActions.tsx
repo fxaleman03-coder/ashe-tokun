@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   addOrderNote,
   cancelOrder,
@@ -13,6 +14,7 @@ import type {
   AdminOrderDetail,
   PaymentStatus,
 } from "@/lib/data/ordersRepository";
+import { launchContainment } from "@/lib/launchContainment";
 
 type OrderDetailActionsProps = {
   order: AdminOrderDetail;
@@ -31,12 +33,22 @@ function canCompleteHeld(order: AdminOrderDetail) {
   return order.order_status === "held";
 }
 
-function canCancel(status: string) {
-  return ["draft", "held", "completed"].includes(status);
+function canCancel(order: AdminOrderDetail) {
+  if (
+    launchContainment.completedOrderCancellation &&
+    (order.order_status === "completed" ||
+      order.payment_status === "paid" ||
+      order.payment_status === "refunded")
+  ) {
+    return false;
+  }
+
+  return ["draft", "held"].includes(order.order_status);
 }
 
 export default function OrderDetailActions({ order }: OrderDetailActionsProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [note, setNote] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(
     order.payment_status,
@@ -177,7 +189,7 @@ export default function OrderDetailActions({ order }: OrderDetailActionsProps) {
                 Complete Held
               </button>
             ) : null}
-            {canCancel(order.order_status) ? (
+            {canCancel(order) ? (
               <button
                 type="button"
                 onClick={() => setIsCancelOpen(true)}
@@ -186,6 +198,13 @@ export default function OrderDetailActions({ order }: OrderDetailActionsProps) {
               >
                 Cancel Order
               </button>
+            ) : launchContainment.completedOrderCancellation &&
+              (order.order_status === "completed" ||
+                order.payment_status === "paid" ||
+                order.payment_status === "refunded") ? (
+              <p className="basis-full border border-[#d8a344]/25 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#e8dcc8]/70">
+                {t.admin.launchContainment.completedOrderCancellation}
+              </p>
             ) : null}
           </div>
         </div>

@@ -425,10 +425,17 @@ export async function requireAuthenticatedStaff() {
   return staff;
 }
 
+export function isUserAccessExecutiveRole(role: StaffSession["role"]) {
+  return role === "owner" || role === "managing_partner";
+}
+
 export async function requireStaffManagementAccess() {
   const staff = await requireAuthenticatedStaff();
 
-  if (!staffHasPermission(staff, "staff.edit")) {
+  if (
+    !isUserAccessExecutiveRole(staff.role) ||
+    !staffHasPermission(staff, "staff.edit")
+  ) {
     redirect("/staff/login?status=access_denied");
   }
 

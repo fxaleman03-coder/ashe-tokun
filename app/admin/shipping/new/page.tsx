@@ -1,39 +1,15 @@
 import Link from "next/link";
 import AdminShell from "@/components/admin/AdminShell";
-import ShipmentCreationWizard from "@/components/admin/ShipmentCreationWizard";
-import { getCustomerAddresses } from "@/lib/data/customersRepository";
-import {
-  getEligibleShippingOrders,
-  getFulfillableOrderItems,
-} from "@/lib/data/shippingRepository";
-import { getShippingOrigins } from "@/lib/data/shippingOriginsRepository";
+import { launchContainmentMessages } from "@/lib/launchContainment";
 import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function NewShipmentPage() {
   await requirePermission("shipping.create");
 
-  const orders = await getEligibleShippingOrders();
-  const shippingOrigins = await getShippingOrigins();
-  const fulfillableEntries = await Promise.all(
-    orders.map(async (order) => [
-      order.id,
-      await getFulfillableOrderItems(order.id),
-    ] as const),
-  );
-  const uniqueCustomerIds = Array.from(
-    new Set(orders.map((order) => order.customer_id).filter(Boolean)),
-  ) as string[];
-  const addressEntries = await Promise.all(
-    uniqueCustomerIds.map(async (customerId) => [
-      customerId,
-      await getCustomerAddresses(customerId),
-    ] as const),
-  );
-
   return (
     <AdminShell
       title="Create Shipment"
-      description="Create shipping or local pickup records from eligible orders."
+      description={launchContainmentMessages.shipmentCreation}
     >
       <div className="mb-6">
         <Link
@@ -43,12 +19,9 @@ export default async function NewShipmentPage() {
           Back to Shipping
         </Link>
       </div>
-      <ShipmentCreationWizard
-        orders={orders}
-        fulfillableItemsByOrderId={Object.fromEntries(fulfillableEntries)}
-        addressesByCustomerId={Object.fromEntries(addressEntries)}
-        shippingOrigins={shippingOrigins}
-      />
+      <p className="border border-[#d8a344]/30 bg-[#120d08] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/72">
+        {launchContainmentMessages.shipmentCreation}
+      </p>
     </AdminShell>
   );
 }

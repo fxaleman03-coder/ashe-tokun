@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   addReturnNote,
   approveReturn,
@@ -16,6 +17,7 @@ import type {
   ReturnRecord,
   ReturnTimelineEvent,
 } from "@/lib/types/return";
+import { launchContainment } from "@/lib/launchContainment";
 
 type ReturnDetailManagerProps = {
   returnRecord: ReturnRecord;
@@ -65,6 +67,8 @@ export default function ReturnDetailManager({
   timeline,
 }: ReturnDetailManagerProps) {
   const router = useRouter();
+  const { t } = useLanguage();
+  const containmentLabels = t.admin.launchContainment;
   const [message, setMessage] = useState("");
   const [note, setNote] = useState("");
   const [refundMethod, setRefundMethod] = useState<"cash" | "card" | "store_credit" | "other">(
@@ -291,74 +295,82 @@ export default function ReturnDetailManager({
 
       {returnRecord.status === "received" ? (
         <DetailCard title="Complete Return">
-          <div className="grid gap-4 md:grid-cols-3">
-            <label>
-              <span className="text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
-                Method
-              </span>
-              <select
-                value={refundMethod}
-                onChange={(event) =>
-                  setRefundMethod(event.target.value as typeof refundMethod)
+          {launchContainment.returnCompletion ? (
+            <p className="border border-[#d8a344]/30 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#e8dcc8]/72">
+              {containmentLabels.returnCompletion}
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-3">
+                <label>
+                  <span className="text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                    Method
+                  </span>
+                  <select
+                    value={refundMethod}
+                    onChange={(event) =>
+                      setRefundMethod(event.target.value as typeof refundMethod)
+                    }
+                    className={`${inputClass} mt-2`}
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="store_credit">Store Credit</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <div className="md:col-span-2">
+                  <p className="text-sm leading-6 text-[#e8dcc8]/62">
+                    Card refunds are administrative only. Process card money
+                    manually through the payment provider before marking the return
+                    complete.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={working}
+                onClick={() =>
+                  runAction(() =>
+                    completeReturn(returnRecord.id, {
+                      refund:
+                        returnRecord.return_type === "refund"
+                          ? {
+                              refund_method: refundMethod,
+                              amount: returnRecord.refund_total,
+                            }
+                          : undefined,
+                      storeCredit:
+                        returnRecord.return_type === "store_credit"
+                          ? { amount: returnRecord.refund_total }
+                          : undefined,
+                      exchange:
+                        returnRecord.return_type === "exchange"
+                          ? {
+                              returned_value: returnRecord.refund_total,
+                              replacement_value: returnRecord.refund_total,
+                              price_difference: 0,
+                              notes:
+                                "Exchange replacement details are tracked administratively in this phase.",
+                            }
+                          : undefined,
+                      restockItems: items.map((item) => ({
+                        return_item_id: item.id,
+                        condition: item.condition ?? "sellable",
+                        restock:
+                          item.condition !== null &&
+                          ["unopened", "sellable"].includes(item.condition),
+                      })),
+                      notes: "Completed from ASHE TOKUN Control Center.",
+                    }),
+                  )
                 }
-                className={`${inputClass} mt-2`}
+                className="mt-5 inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 bg-[#d8a344] px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#0f0b07] transition duration-500 disabled:opacity-50"
               >
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="store_credit">Store Credit</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-            <div className="md:col-span-2">
-              <p className="text-sm leading-6 text-[#e8dcc8]/62">
-                Card refunds are administrative only. Process card money
-                manually through the payment provider before marking the return
-                complete.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            disabled={working}
-            onClick={() =>
-              runAction(() =>
-                completeReturn(returnRecord.id, {
-                  refund:
-                    returnRecord.return_type === "refund"
-                      ? {
-                          refund_method: refundMethod,
-                          amount: returnRecord.refund_total,
-                        }
-                      : undefined,
-                  storeCredit:
-                    returnRecord.return_type === "store_credit"
-                      ? { amount: returnRecord.refund_total }
-                      : undefined,
-                  exchange:
-                    returnRecord.return_type === "exchange"
-                      ? {
-                          returned_value: returnRecord.refund_total,
-                          replacement_value: returnRecord.refund_total,
-                          price_difference: 0,
-                          notes:
-                            "Exchange replacement details are tracked administratively in this phase.",
-                        }
-                      : undefined,
-                  restockItems: items.map((item) => ({
-                    return_item_id: item.id,
-                    condition: item.condition ?? "sellable",
-                    restock:
-                      item.condition !== null &&
-                      ["unopened", "sellable"].includes(item.condition),
-                  })),
-                  notes: "Completed from ASHE TOKUN Control Center.",
-                }),
-              )
-            }
-            className="mt-5 inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 bg-[#d8a344] px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#0f0b07] transition duration-500 disabled:opacity-50"
-          >
-            Complete Return
-          </button>
+                Complete Return
+              </button>
+            </>
+          )}
         </DetailCard>
       ) : null}
 

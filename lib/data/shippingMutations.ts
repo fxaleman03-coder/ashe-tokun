@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
 import { getOrderById } from "@/lib/data/ordersRepository";
 import {
+  launchContainment,
+  launchContainmentMessages,
+} from "@/lib/launchContainment";
+import {
   getFulfillableOrderItems,
   getNextShipmentNumber,
   getShipmentById,
@@ -308,6 +312,13 @@ async function resolveShippingOrigin(input: CreateShipmentInput) {
 export async function createShipment(
   input: CreateShipmentInput,
 ): Promise<ShippingMutationResult> {
+  if (launchContainment.shipmentCreation) {
+    return {
+      ok: false,
+      error: launchContainmentMessages.shipmentCreation,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return disabledResult();
   }

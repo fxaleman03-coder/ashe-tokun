@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
-import StaffMemberForm from "@/components/admin/StaffMemberForm";
+import AdminUserAccessFormPageContent from "@/components/admin/AdminUserAccessFormPageContent";
 import { getInventoryLocations } from "@/lib/data/inventoryRepository";
 import { getStaffMemberById } from "@/lib/data/staffRepository";
-import { requirePermission } from "@/lib/staff/permissionGuard";
+import { requireStaffManagementAccess } from "@/lib/staff/staffAuthService";
 
 type EditStaffMemberPageProps = {
   params: Promise<{
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function EditStaffMemberPage({
   params,
 }: EditStaffMemberPageProps) {
-  await requirePermission("staff.edit");
+  await requireStaffManagementAccess();
   const { id } = await params;
   const [member, locations] = await Promise.all([
     getStaffMemberById(id),
@@ -28,11 +28,8 @@ export default async function EditStaffMemberPage({
   }
 
   return (
-    <AdminShell
-      title={`Edit ${member.employee_number}`}
-      description="Update editable employee profile fields. Employee number, PIN, sessions, and authentication history are protected."
-    >
-      <StaffMemberForm
+    <AdminShell title="">
+      <AdminUserAccessFormPageContent
         mode="edit"
         member={member}
         locations={locations}

@@ -7,6 +7,10 @@ import {
   getReturnItems,
   getReturnableOrderItems,
 } from "@/lib/data/returnsRepository";
+import {
+  launchContainment,
+  launchContainmentMessages,
+} from "@/lib/launchContainment";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type { PermissionKey } from "@/lib/staff/permissionTypes";
@@ -727,6 +731,14 @@ export async function completeReturn(
   returnId: string,
   completionInput: ReturnCompletionInput,
 ): Promise<ReturnResult> {
+  if (launchContainment.returnCompletion) {
+    return {
+      ok: false,
+      returnId,
+      error: launchContainmentMessages.returnCompletion,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return disabledResult();
   }

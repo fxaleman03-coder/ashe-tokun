@@ -32,7 +32,7 @@ const moduleMarkers: Record<StaffModuleId, string> = {
   products: "P",
   receiving: "RC",
   reports: "↗",
-  staff_settings: "SS",
+  staff_settings: "UA",
 };
 
 export default function StaffCommandCenter({

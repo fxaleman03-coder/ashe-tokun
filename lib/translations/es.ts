@@ -217,11 +217,27 @@ const es: Translation = {
       analytics: "Reportes",
       settings: "Configuración",
       database: "Base de Datos",
+      userAccess: "Acceso de Usuarios",
     },
     launchStatus: {
       label: "Operaciones de la Tienda",
       description:
         "El catálogo, inventario, clientes, pedidos, punto de venta, envíos y devoluciones están conectados para las operaciones de la tienda.",
+    },
+    launchContainment: {
+      posSaleCompletion:
+        "La finalización de ventas en POS no está disponible temporalmente.",
+      inventoryReadOnly:
+        "El inventario está disponible para consulta. Ajustes, recepciones y transferencias están temporalmente en modo de solo lectura para el lanzamiento.",
+      inventoryActionsUnavailable:
+        "Las acciones de escritura de inventario no están disponibles temporalmente.",
+      shipmentCreation:
+        "La creación de envíos no está disponible temporalmente. Los envíos existentes permanecen visibles.",
+      returnCompletion:
+        "La finalización de devoluciones no está disponible temporalmente. Las devoluciones existentes permanecen visibles.",
+      completedOrderCancellation:
+        "Los pedidos completados o pagados no se pueden cancelar actualmente desde el sistema.",
+      actionUnavailable: "No Disponible Temporalmente",
     },
     dashboard: {
       title: "Panel",
@@ -770,10 +786,113 @@ const es: Translation = {
         cancellationPrompt: "Se requiere motivo de cancelación.",
       },
     },
+    userAccess: {
+      title: "Acceso de Usuarios",
+      description:
+        "Cree y administre las cuentas autorizadas para entrar al sistema administrativo de ASHE TOKUN.",
+      newUser: "Nuevo Usuario",
+      newUserDescription:
+        "Cree una cuenta segura con ID de Acceso, PIN temporal y rol asignado.",
+      editUser: "Editar Usuario",
+      editUserDescription:
+        "Actualice el nombre, rol, ubicación asignada y estado de acceso del usuario.",
+      userDetailDescription:
+        "Revise la información de la cuenta, el estado de seguridad y el acceso mediante PIN.",
+      metrics: {
+        totalUsers: "Total de Usuarios",
+        activeUsers: "Usuarios Activos",
+        inactiveUsers: "Usuarios Inactivos",
+        lockedUsers: "Usuarios Bloqueados",
+      },
+      filters: {
+        searchUsers: "Buscar por ID de Acceso o nombre",
+        allRoles: "Todos los Roles",
+        allAccessStatuses: "Activo / Inactivo",
+        active: "Activo",
+        inactive: "Inactivo",
+        locked: "Bloqueado",
+        unlocked: "Desbloqueado",
+      },
+      table: {
+        accessId: "ID de Acceso",
+        user: "Usuario",
+        role: "Rol",
+        location: "Ubicación",
+        access: "Acceso",
+        lastLogin: "Último Acceso",
+        actions: "Acciones",
+        view: "Ver",
+        edit: "Editar",
+        activate: "Activar",
+        deactivate: "Desactivar",
+        lockedUntil: "Bloqueado hasta {date}",
+        unlocked: "Desbloqueado",
+        unassigned: "Sin Asignar",
+        never: "Nunca",
+      },
+      form: {
+        accessId: "ID de Acceso",
+        accessIdPermanentHelp:
+          "El ID de Acceso es permanente después de crear la cuenta.",
+        securityRole: "Rol",
+        securityRoleHelp:
+          "El rol seleccionado controla automáticamente los permisos normales del usuario.",
+        firstName: "Nombre",
+        lastName: "Apellido",
+        displayName: "Nombre Visible",
+        assignedLocation: "Ubicación Asignada",
+        unassigned: "Sin Asignar",
+        temporaryPin: "PIN Temporal",
+        confirmTemporaryPin: "Confirmar PIN Temporal",
+        active: "Activo",
+        createUser: "Crear Usuario",
+        creating: "Creando...",
+        saveChanges: "Guardar Cambios",
+        saving: "Guardando...",
+        cancel: "Cancelar",
+        createSecurityHelp:
+          "El PIN temporal se guarda de forma segura y no puede verse después de crear la cuenta.",
+        editSecurityHelp:
+          "El ID de Acceso, historial del PIN, sesiones y registros de autenticación permanecen protegidos.",
+      },
+      detail: {
+        profile: "Perfil del Usuario",
+        editUser: "Editar Usuario",
+        accessId: "ID de Acceso",
+        name: "Nombre",
+        displayName: "Nombre Visible",
+        role: "Rol",
+        location: "Ubicación",
+        status: "Estado",
+        security: "Seguridad",
+        lastLogin: "Último Acceso",
+        failedAttempts: "Intentos Fallidos",
+        lockedUntil: "Bloqueado Hasta",
+        mustChangePin: "Debe Cambiar el PIN",
+        activeSessions: "Sesiones Activas",
+        yes: "Sí",
+        no: "No",
+        pending: "Pendiente",
+        resetPin: "Restablecer PIN",
+        resetPinHelp:
+          "Restablecer el PIN cerrará todas las sesiones activas del usuario.",
+        temporaryPin: "PIN Temporal",
+        confirmTemporaryPin: "Confirmar PIN Temporal",
+        activate: "Activar Usuario",
+        deactivate: "Desactivar Usuario",
+      },
+      roles: {
+        owner: "Propietario",
+        managingPartner: "Socio Administrador",
+        storeManager: "Gerente de Tienda",
+        assistantManager: "Subgerente",
+        cashier: "Cajero",
+      },
+    },
   },
   staff: {
-    operations: "Operaciones del Personal",
-    commandCenter: "Centro de Comando",
+    operations: "Operaciones de la Tienda",
+    commandCenter: "Centro de Operaciones",
     welcome: "Bienvenido",
     role: "Rol",
     businessTitle: "Título Comercial",
@@ -781,7 +900,7 @@ const es: Translation = {
     location: "Ubicación",
     logout: "Cerrar Sesión",
     openModule: "Abrir Módulo",
-    commandCenterLink: "Centro de Comando",
+    commandCenterLink: "ASHE TOKUN",
     global: {
       admin: "Admin",
       staff: "Personal",
@@ -826,20 +945,21 @@ const es: Translation = {
       notAssigned: "Sin asignar",
     },
     developmentSessionNotice:
-      "Sesión de desarrollo solamente. La autenticación real con PIN se habilitará en la Fase 10.2.",
+      "Acceda a los módulos operativos asignados a su cuenta.",
     routeProtectionNotice:
-      "La protección de permisos por ruta se agregará en una subfase posterior de la Fase 10.",
+      "Solo se muestran los módulos autorizados para su rol de seguridad.",
     moduleNavigationNotice:
-      "Los módulos operativos abren rutas admin existentes hasta activar el shell dedicado del personal.",
+      "Los módulos disponibles dependen del rol y los permisos asignados a su cuenta.",
     login: {
-      title: "Acceso del Personal",
+      title: "Acceso Seguro",
       subtitle:
-        "Ingresa tu número de empleado y PIN para preparar el acceso del personal.",
-      employeeNumber: "Número de Empleado",
-      pin: "PIN",
+        "Ingrese su ID de Acceso y PIN de seguridad para continuar.",
+      employeeNumber: "ID de Acceso",
+      pin: "PIN de Seguridad",
       signIn: "Iniciar Sesión",
       signingIn: "Verificando...",
-      accessHelp: "Contacta a un gerente para ayuda de acceso.",
+      accessHelp:
+        "Comuníquese con un administrador autorizado si necesita acceso o restablecer su PIN.",
       validationEmployeeNumber: "Ingresa un número de empleado.",
       validationPin: "Ingresa un PIN numérico.",
       phaseNotice: "La autenticación del personal se habilitará en la Fase 10.2.",
@@ -962,8 +1082,9 @@ const es: Translation = {
         description: "Revisar resúmenes de rendimiento operativo.",
       },
       staff_settings: {
-        name: "Ajustes del Personal",
-        description: "Preparar acceso y controles de roles.",
+        name: "Acceso de Usuarios",
+        description:
+          "Administre las cuentas autorizadas para acceder al sistema administrativo de ASHE TOKUN.",
       },
     },
     metricStatuses: {
@@ -990,6 +1111,7 @@ const es: Translation = {
       inTransit: "en tránsito",
       lowStock: "stock bajo",
       outOfStock: "agotados",
+      authorizedUserAccess: "Acceso de usuarios autorizado",
       pinLoginPending: "Acceso con PIN pendiente",
       preparing: "en preparación",
       productLookupReady: "Búsqueda de productos lista",
@@ -1009,6 +1131,7 @@ const es: Translation = {
       nextScheduledShift: "próximo turno",
       pendingTimeOffRequest: "solicitud pendiente",
       stockControlReady: "Control de stock listo",
+      securePinAccessEnabled: "Acceso seguro con PIN activado",
     },
     scheduling: {
       scheduling: "Horarios",

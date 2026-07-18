@@ -7,6 +7,7 @@ import {
   cancelShipment,
   updateShipmentStatus,
 } from "@/lib/data/shippingMutations";
+import { launchContainment } from "@/lib/launchContainment";
 import type {
   FulfillmentType,
   Shipment,
@@ -179,14 +180,26 @@ export default function AdminShippingManager({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href="/admin/shipping/new"
-          className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
-        >
-          {labels.createShipment}
-        </Link>
+        {launchContainment.shipmentCreation ? (
+          <button
+            type="button"
+            disabled
+            className="inline-flex min-h-11 cursor-not-allowed items-center justify-center border border-[#f7ead2]/10 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/34"
+          >
+            {t.admin.launchContainment.actionUnavailable}
+          </button>
+        ) : (
+          <Link
+            href="/admin/shipping/new"
+            className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/45 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+          >
+            {labels.createShipment}
+          </Link>
+        )}
         <p className="text-sm text-[#e8dcc8]/54">
-          {labels.deferredNotice}
+          {launchContainment.shipmentCreation
+            ? t.admin.launchContainment.shipmentCreation
+            : labels.deferredNotice}
         </p>
       </div>
 

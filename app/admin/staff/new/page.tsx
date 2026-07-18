@@ -1,5 +1,5 @@
 import AdminShell from "@/components/admin/AdminShell";
-import StaffMemberForm from "@/components/admin/StaffMemberForm";
+import AdminUserAccessFormPageContent from "@/components/admin/AdminUserAccessFormPageContent";
 import { getInventoryLocations } from "@/lib/data/inventoryRepository";
 import { requireStaffManagementAccess } from "@/lib/staff/staffAuthService";
 
@@ -8,11 +8,8 @@ export default async function NewStaffMemberPage() {
   const locations = await getInventoryLocations();
 
   return (
-    <AdminShell
-      title="New Employee"
-      description="Create a staff record with a temporary PIN. The PIN is hashed server-side and must be changed by the employee."
-    >
-      <StaffMemberForm locations={locations} />
+    <AdminShell title="">
+      <AdminUserAccessFormPageContent locations={locations} mode="create" />
     </AdminShell>
   );
 }

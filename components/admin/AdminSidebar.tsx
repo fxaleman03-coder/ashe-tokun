@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 import { hasPermission } from "@/lib/staff/permissionHelpers";
 import type { Translation } from "@/lib/translations";
-import type { PermissionKey } from "@/lib/staff/permissionTypes";
+import type { PermissionKey, StaffRole } from "@/lib/staff/permissionTypes";
 
 type AdminNavigation = Translation["admin"]["navigation"];
 type NavigationLabelKey = keyof AdminNavigation;
@@ -14,6 +14,7 @@ type NavigationLink = {
   href: string;
   labelKey: NavigationLabelKey;
   permissions: PermissionKey[];
+  allowedRoles?: StaffRole[];
 };
 
 type NavigationGroup = {
@@ -54,6 +55,12 @@ const navigationGroups: NavigationGroup[] = [
   {
     titleKey: "settingsGroup",
     links: [
+      {
+        href: "/admin/staff",
+        labelKey: "userAccess",
+        permissions: ["staff.read"],
+        allowedRoles: ["owner", "managing_partner"],
+      },
       { href: "/admin/settings", labelKey: "settings", permissions: ["settings.company"] },
       { href: "/admin/database", labelKey: "database", permissions: ["settings.security"] },
     ],
@@ -73,17 +80,22 @@ function getActiveHref(pathname: string) {
 
 export default function AdminSidebar({
   permissions,
+  role,
 }: {
   permissions: PermissionKey[];
+  role: StaffRole;
 }) {
   const pathname = usePathname();
   const { t } = useLanguage();
   const visibleNavigationGroups = navigationGroups
     .map((group) => ({
       title: t.admin.navigation[group.titleKey],
-      links: group.links.filter((link) =>
-        hasPermission(permissions, link.permissions),
-      ).map((link) => ({
+      links: group.links.filter((link) => {
+        const roleAllowed =
+          !link.allowedRoles || link.allowedRoles.includes(role);
+
+        return roleAllowed && hasPermission(permissions, link.permissions);
+      }).map((link) => ({
         ...link,
         label: t.admin.navigation[link.labelKey],
       })),

@@ -23,6 +23,7 @@ export type StaffModuleDefinition = {
   id: StaffModuleId;
   href: string;
   requiredPermissions: PermissionKey[];
+  allowedRoles?: StaffRole[];
 };
 
 export const rolePermissions: Record<StaffRole, PermissionKey[]> = {
@@ -71,31 +72,6 @@ export const staffModuleDefinitions: StaffModuleDefinition[] = [
     requiredPermissions: ["returns.read"],
   },
   {
-    id: "scheduling",
-    href: "/admin/scheduling",
-    requiredPermissions: ["schedule.view_all"],
-  },
-  {
-    id: "timekeeper",
-    href: "/staff/timekeeper",
-    requiredPermissions: ["timekeeper.view_own"],
-  },
-  {
-    id: "my_schedule",
-    href: "/staff/schedule",
-    requiredPermissions: ["schedule.view_own"],
-  },
-  {
-    id: "availability",
-    href: "/staff/availability",
-    requiredPermissions: ["schedule.manage_availability"],
-  },
-  {
-    id: "time_off",
-    href: "/staff/time-off",
-    requiredPermissions: ["schedule.manage_time_off"],
-  },
-  {
     id: "products",
     href: "/admin/products",
     requiredPermissions: ["products.read"],
@@ -114,5 +90,6 @@ export const staffModuleDefinitions: StaffModuleDefinition[] = [
     id: "staff_settings",
     href: "/admin/staff",
     requiredPermissions: ["staff.read"],
+    allowedRoles: ["owner", "managing_partner"],
   },
 ];

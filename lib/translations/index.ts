@@ -142,10 +142,20 @@ export type Translation = {
       analytics: string;
       settings: string;
       database: string;
+      userAccess: string;
     };
     launchStatus: {
       label: string;
       description: string;
+    };
+    launchContainment: {
+      posSaleCompletion: string;
+      inventoryReadOnly: string;
+      inventoryActionsUnavailable: string;
+      shipmentCreation: string;
+      returnCompletion: string;
+      completedOrderCancellation: string;
+      actionUnavailable: string;
     };
     dashboard: {
       title: string;
@@ -655,6 +665,100 @@ export type Translation = {
         cancellationPrompt: string;
       };
     };
+    userAccess: {
+      title: string;
+      description: string;
+      newUser: string;
+      newUserDescription: string;
+      editUser: string;
+      editUserDescription: string;
+      userDetailDescription: string;
+      metrics: {
+        totalUsers: string;
+        activeUsers: string;
+        inactiveUsers: string;
+        lockedUsers: string;
+      };
+      filters: {
+        searchUsers: string;
+        allRoles: string;
+        allAccessStatuses: string;
+        active: string;
+        inactive: string;
+        locked: string;
+        unlocked: string;
+      };
+      table: {
+        accessId: string;
+        user: string;
+        role: string;
+        location: string;
+        access: string;
+        lastLogin: string;
+        actions: string;
+        view: string;
+        edit: string;
+        activate: string;
+        deactivate: string;
+        lockedUntil: string;
+        unlocked: string;
+        unassigned: string;
+        never: string;
+      };
+      form: {
+        accessId: string;
+        accessIdPermanentHelp: string;
+        securityRole: string;
+        securityRoleHelp: string;
+        firstName: string;
+        lastName: string;
+        displayName: string;
+        assignedLocation: string;
+        unassigned: string;
+        temporaryPin: string;
+        confirmTemporaryPin: string;
+        active: string;
+        createUser: string;
+        creating: string;
+        saveChanges: string;
+        saving: string;
+        cancel: string;
+        createSecurityHelp: string;
+        editSecurityHelp: string;
+      };
+      detail: {
+        profile: string;
+        editUser: string;
+        accessId: string;
+        name: string;
+        displayName: string;
+        role: string;
+        location: string;
+        status: string;
+        security: string;
+        lastLogin: string;
+        failedAttempts: string;
+        lockedUntil: string;
+        mustChangePin: string;
+        activeSessions: string;
+        yes: string;
+        no: string;
+        pending: string;
+        resetPin: string;
+        resetPinHelp: string;
+        temporaryPin: string;
+        confirmTemporaryPin: string;
+        activate: string;
+        deactivate: string;
+      };
+      roles: {
+        owner: string;
+        managingPartner: string;
+        storeManager: string;
+        assistantManager: string;
+        cashier: string;
+      };
+    };
   };
   staff: {
     operations: string;
@@ -821,6 +925,7 @@ export type Translation = {
       inTransit: string;
       lowStock: string;
       outOfStock: string;
+      authorizedUserAccess: string;
       pinLoginPending: string;
       preparing: string;
       productLookupReady: string;
@@ -840,6 +945,7 @@ export type Translation = {
       viewTimecard: string;
       pendingTimeOffRequest: string;
       stockControlReady: string;
+      securePinAccessEnabled: string;
     };
     timekeeper: {
       timekeeper: string;

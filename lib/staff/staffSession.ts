@@ -40,9 +40,14 @@ export function staffHasPermission(
 export function getAllowedStaffModules(
   session: StaffSession,
 ): StaffModuleDefinition[] {
-  return staffModuleDefinitions.filter((moduleDefinition) =>
-    moduleDefinition.requiredPermissions.every((permission) =>
-      staffHasPermission(session, permission),
-    ),
-  );
+  return staffModuleDefinitions.filter((moduleDefinition) => {
+    const roleAllowed =
+      !moduleDefinition.allowedRoles ||
+      moduleDefinition.allowedRoles.includes(session.role);
+    const permissionsAllowed = moduleDefinition.requiredPermissions.every(
+      (permission) => staffHasPermission(session, permission),
+    );
+
+    return roleAllowed && permissionsAllowed;
+  });
 }

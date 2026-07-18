@@ -223,11 +223,27 @@ const yo: Translation = {
       analytics: "Analytics",
       settings: "Settings",
       database: "Database",
+      userAccess: "User Access",
     },
     launchStatus: {
       label: "Store Operations",
       description:
         "Catalog, inventory, customers, orders, POS, shipping, and returns are connected for store operations.",
+    },
+    launchContainment: {
+      posSaleCompletion:
+        "POS sale completion is temporarily unavailable.",
+      inventoryReadOnly:
+        "Inventory is available for viewing. Adjustments, receiving, and transfers are temporarily read-only for launch.",
+      inventoryActionsUnavailable:
+        "Inventory write actions are temporarily unavailable.",
+      shipmentCreation:
+        "Shipment creation is temporarily unavailable. Existing shipments remain viewable.",
+      returnCompletion:
+        "Return completion is temporarily unavailable. Existing returns remain viewable.",
+      completedOrderCancellation:
+        "Completed or paid orders cannot currently be canceled through the system.",
+      actionUnavailable: "Temporarily Unavailable",
     },
     dashboard: {
       title: "Dashboard",
@@ -771,11 +787,114 @@ const yo: Translation = {
         cancellationPrompt: "Cancellation reason required.",
       },
     },
+    userAccess: {
+      title: "User Access",
+      description:
+        "Create and manage the accounts authorized to access the ASHE TOKUN administration system.",
+      newUser: "New User",
+      newUserDescription:
+        "Create a secure user account with an Access ID, temporary PIN, and assigned role.",
+      editUser: "Edit User",
+      editUserDescription:
+        "Update the user’s name, role, assigned location, and access status.",
+      userDetailDescription:
+        "Review account information, security status, and PIN access.",
+      metrics: {
+        totalUsers: "Total Users",
+        activeUsers: "Active Users",
+        inactiveUsers: "Inactive Users",
+        lockedUsers: "Locked Users",
+      },
+      filters: {
+        searchUsers: "Search by Access ID or name",
+        allRoles: "All Roles",
+        allAccessStatuses: "Active / Inactive",
+        active: "Active",
+        inactive: "Inactive",
+        locked: "Locked",
+        unlocked: "Unlocked",
+      },
+      table: {
+        accessId: "Access ID",
+        user: "User",
+        role: "Role",
+        location: "Location",
+        access: "Access",
+        lastLogin: "Last Login",
+        actions: "Actions",
+        view: "View",
+        edit: "Edit",
+        activate: "Activate",
+        deactivate: "Deactivate",
+        lockedUntil: "Locked until {date}",
+        unlocked: "Unlocked",
+        unassigned: "Unassigned",
+        never: "Never",
+      },
+      form: {
+        accessId: "Access ID",
+        accessIdPermanentHelp:
+          "Access IDs are permanent after the account is created.",
+        securityRole: "Role",
+        securityRoleHelp:
+          "The selected role automatically controls the user’s standard permissions.",
+        firstName: "First Name",
+        lastName: "Last Name",
+        displayName: "Display Name",
+        assignedLocation: "Assigned Location",
+        unassigned: "Unassigned",
+        temporaryPin: "Temporary PIN",
+        confirmTemporaryPin: "Confirm Temporary PIN",
+        active: "Active",
+        createUser: "Create User",
+        creating: "Creating...",
+        saveChanges: "Save Changes",
+        saving: "Saving...",
+        cancel: "Cancel",
+        createSecurityHelp:
+          "The temporary PIN is securely hashed and cannot be viewed after creation.",
+        editSecurityHelp:
+          "Access ID, PIN history, sessions, and authentication records remain protected.",
+      },
+      detail: {
+        profile: "User Profile",
+        editUser: "Edit User",
+        accessId: "Access ID",
+        name: "Name",
+        displayName: "Display Name",
+        role: "Role",
+        location: "Location",
+        status: "Status",
+        security: "Security",
+        lastLogin: "Last Login",
+        failedAttempts: "Failed Attempts",
+        lockedUntil: "Locked Until",
+        mustChangePin: "Must Change PIN",
+        activeSessions: "Active Sessions",
+        yes: "Yes",
+        no: "No",
+        pending: "Pending",
+        resetPin: "Reset PIN",
+        resetPinHelp:
+          "Resetting the PIN signs the user out of all active sessions.",
+        temporaryPin: "Temporary PIN",
+        confirmTemporaryPin: "Confirm Temporary PIN",
+        activate: "Activate User",
+        deactivate: "Deactivate User",
+      },
+      roles: {
+        owner: "Owner",
+        managingPartner: "Managing Partner",
+        storeManager: "Store Manager",
+        assistantManager: "Assistant Manager",
+        cashier: "Cashier",
+      },
+    },
   },
   staff: {
     // Draft Yoruba placeholders only. Staff operations labels need later review.
-    operations: "Ìṣẹ́ Staff",
-    commandCenter: "Ibi Ìṣàkóso",
+    operations: "Store Operations",
+    commandCenter: "Operations Center",
     welcome: "Káàbọ̀",
     role: "Ipa",
     businessTitle: "Orúkọ Iṣẹ́",
@@ -783,7 +902,7 @@ const yo: Translation = {
     location: "Ibi",
     logout: "Jáde",
     openModule: "Ṣí Module",
-    commandCenterLink: "Ibi Ìṣàkóso",
+    commandCenterLink: "ASHE TOKUN",
     global: {
       admin: "Admin",
       staff: "Staff",
@@ -828,19 +947,20 @@ const yo: Translation = {
       notAssigned: "Kò tíì yàn",
     },
     developmentSessionNotice:
-      "Ìpò idagbasoke nìkan. PIN gidi yóò ṣiṣẹ́ ní Phase 10.2.",
+      "Access the operational modules assigned to your account.",
     routeProtectionNotice:
-      "Ìdábò bo ojúewé pẹ̀lú permission yóò wá ní Phase 10 tó ń bọ̀.",
+      "Only modules authorized for your security role are displayed.",
     moduleNavigationNotice:
-      "Àwọn module iṣẹ́ ń ṣí àwọn ojúewé admin báyìí títí staff shell yóò fi ṣiṣẹ́.",
+      "Your available modules are determined by your assigned role and permissions.",
     login: {
-      title: "Wọlé fún Staff",
-      subtitle: "Tẹ employee number àti PIN láti mura sí access staff.",
-      employeeNumber: "Employee Number",
-      pin: "PIN",
+      title: "Secure Access",
+      subtitle: "Enter your Access ID and security PIN to continue.",
+      employeeNumber: "Access ID",
+      pin: "Security PIN",
       signIn: "Wọlé",
       signingIn: "Ń ṣàyẹ̀wò...",
-      accessHelp: "Kan sí manager fún ìrànlọ́wọ́ access.",
+      accessHelp:
+        "Contact an authorized administrator if you need access or a PIN reset.",
       validationEmployeeNumber: "Tẹ employee number.",
       validationPin: "Tẹ PIN tó jẹ́ nọ́ńbà.",
       phaseNotice: "Staff authentication yóò ṣiṣẹ́ ní Phase 10.2.",
@@ -963,8 +1083,9 @@ const yo: Translation = {
         description: "Wo àkótán iṣẹ́ ojoojúmọ́.",
       },
       staff_settings: {
-        name: "Staff Settings",
-        description: "Mura access àti role control.",
+        name: "User Access",
+        description:
+          "Manage the accounts authorized to access the ASHE TOKUN administration system.",
       },
     },
     metricStatuses: {
@@ -991,6 +1112,7 @@ const yo: Translation = {
       inTransit: "ní transit",
       lowStock: "stock kékeré",
       outOfStock: "kò sí stock",
+      authorizedUserAccess: "Authorized user access",
       pinLoginPending: "PIN login pending",
       preparing: "ń mura",
       productLookupReady: "Product lookup ready",
@@ -1010,6 +1132,7 @@ const yo: Translation = {
       nextScheduledShift: "shift tó ń bọ̀",
       pendingTimeOffRequest: "pending request",
       stockControlReady: "Stock control ready",
+      securePinAccessEnabled: "Secure PIN access enabled",
     },
     scheduling: {
       scheduling: "Scheduling",

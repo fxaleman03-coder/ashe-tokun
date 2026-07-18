@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { cancelOrder, completeHeldOrder } from "@/lib/data/orderMutations";
+import { launchContainment } from "@/lib/launchContainment";
 import type {
   AdminOrder,
   OrderSummaryMetrics,
@@ -28,7 +29,16 @@ function formatCurrency(value: number) {
 }
 
 function canCancel(order: AdminOrder) {
-  return ["draft", "held", "completed"].includes(order.order_status);
+  if (
+    launchContainment.completedOrderCancellation &&
+    (order.order_status === "completed" ||
+      order.payment_status === "paid" ||
+      order.payment_status === "refunded")
+  ) {
+    return false;
+  }
+
+  return ["draft", "held"].includes(order.order_status);
 }
 
 function canCompleteHeld(order: AdminOrder) {
@@ -312,6 +322,13 @@ export default function AdminOrdersManager({
                         >
                           {labels.table.cancel}
                         </button>
+                      ) : launchContainment.completedOrderCancellation &&
+                        (order.order_status === "completed" ||
+                          order.payment_status === "paid" ||
+                          order.payment_status === "refunded") ? (
+                        <span className="inline-flex min-h-10 cursor-not-allowed items-center justify-center border border-[#f7ead2]/10 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/34">
+                          {t.admin.launchContainment.actionUnavailable}
+                        </span>
                       ) : null}
                       {canCompleteHeld(order) ? (
                         <button

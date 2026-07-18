@@ -7,6 +7,7 @@ import {
   approveReturn,
   cancelReturn,
 } from "@/lib/data/returnMutations";
+import { launchContainment } from "@/lib/launchContainment";
 import type {
   ReturnMetrics,
   ReturnRecord,
@@ -33,7 +34,9 @@ function validActions(returnRecord: ReturnRecord) {
   return {
     approve: returnRecord.status === "requested",
     receive: returnRecord.status === "approved",
-    complete: returnRecord.status === "received",
+    complete:
+      returnRecord.status === "received" &&
+      !launchContainment.returnCompletion,
     cancel: ["requested", "approved"].includes(returnRecord.status),
   };
 }
@@ -139,7 +142,9 @@ export default function AdminReturnsManager({
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-sm text-[#e8dcc8]/58">
-          {labels.notice}
+          {launchContainment.returnCompletion
+            ? t.admin.launchContainment.returnCompletion
+            : labels.notice}
         </p>
         <Link
           href="/admin/returns/new"
@@ -313,6 +318,11 @@ export default function AdminReturnsManager({
                           >
                             {labels.table.complete}
                           </Link>
+                        ) : returnRecord.status === "received" &&
+                          launchContainment.returnCompletion ? (
+                          <span className="inline-flex min-h-10 cursor-not-allowed items-center justify-center border border-[#f7ead2]/10 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/34">
+                            {t.admin.launchContainment.actionUnavailable}
+                          </span>
                         ) : null}
                         {actions.cancel ? (
                           <button

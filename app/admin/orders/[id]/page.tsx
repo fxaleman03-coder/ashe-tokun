@@ -12,6 +12,10 @@ import {
   getShipmentEvents,
   getShipmentsByOrder,
 } from "@/lib/data/shippingRepository";
+import {
+  launchContainment,
+  launchContainmentMessages,
+} from "@/lib/launchContainment";
 import { requirePermission } from "@/lib/staff/permissionGuard";
 
 type OrderDetailPageProps = {
@@ -389,13 +393,17 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             </p>
             {fulfillableItems.some(
               (item) => item.remaining_fulfillable_quantity > 0,
-            ) ? (
+            ) && !launchContainment.shipmentCreation ? (
               <Link
                 href="/admin/shipping/new"
                 className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
               >
                 Create Shipment
               </Link>
+            ) : launchContainment.shipmentCreation ? (
+              <span className="inline-flex min-h-10 cursor-not-allowed items-center justify-center border border-[#f7ead2]/10 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#e8dcc8]/34">
+                {launchContainmentMessages.shipmentCreation}
+              </span>
             ) : null}
           </div>
           {linkedShipments.length > 0 ? (

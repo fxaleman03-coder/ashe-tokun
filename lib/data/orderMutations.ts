@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { USE_SUPABASE } from "@/lib/config";
+import {
+  launchContainment,
+  launchContainmentMessages,
+} from "@/lib/launchContainment";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type { OrderStatus, PaymentStatus } from "@/lib/data/ordersRepository";
@@ -55,7 +59,7 @@ const allowedPaymentStatuses: PaymentStatus[] = [
 const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
   draft: ["completed", "cancelled", "held"],
   held: ["completed", "cancelled"],
-  completed: ["cancelled"],
+  completed: [],
   cancelled: [],
   refunded: [],
 };
@@ -469,6 +473,19 @@ export async function cancelOrder(
 
     if (!order) {
       return { ok: false, error: "Order was not found." };
+    }
+
+    if (
+      launchContainment.completedOrderCancellation &&
+      (order.order_status === "completed" ||
+        order.payment_status === "paid" ||
+        order.payment_status === "refunded")
+    ) {
+      return {
+        ok: false,
+        orderId,
+        error: launchContainmentMessages.completedOrderCancellation,
+      };
     }
 
     const transitionError = validateTransition(order.order_status, "cancelled");

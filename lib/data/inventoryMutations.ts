@@ -1,6 +1,10 @@
 "use server";
 
 import { USE_SUPABASE } from "@/lib/config";
+import {
+  launchContainment,
+  launchContainmentMessages,
+} from "@/lib/launchContainment";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 
@@ -215,6 +219,13 @@ async function insertTransaction({
 export async function createInventoryItem(
   input: CreateInventoryItemInput,
 ): Promise<InventoryMutationResult> {
+  if (launchContainment.inventoryWrites) {
+    return {
+      ok: false,
+      error: launchContainmentMessages.inventoryWrites,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return disabledResult();
   }
@@ -278,6 +289,13 @@ export async function createInventoryItem(
 export async function adjustInventory(
   input: AdjustInventoryInput,
 ): Promise<InventoryMutationResult> {
+  if (launchContainment.inventoryWrites) {
+    return {
+      ok: false,
+      error: launchContainmentMessages.inventoryWrites,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return disabledResult();
   }
@@ -381,6 +399,13 @@ export async function adjustInventory(
 export async function receiveInventory(
   input: ReceiveInventoryInput,
 ): Promise<InventoryMutationResult> {
+  if (launchContainment.inventoryWrites) {
+    return {
+      ok: false,
+      error: launchContainmentMessages.inventoryWrites,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return disabledResult();
   }
@@ -481,6 +506,13 @@ export async function receiveInventory(
 export async function transferInventory(
   input: TransferInventoryInput,
 ): Promise<InventoryMutationResult> {
+  if (launchContainment.inventoryWrites) {
+    return {
+      ok: false,
+      error: launchContainmentMessages.inventoryWrites,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return disabledResult();
   }
@@ -671,6 +703,13 @@ export async function setReorderLevel(
   inventoryItemId: string,
   reorderLevel: number,
 ): Promise<InventoryMutationResult> {
+  if (launchContainment.inventoryWrites) {
+    return {
+      ok: false,
+      error: launchContainmentMessages.inventoryWrites,
+    };
+  }
+
   if (!USE_SUPABASE) {
     return disabledResult();
   }

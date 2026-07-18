@@ -1,5 +1,5 @@
 import AdminShell from "@/components/admin/AdminShell";
-import AdminStaffManager from "@/components/admin/AdminStaffManager";
+import AdminUserAccessPageContent from "@/components/admin/AdminUserAccessPageContent";
 import {
   getStaffMembers,
   getStaffMetrics,
@@ -15,11 +15,8 @@ export default async function AdminStaffPage() {
   const currentTime = new Date().getTime();
 
   return (
-    <AdminShell
-      title="Staff Management"
-      description="Manage employee access, PIN resets, sessions, lockouts, and employment lifecycle records."
-    >
-      <AdminStaffManager
+    <AdminShell title="">
+      <AdminUserAccessPageContent
         staff={staff}
         metrics={metrics}
         currentTime={currentTime}
