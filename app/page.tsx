@@ -1,13 +1,13 @@
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import TraditionsSection from "@/components/home/TraditionsSection";
-import { LanguageProvider } from "@/components/LanguageProvider";
 import Navbar from "@/components/Navbar";
 import StorefrontCategoriesPreview from "@/components/shop/StorefrontCategoriesPreview";
+import StorefrontProviders from "@/components/storefront/StorefrontProviders";
 
 export default function Home() {
   return (
-    <LanguageProvider>
+    <StorefrontProviders>
       <Navbar />
       <main>
         <Hero />
@@ -15,6 +15,6 @@ export default function Home() {
         <StorefrontCategoriesPreview />
       </main>
       <Footer />
-    </LanguageProvider>
+    </StorefrontProviders>
   );
 }

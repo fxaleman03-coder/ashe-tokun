@@ -4,12 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useCartItemCount } from "@/components/storefront/CartProvider";
 import { languageOptions } from "@/lib/translations";
 
 const navHrefs = ["/", "/shop", "/#traditions", "/shop/category/ide"] as const;
 
 export default function Navbar() {
   const { language, setLanguage, t } = useLanguage();
+  const cartItemCount = useCartItemCount();
   const pathname = usePathname();
 
   return (
@@ -66,6 +68,19 @@ export default function Navbar() {
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#f7ead2]/30 to-transparent transition duration-700 ease-out group-hover:translate-x-full" />
             <span className="relative">{t.nav.cta}</span>
+          </Link>
+
+          <Link
+            href="/cart"
+            className="relative inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/15 px-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#e8dcc8]/68 transition duration-500 ease-out hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+            aria-label={t.storefront.cart.title}
+          >
+            {t.storefront.cart.navLabel}
+            {cartItemCount > 0 ? (
+              <span className="ml-2 inline-flex min-w-5 items-center justify-center bg-[#d8a344] px-1.5 py-0.5 text-[0.62rem] text-[#0f0b07]">
+                {cartItemCount}
+              </span>
+            ) : null}
           </Link>
 
           <div

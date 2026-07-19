@@ -48,7 +48,7 @@ export default function FeaturedProductsPreviewClient({
               product={product}
               language={language}
               labels={t.featuredProducts.labels}
-              showAddToCart={false}
+              showAddToCart
             />
           ))}
         </div>

@@ -51,7 +51,7 @@ export default function CategoryProductGrid({
           product={product}
           language={language}
           labels={t.featuredProducts.labels}
-          showAddToCart={false}
+          showAddToCart
         />
       ))}
     </div>

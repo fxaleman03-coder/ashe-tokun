@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import Footer from "@/components/Footer";
-import { LanguageProvider } from "@/components/LanguageProvider";
 import Navbar from "@/components/Navbar";
 import CategoryPageContent from "@/components/shop/CategoryPageContent";
+import StorefrontProviders from "@/components/storefront/StorefrontProviders";
 import { getCategories } from "@/lib/data/categories";
 import {
   getProductsForStorefrontCategory,
@@ -43,10 +43,10 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   }
 
   return (
-    <LanguageProvider>
+    <StorefrontProviders>
       <Navbar />
       <CategoryPageContent category={category} products={products} />
       <Footer />
-    </LanguageProvider>
+    </StorefrontProviders>
   );
 }

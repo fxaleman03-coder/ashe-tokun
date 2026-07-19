@@ -1,7 +1,7 @@
 import Footer from "@/components/Footer";
-import { LanguageProvider } from "@/components/LanguageProvider";
 import Navbar from "@/components/Navbar";
 import ProductDetailPage from "@/components/shop/ProductDetailPage";
+import StorefrontProviders from "@/components/storefront/StorefrontProviders";
 import {
   getProductBySlug,
   getProducts,
@@ -24,10 +24,10 @@ export default async function Page({ params }: ProductPageProps) {
   const product = (await getProductBySlug(slug)) ?? null;
 
   return (
-    <LanguageProvider>
+    <StorefrontProviders>
       <Navbar />
       <ProductDetailPage product={product} />
       <Footer />
-    </LanguageProvider>
+    </StorefrontProviders>
   );
 }

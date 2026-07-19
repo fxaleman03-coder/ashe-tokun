@@ -63,6 +63,7 @@ const es: Translation = {
     labels: {
       viewProduct: "Ver Producto",
       addToCart: "Agregar",
+      addedToCart: "Agregado",
       inStock: "Listo para Enviar",
       soldOut: "Actualmente No Disponible",
       new: "Nuevo",
@@ -82,6 +83,7 @@ const es: Translation = {
     spiritualNote: "Nota Espiritual",
     shipping: "Envío",
     addToCart: "Agregar",
+    addedToCart: "Agregado al Carrito",
     backToShop: "Volver a Tienda",
     productNotFound: "Producto no encontrado",
     productNotFoundDescription:
@@ -93,7 +95,7 @@ const es: Translation = {
     spiritualNotePlaceholder:
       "La guía cultural y espiritual será revisada con practicantes conocedores antes de publicarse.",
     shippingPlaceholder:
-      "Las opciones de envío y tiempos de manejo se agregarán antes de lanzar el checkout.",
+      "Los detalles de envío y pago se confirman después de recibir tu solicitud de pedido en línea.",
   },
   storefront: {
     categorySection: {
@@ -127,6 +129,76 @@ const es: Translation = {
       noProductsAvailable:
         "Esta categoría aún no tiene productos disponibles.",
       backToShop: "Volver a Tienda",
+    },
+    cart: {
+      label: "Carrito de Compra",
+      title: "Carrito",
+      navLabel: "Carrito",
+      description:
+        "Revisa tus artículos seleccionados de ASHE TOKUN antes de continuar al checkout.",
+      emptyTitle: "Tu carrito está vacío",
+      emptyDescription:
+        "Explora la tienda y agrega un artículo disponible para iniciar un pedido en línea.",
+      continueShopping: "Seguir Comprando",
+      sku: "SKU",
+      quantity: "Cantidad",
+      available: "Disponible",
+      lineTotal: "Total de Línea",
+      remove: "Eliminar",
+      summary: "Resumen del Pedido",
+      subtotal: "Subtotal",
+      tax: "Impuesto",
+      shipping: "Envío",
+      total: "Total",
+      pending: "Pendiente",
+      pendingTotals:
+        "Los pedidos en línea se crean como solicitudes sin pago. ASHE TOKUN confirma los detalles finales de pago y cumplimiento.",
+      checkout: "Checkout",
+      clear: "Vaciar Carrito",
+      unavailableProduct: "Producto no disponible",
+      unavailableMessage:
+        "Este artículo ya no está disponible en línea. Elimínalo antes del checkout.",
+    },
+    checkout: {
+      label: "Solicitud de Pedido Segura",
+      title: "Checkout",
+      description:
+        "Crea una solicitud de pedido en línea sin pago. ASHE TOKUN confirmará los detalles de pago y cumplimiento antes de procesarlo.",
+      contact: "Información de Contacto",
+      firstName: "Nombre",
+      lastName: "Apellido",
+      email: "Correo Electrónico",
+      phone: "Teléfono",
+      billingAddress: "Dirección de Facturación",
+      shippingAddress: "Dirección de Envío",
+      sameAsBilling: "Igual que facturación",
+      address1: "Dirección Línea 1",
+      address2: "Dirección Línea 2",
+      city: "Ciudad",
+      state: "Estado",
+      postalCode: "Código Postal",
+      country: "País",
+      orderNotes: "Notas del Pedido",
+      orderSummary: "Resumen del Pedido",
+      paymentNotice:
+        "El pago no se cobra en este paso. Tu pedido permanecerá pendiente hasta que se confirme el pago.",
+      submitOrder: "Enviar Solicitud",
+      submitting: "Enviando...",
+    },
+    confirmation: {
+      label: "Pedido Recibido",
+      title: "Gracias",
+      description:
+        "Tu solicitud de pedido fue recibida. El pago está pendiente y ASHE TOKUN dará seguimiento con los próximos pasos.",
+      orderNumber: "Número de Pedido",
+      email: "Correo Electrónico",
+      paymentStatus: "Estado de Pago",
+      orderStatus: "Estado del Pedido",
+      date: "Fecha",
+      items: "Artículos",
+      notFoundTitle: "Pedido no encontrado",
+      notFoundDescription:
+        "No pudimos encontrar esta confirmación de pedido en línea. Contacta a ASHE TOKUN si necesitas ayuda.",
     },
     categoryLabels: {
       keychains: {

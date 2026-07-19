@@ -38,6 +38,7 @@ export type Translation = {
     labels: {
       viewProduct: string;
       addToCart: string;
+      addedToCart: string;
       inStock: string;
       soldOut: string;
       new: string;
@@ -57,6 +58,7 @@ export type Translation = {
     spiritualNote: string;
     shipping: string;
     addToCart: string;
+    addedToCart: string;
     backToShop: string;
     productNotFound: string;
     productNotFoundDescription: string;
@@ -92,6 +94,68 @@ export type Translation = {
       noProductsTitle: string;
       noProductsAvailable: string;
       backToShop: string;
+    };
+    cart: {
+      label: string;
+      title: string;
+      navLabel: string;
+      description: string;
+      emptyTitle: string;
+      emptyDescription: string;
+      continueShopping: string;
+      sku: string;
+      quantity: string;
+      available: string;
+      lineTotal: string;
+      remove: string;
+      summary: string;
+      subtotal: string;
+      tax: string;
+      shipping: string;
+      total: string;
+      pending: string;
+      pendingTotals: string;
+      checkout: string;
+      clear: string;
+      unavailableProduct: string;
+      unavailableMessage: string;
+    };
+    checkout: {
+      label: string;
+      title: string;
+      description: string;
+      contact: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      billingAddress: string;
+      shippingAddress: string;
+      sameAsBilling: string;
+      address1: string;
+      address2: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+      orderNotes: string;
+      orderSummary: string;
+      paymentNotice: string;
+      submitOrder: string;
+      submitting: string;
+    };
+    confirmation: {
+      label: string;
+      title: string;
+      description: string;
+      orderNumber: string;
+      email: string;
+      paymentStatus: string;
+      orderStatus: string;
+      date: string;
+      items: string;
+      notFoundTitle: string;
+      notFoundDescription: string;
     };
     categoryLabels: Record<
       string,

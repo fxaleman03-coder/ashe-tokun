@@ -63,6 +63,7 @@ const en: Translation = {
     labels: {
       viewProduct: "View Product",
       addToCart: "Add to Cart",
+      addedToCart: "Added",
       inStock: "Ready to Ship",
       soldOut: "Currently Unavailable",
       new: "New",
@@ -82,6 +83,7 @@ const en: Translation = {
     spiritualNote: "Spiritual Note",
     shipping: "Shipping",
     addToCart: "Add to Cart",
+    addedToCart: "Added to Cart",
     backToShop: "Back to Shop",
     productNotFound: "Product not found",
     productNotFoundDescription:
@@ -93,7 +95,7 @@ const en: Translation = {
     spiritualNotePlaceholder:
       "Cultural and spiritual guidance will be reviewed with knowledgeable practitioners before publication.",
     shippingPlaceholder:
-      "Shipping options and handling times will be added before checkout functionality launches.",
+      "Shipping and payment details are confirmed after your online order request is received.",
   },
   storefront: {
     categorySection: {
@@ -127,6 +129,76 @@ const en: Translation = {
       noProductsAvailable:
         "This category does not have available products yet.",
       backToShop: "Back to Shop",
+    },
+    cart: {
+      label: "Shopping Cart",
+      title: "Cart",
+      navLabel: "Cart",
+      description:
+        "Review your selected ASHE TOKUN items before continuing to checkout.",
+      emptyTitle: "Your cart is empty",
+      emptyDescription:
+        "Browse the shop and add an available item to begin an online order.",
+      continueShopping: "Continue Shopping",
+      sku: "SKU",
+      quantity: "Quantity",
+      available: "Available",
+      lineTotal: "Line Total",
+      remove: "Remove",
+      summary: "Order Summary",
+      subtotal: "Subtotal",
+      tax: "Tax",
+      shipping: "Shipping",
+      total: "Total",
+      pending: "Pending",
+      pendingTotals:
+        "Online orders are created as unpaid requests. Final payment and fulfillment details are confirmed by ASHE TOKUN.",
+      checkout: "Checkout",
+      clear: "Clear Cart",
+      unavailableProduct: "Unavailable product",
+      unavailableMessage:
+        "This item is no longer available online. Remove it before checkout.",
+    },
+    checkout: {
+      label: "Secure Order Request",
+      title: "Checkout",
+      description:
+        "Create an unpaid online order request. ASHE TOKUN will confirm payment and fulfillment details before processing.",
+      contact: "Contact Information",
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      phone: "Phone",
+      billingAddress: "Billing Address",
+      shippingAddress: "Shipping Address",
+      sameAsBilling: "Same as billing",
+      address1: "Address Line 1",
+      address2: "Address Line 2",
+      city: "City",
+      state: "State",
+      postalCode: "Postal Code",
+      country: "Country",
+      orderNotes: "Order Notes",
+      orderSummary: "Order Summary",
+      paymentNotice:
+        "Payment is not collected in this step. Your order will remain pending until payment is confirmed.",
+      submitOrder: "Submit Order Request",
+      submitting: "Submitting...",
+    },
+    confirmation: {
+      label: "Order Received",
+      title: "Thank you",
+      description:
+        "Your order request has been received. Payment is pending and ASHE TOKUN will follow up with next steps.",
+      orderNumber: "Order Number",
+      email: "Email",
+      paymentStatus: "Payment Status",
+      orderStatus: "Order Status",
+      date: "Date",
+      items: "Items",
+      notFoundTitle: "Order not found",
+      notFoundDescription:
+        "We could not find this online order confirmation. Please contact ASHE TOKUN if you need help.",
     },
     categoryLabels: {
       keychains: {

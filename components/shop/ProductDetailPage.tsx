@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useCart } from "@/components/storefront/CartProvider";
 import type { Product } from "@/lib/products";
 import {
   mergeProductOverride,
@@ -25,6 +26,8 @@ function formatPrice(price: number) {
 
 export default function ProductDetailPage({ product }: ProductDetailPageProps) {
   const { language, t } = useLanguage();
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
   const productOverride = useProductOverride(product?.slug ?? "");
   const displayProduct = product
     ? mergeProductOverride(product, productOverride)
@@ -88,6 +91,12 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
   const stockLabel = displayProduct.inStock
     ? t.featuredProducts.labels.inStock
     : t.featuredProducts.labels.soldOut;
+
+  function handleAddToCart() {
+    addItem(displayProduct!.id, 1);
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1800);
+  }
 
   return (
     <main className="bg-[#0f0b07] px-6 pb-24 pt-32 sm:px-8 lg:px-10">
@@ -207,10 +216,11 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
 
             <button
               type="button"
+              onClick={handleAddToCart}
               className="mt-9 inline-flex min-h-14 w-full items-center justify-center bg-[#d8a344] px-7 text-[0.78rem] font-bold uppercase tracking-[0.22em] text-[#0f0b07] shadow-[0_18px_42px_rgba(216,163,68,0.16)] transition duration-500 ease-out hover:-translate-y-0.5 hover:bg-[#f0c062] hover:shadow-[0_22px_60px_rgba(216,163,68,0.28)] disabled:cursor-not-allowed disabled:bg-[#d8a344]/35 disabled:text-[#0f0b07]/60 disabled:shadow-none"
               disabled={!displayProduct.inStock}
             >
-              {t.productPage.addToCart}
+              {added ? t.productPage.addedToCart : t.productPage.addToCart}
             </button>
 
             <Link

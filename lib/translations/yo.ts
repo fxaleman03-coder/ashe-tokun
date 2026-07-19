@@ -68,6 +68,7 @@ const yo: Translation = {
     labels: {
       viewProduct: "Wo Ọjà",
       addToCart: "Fi Kún",
+      addedToCart: "Added",
       inStock: "Ṣetán fún Fífi Ránṣẹ́",
       soldOut: "Kò Sí Lọ́wọ́lọ́wọ́",
       new: "Tuntun",
@@ -88,6 +89,7 @@ const yo: Translation = {
     spiritualNote: "Àkọsílẹ̀ Ẹ̀mí",
     shipping: "Fífi Ránṣẹ́",
     addToCart: "Fi Kún",
+    addedToCart: "Added to Cart",
     backToShop: "Padà sí Ọjà",
     productNotFound: "A kò rí ọjà yìí",
     productNotFoundDescription:
@@ -99,7 +101,7 @@ const yo: Translation = {
     spiritualNotePlaceholder:
       "Àlàyé àṣà àti ẹ̀mí yóò jẹ́ kí ẹni tó mọ̀ dájú kí ó tó jáde.",
     shippingPlaceholder:
-      "Àṣàyàn fífi ránṣẹ́ àti àkókò rẹ̀ yóò wá ṣáájú checkout.",
+      "Shipping and payment details are confirmed after your online order request is received.",
   },
   storefront: {
     // Draft Yoruba placeholders only. Storefront category labels need later review.
@@ -133,6 +135,76 @@ const yo: Translation = {
       noProductsTitle: "Kò sí ọjà lọ́wọ́lọ́wọ́",
       noProductsAvailable: "Ẹ̀ka yìí kò ní ọjà tó wà lọ́wọ́lọ́wọ́.",
       backToShop: "Padà sí Ọjà",
+    },
+    cart: {
+      label: "Shopping Cart",
+      title: "Cart",
+      navLabel: "Cart",
+      description:
+        "Review your selected ASHE TOKUN items before continuing to checkout.",
+      emptyTitle: "Your cart is empty",
+      emptyDescription:
+        "Browse the shop and add an available item to begin an online order.",
+      continueShopping: "Continue Shopping",
+      sku: "SKU",
+      quantity: "Quantity",
+      available: "Available",
+      lineTotal: "Line Total",
+      remove: "Remove",
+      summary: "Order Summary",
+      subtotal: "Subtotal",
+      tax: "Tax",
+      shipping: "Shipping",
+      total: "Total",
+      pending: "Pending",
+      pendingTotals:
+        "Online orders are created as unpaid requests. Final payment and fulfillment details are confirmed by ASHE TOKUN.",
+      checkout: "Checkout",
+      clear: "Clear Cart",
+      unavailableProduct: "Unavailable product",
+      unavailableMessage:
+        "This item is no longer available online. Remove it before checkout.",
+    },
+    checkout: {
+      label: "Secure Order Request",
+      title: "Checkout",
+      description:
+        "Create an unpaid online order request. ASHE TOKUN will confirm payment and fulfillment details before processing.",
+      contact: "Contact Information",
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      phone: "Phone",
+      billingAddress: "Billing Address",
+      shippingAddress: "Shipping Address",
+      sameAsBilling: "Same as billing",
+      address1: "Address Line 1",
+      address2: "Address Line 2",
+      city: "City",
+      state: "State",
+      postalCode: "Postal Code",
+      country: "Country",
+      orderNotes: "Order Notes",
+      orderSummary: "Order Summary",
+      paymentNotice:
+        "Payment is not collected in this step. Your order will remain pending until payment is confirmed.",
+      submitOrder: "Submit Order Request",
+      submitting: "Submitting...",
+    },
+    confirmation: {
+      label: "Order Received",
+      title: "Thank you",
+      description:
+        "Your order request has been received. Payment is pending and ASHE TOKUN will follow up with next steps.",
+      orderNumber: "Order Number",
+      email: "Email",
+      paymentStatus: "Payment Status",
+      orderStatus: "Order Status",
+      date: "Date",
+      items: "Items",
+      notFoundTitle: "Order not found",
+      notFoundDescription:
+        "We could not find this online order confirmation. Please contact ASHE TOKUN if you need help.",
     },
     categoryLabels: {
       keychains: {

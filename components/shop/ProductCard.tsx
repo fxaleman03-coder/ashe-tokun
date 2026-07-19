@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import { useCart } from "@/components/storefront/CartProvider";
 import type { Language, Translation } from "@/lib/translations";
 import type { Product } from "@/lib/products";
 
@@ -53,6 +55,14 @@ export default function ProductCard({
   showAddToCart = true,
 }: ProductCardProps) {
   const badges = getMerchandisingBadges(product, language, labels);
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  function handleAddToCart() {
+    addItem(product.id, 1);
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1800);
+  }
 
   return (
     <article className="group flex h-full flex-col overflow-hidden border border-[#f7ead2]/10 bg-[#120d08] shadow-[0_22px_70px_rgba(0,0,0,0.22)] transition duration-700 ease-out hover:-translate-y-1 hover:border-[#d8a344]/55 hover:shadow-[0_30px_90px_rgba(0,0,0,0.34),0_0_42px_rgba(216,163,68,0.12)]">
@@ -135,10 +145,11 @@ export default function ProductCard({
           {showAddToCart ? (
             <button
               type="button"
+              onClick={handleAddToCart}
               className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-4 text-[0.72rem] font-bold uppercase tracking-[0.18em] text-[#0f0b07] shadow-[0_16px_34px_rgba(216,163,68,0.16)] transition duration-500 ease-out hover:bg-[#f0c062] hover:shadow-[0_20px_48px_rgba(216,163,68,0.26)] disabled:cursor-not-allowed disabled:bg-[#d8a344]/35 disabled:text-[#0f0b07]/60 disabled:shadow-none"
               disabled={!product.inStock}
             >
-              {labels.addToCart}
+              {added ? labels.addedToCart : labels.addToCart}
             </button>
           ) : null}
         </div>
