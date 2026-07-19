@@ -12,6 +12,10 @@ import type {
   PaymentStatus,
   SalesChannel,
 } from "@/lib/data/ordersRepository";
+import {
+  formatDateTime,
+  getBusinessDateString,
+} from "@/lib/utils/dateTimeDisplay";
 
 type AdminOrdersManagerProps = {
   orders: AdminOrder[];
@@ -63,11 +67,11 @@ export default function AdminOrdersManager({
   const filteredOrders = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     const normalizedCustomer = customer.trim().toLowerCase();
-    const fromDate = dateFrom ? new Date(dateFrom) : null;
-    const toDate = dateTo ? new Date(dateTo) : null;
+    const fromDate = dateFrom || null;
+    const toDate = dateTo || null;
 
     return orders.filter((order) => {
-      const createdAt = new Date(order.created_at);
+      const createdDate = getBusinessDateString(order.created_at);
       const matchesSearch =
         !normalizedSearch ||
         order.order_number.toLowerCase().includes(normalizedSearch) ||
@@ -81,8 +85,10 @@ export default function AdminOrdersManager({
         orderStatus === "all" || order.order_status === orderStatus;
       const matchesPaymentStatus =
         paymentStatus === "all" || order.payment_status === paymentStatus;
-      const matchesDateFrom = !fromDate || createdAt >= fromDate;
-      const matchesDateTo = !toDate || createdAt <= toDate;
+      const matchesDateFrom =
+        !fromDate || Boolean(createdDate && createdDate >= fromDate);
+      const matchesDateTo =
+        !toDate || Boolean(createdDate && createdDate <= toDate);
 
       return (
         matchesSearch &&
@@ -271,7 +277,7 @@ export default function AdminOrdersManager({
                     {order.order_number}
                   </td>
                   <td className="px-5 py-4">
-                    {new Date(order.created_at).toLocaleString()}
+                    {formatDateTime(order.created_at)}
                   </td>
                   <td className="px-5 py-4">
                     <div>
@@ -313,6 +319,22 @@ export default function AdminOrdersManager({
                       >
                         {labels.table.view}
                       </Link>
+                      {order.receipt_number ? (
+                        <>
+                          <Link
+                            href={`/admin/orders/${order.id}/receipt`}
+                            className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+                          >
+                            {labels.table.viewReceipt}
+                          </Link>
+                          <Link
+                            href={`/admin/orders/${order.id}/receipt?mode=reprint`}
+                            className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+                          >
+                            {labels.table.reprintReceipt}
+                          </Link>
+                        </>
+                      ) : null}
                       {canCancel(order) ? (
                         <button
                           type="button"

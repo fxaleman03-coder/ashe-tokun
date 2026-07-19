@@ -710,6 +710,8 @@ const yo: Translation = {
         primaryContact: "Primary Contact",
         pending: "Pending",
         view: "View",
+        viewReceipt: "View Receipt",
+        reprintReceipt: "Reprint Receipt",
         cancel: "Cancel",
         resume: "Resume",
         noMatches: "No orders match the current filters.",

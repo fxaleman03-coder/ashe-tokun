@@ -512,7 +512,7 @@ export default function AdminPOS({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(26rem,0.85fr)]">
+    <div className="admin-pos-print-scope grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(26rem,0.85fr)]">
       <section className="space-y-6">
         <div className="border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1225,8 +1225,8 @@ export default function AdminPOS({
         </div>
       </aside>
       {completedSale && isReceiptOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#050302]/85 px-4 py-6 backdrop-blur-sm">
-          <div className="w-full max-w-md border border-[#f7ead2]/12 bg-[#120d08] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.5)]">
+        <div className="pos-receipt-print-modal fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#050302]/85 px-4 py-6 backdrop-blur-sm">
+          <div className="pos-receipt-print-frame w-full max-w-md border border-[#f7ead2]/12 bg-[#120d08] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.5)]">
             <div className="pos-receipt-no-print mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[0.66rem] font-bold uppercase tracking-[0.22em] text-[#d8a344]">

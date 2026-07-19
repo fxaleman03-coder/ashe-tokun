@@ -281,6 +281,20 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     <p className="mt-2 text-xs text-[#e8dcc8]/48">
                       Created: {new Date(receipt.created_at).toLocaleString()}
                     </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link
+                        href={`/admin/orders/${order.id}/receipt`}
+                        className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                      >
+                        View Receipt
+                      </Link>
+                      <Link
+                        href={`/admin/orders/${order.id}/receipt?mode=reprint`}
+                        className="inline-flex min-h-10 items-center justify-center border border-[#f7ead2]/12 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+                      >
+                        Reprint Receipt
+                      </Link>
+                    </div>
                   </div>
                 ))}
               </div>

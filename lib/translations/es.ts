@@ -708,6 +708,8 @@ const es: Translation = {
         primaryContact: "Contacto Principal",
         pending: "Pendiente",
         view: "Ver",
+        viewReceipt: "Ver Recibo",
+        reprintReceipt: "Reimprimir Recibo",
         cancel: "Cancelar",
         resume: "Reanudar",
         noMatches: "No hay pedidos que coincidan con los filtros actuales.",

@@ -580,6 +580,8 @@ export type Translation = {
         primaryContact: string;
         pending: string;
         view: string;
+        viewReceipt: string;
+        reprintReceipt: string;
         cancel: string;
         resume: string;
         noMatches: string;

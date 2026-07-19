@@ -1,10 +1,11 @@
 import { USE_SUPABASE } from "@/lib/config";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
   getCustomerContactName,
   getCustomerPrimaryName,
   isBusinessCustomer,
 } from "@/lib/utils/customerDisplay";
+import { getBusinessDateString } from "@/lib/utils/dateTimeDisplay";
 
 export type OrderStatus = "draft" | "completed" | "cancelled" | "refunded" | "held";
 export type PaymentStatus = "pending" | "paid" | "partially_paid" | "refunded";
@@ -189,6 +190,7 @@ type ShipmentQuantityRow = {
 
 async function getShipmentFulfillmentSummaries(orders: OrderRow[]) {
   const summaries = new Map<string, string>();
+  const supabase = createSupabaseServiceClient();
 
   if (!USE_SUPABASE || !supabase || orders.length === 0) {
     return summaries;
@@ -297,11 +299,11 @@ function applyFilters(orders: AdminOrder[], filters?: OrderFilters) {
 
   const search = filters.search?.trim().toLowerCase();
   const customer = filters.customer?.trim().toLowerCase();
-  const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : null;
-  const dateTo = filters.dateTo ? new Date(filters.dateTo) : null;
+  const dateFrom = filters.dateFrom || null;
+  const dateTo = filters.dateTo || null;
 
   return orders.filter((order) => {
-    const createdAt = new Date(order.created_at);
+    const createdDate = getBusinessDateString(order.created_at);
     const matchesSearch =
       !search ||
       order.order_number.toLowerCase().includes(search) ||
@@ -325,8 +327,10 @@ function applyFilters(orders: AdminOrder[], filters?: OrderFilters) {
       !filters.paymentStatus ||
       filters.paymentStatus === "all" ||
       order.payment_status === filters.paymentStatus;
-    const matchesDateFrom = !dateFrom || createdAt >= dateFrom;
-    const matchesDateTo = !dateTo || createdAt <= dateTo;
+    const matchesDateFrom =
+      !dateFrom || Boolean(createdDate && createdDate >= dateFrom);
+    const matchesDateTo =
+      !dateTo || Boolean(createdDate && createdDate <= dateTo);
     const matchesMinimum =
       filters.minimumTotal === undefined ||
       order.grand_total >= filters.minimumTotal;
@@ -349,6 +353,8 @@ function applyFilters(orders: AdminOrder[], filters?: OrderFilters) {
 }
 
 async function readOrders(): Promise<AdminOrder[]> {
+  const supabase = createSupabaseServiceClient();
+
   if (!USE_SUPABASE || !supabase) {
     return [];
   }
@@ -420,6 +426,8 @@ export async function getOrderByNumber(orderNumber: string) {
 }
 
 export async function getOrderItems(orderId: string): Promise<AdminOrderItem[]> {
+  const supabase = createSupabaseServiceClient();
+
   if (!USE_SUPABASE || !supabase) {
     return [];
   }
@@ -453,6 +461,8 @@ export async function getOrderItems(orderId: string): Promise<AdminOrderItem[]> 
 export async function getOrderPayments(
   orderId: string,
 ): Promise<AdminOrderPayment[]> {
+  const supabase = createSupabaseServiceClient();
+
   if (!USE_SUPABASE || !supabase) {
     return [];
   }
@@ -481,6 +491,8 @@ export async function getOrderPayments(
 export async function getOrderReceipt(
   orderId: string,
 ): Promise<AdminOrderReceipt | null> {
+  const supabase = createSupabaseServiceClient();
+
   if (!USE_SUPABASE || !supabase) {
     return null;
   }
@@ -503,6 +515,8 @@ export async function getOrderReceipt(
 export async function getOrderInventoryTransactions(
   orderId: string,
 ): Promise<AdminOrderInventoryTransaction[]> {
+  const supabase = createSupabaseServiceClient();
+
   if (!USE_SUPABASE || !supabase) {
     return [];
   }
