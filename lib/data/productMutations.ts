@@ -30,7 +30,7 @@ export type ProductCreateInput = {
   shortDescription?: string;
   description?: string;
   sku: string;
-  barcode: string;
+  barcode?: string;
   vendorSku?: string;
   price: number;
   compareAtPrice?: number | null;
@@ -53,6 +53,11 @@ type UpdatedProductRow = {
   cost?: number | string | null;
   sku?: string | null;
   barcode?: string | null;
+  barcode_value?: string | null;
+  barcode_format?: "CODE128" | string | null;
+  barcode_generated_at?: string | null;
+  barcode_print_count?: number | null;
+  barcode_last_printed_at?: string | null;
   vendor_sku?: string | null;
   featured?: boolean | null;
   new_arrival?: boolean | null;
@@ -77,6 +82,22 @@ type ProductCreateResult =
   | { ok: true; source: "supabase"; product: UpdatedProductRow }
   | { ok: true; source: "local" }
   | { ok: false; source: "supabase"; error: string };
+
+type BarcodePrintCountInput = {
+  productId: string;
+  labelCount: number;
+};
+
+type BarcodePrintCountResult =
+  | {
+      ok: true;
+      updatedProducts: number;
+      totalLabels: number;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
 
 export type ProductPriceTrace = {
   requested: number;
@@ -170,7 +191,7 @@ async function resolveLookupId(
 }
 
 async function findDuplicateProduct(
-  field: "slug" | "sku" | "barcode",
+  field: "slug" | "sku" | "barcode" | "barcode_value",
   value: string,
 ) {
   const supabase = createSupabaseServiceClient();
@@ -208,7 +229,6 @@ function validateCreateInput(input: ProductCreateInput) {
   if (!input.category.trim()) return "Category is required.";
   if (!input.productType.trim()) return "Product type is required.";
   if (!input.sku.trim()) return "SKU is required.";
-  if (!input.barcode.trim()) return "Barcode is required.";
   if (!Number.isFinite(input.price) || input.price < 0) {
     return "Price must be a valid non-negative number.";
   }
@@ -270,7 +290,6 @@ export async function updateProduct(
     compare_at_price: toNullableNumber(updates.compareAtPrice),
     cost: toNullableNumber(updates.cost),
     sku: updates.sku,
-    barcode: updates.barcode,
     vendor_sku: updates.vendorSku,
     featured: updates.isFeatured,
     new_arrival: updates.isNew,
@@ -436,7 +455,6 @@ export async function createProduct(
   const duplicateChecks = [
     ["slug", slug, "Product slug already exists"] as const,
     ["sku", input.sku, "SKU already exists"] as const,
-    ["barcode", input.barcode, "Barcode already exists"] as const,
   ];
 
   for (const [field, value, errorMessage] of duplicateChecks) {
@@ -497,7 +515,6 @@ export async function createProduct(
     description:
       input.description?.trim() || input.shortDescription?.trim() || null,
     sku: input.sku.trim(),
-    barcode: input.barcode.trim(),
     vendor_sku: input.vendorSku?.trim() || null,
     price: input.price,
     compare_at_price: toNullableNumber(input.compareAtPrice),
@@ -544,5 +561,91 @@ export async function createProduct(
     ok: true,
     source: "supabase",
     product: data,
+  };
+}
+
+export async function recordProductBarcodePrints(
+  counts: BarcodePrintCountInput[],
+): Promise<BarcodePrintCountResult> {
+  if (!USE_SUPABASE) {
+    return {
+      ok: true,
+      updatedProducts: counts.length,
+      totalLabels: counts.reduce((total, count) => total + count.labelCount, 0),
+    };
+  }
+
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return {
+      ok: false,
+      error: auth.error,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
+
+  if (!supabase) {
+    return {
+      ok: false,
+      error:
+        "Supabase is enabled, but the Supabase client is not configured. Check environment variables.",
+    };
+  }
+
+  const payload = counts.map((count) => ({
+    product_id: count.productId,
+    label_count: count.labelCount,
+  }));
+
+  if (
+    payload.length === 0 ||
+    payload.some(
+      (count) =>
+        !count.product_id ||
+        !Number.isInteger(count.label_count) ||
+        count.label_count <= 0,
+    )
+  ) {
+    return {
+      ok: false,
+      error: "Barcode print counts must include positive whole label counts.",
+    };
+  }
+
+  const { data, error } = await supabase.rpc(
+    "record_product_barcode_prints",
+    {
+      p_counts: payload,
+    },
+  );
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message,
+    };
+  }
+
+  const result = data as {
+    success?: boolean;
+    updated_products?: number;
+    total_labels?: number;
+  } | null;
+
+  if (!result?.success) {
+    return {
+      ok: false,
+      error: "Barcode print tracking did not return a verified result.",
+    };
+  }
+
+  return {
+    ok: true,
+    updatedProducts: result.updated_products ?? payload.length,
+    totalLabels:
+      result.total_labels ??
+      payload.reduce((total, count) => total + count.label_count, 0),
   };
 }

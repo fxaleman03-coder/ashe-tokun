@@ -65,6 +65,7 @@ export default async function AdminEditProductPage({
         mediaAssets={mediaAssets}
         productMedia={productMedia}
         inventorySummary={inventorySummary}
+        canPrintBarcodes
       />
     </AdminShell>
   );

@@ -4,10 +4,11 @@ import {
   getProducts,
   getProductSourceStatus,
 } from "@/lib/data/productsRepository";
+import { hasPermission } from "@/lib/staff/permissionHelpers";
 import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminProductsPage() {
-  await requirePermission("products.read");
+  const { permissions } = await requirePermission("products.read");
 
   const [products, productSourceStatus] = await Promise.all([
     getProducts(),
@@ -19,6 +20,7 @@ export default async function AdminProductsPage() {
       <AdminProductsPageContent
         products={products}
         productSourceStatus={productSourceStatus}
+        canPrintLabels={hasPermission(permissions, "products.edit")}
       />
     </AdminShell>
   );

@@ -80,6 +80,7 @@ function makeCartItem(
     name: product.name,
     sku: product.sku,
     barcode: product.barcode,
+    barcodeValue: product.barcodeValue,
     image: product.image,
     unitPrice: product.price,
     quantity,
@@ -182,6 +183,7 @@ export default function AdminPOS({
         product.name,
         product.brand,
         product.sku,
+        product.barcodeValue,
         product.barcode,
         product.vendorSku,
         product.category,
@@ -333,8 +335,9 @@ export default function AdminPOS({
 
     const matchedProduct = products.find(
       (product) =>
-        product.sku.toLowerCase() === normalizedLookup ||
-        product.barcode.toLowerCase() === normalizedLookup,
+        product.barcodeValue?.toLowerCase() === normalizedLookup ||
+        product.barcode.toLowerCase() === normalizedLookup ||
+        product.sku.toLowerCase() === normalizedLookup,
     );
 
     if (!matchedProduct) {
@@ -649,7 +652,7 @@ export default function AdminPOS({
                         <span className="text-[#d8a344]">
                           {labels.barcode}:
                         </span>{" "}
-                        {product.barcode}
+                        {product.barcodeValue ?? product.barcode}
                       </p>
                       <p>
                         <span className="text-[#d8a344]">

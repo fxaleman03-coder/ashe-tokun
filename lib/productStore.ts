@@ -13,6 +13,11 @@ export type ProductOverride = {
   vendor?: Product["vendor"];
   sku?: string;
   barcode?: string;
+  barcodeValue?: string;
+  barcodeFormat?: Product["barcodeFormat"];
+  barcodeGeneratedAt?: string | null;
+  barcodePrintCount?: number;
+  barcodeLastPrintedAt?: string | null;
   vendorSku?: string;
   name?: string;
   category?: string;
@@ -109,6 +114,23 @@ export function mergeProductOverride(
     vendor: override.vendor ?? product.vendor,
     sku: override.sku || product.sku,
     barcode: override.barcode || product.barcode,
+    barcodeValue: override.barcodeValue || product.barcodeValue,
+    barcodeFormat:
+      override.barcodeFormat === undefined
+        ? product.barcodeFormat
+        : override.barcodeFormat,
+    barcodeGeneratedAt:
+      override.barcodeGeneratedAt === undefined
+        ? product.barcodeGeneratedAt
+        : override.barcodeGeneratedAt,
+    barcodePrintCount:
+      override.barcodePrintCount === undefined
+        ? product.barcodePrintCount
+        : override.barcodePrintCount,
+    barcodeLastPrintedAt:
+      override.barcodeLastPrintedAt === undefined
+        ? product.barcodeLastPrintedAt
+        : override.barcodeLastPrintedAt,
     vendorSku:
       override.vendorSku === undefined ? product.vendorSku : override.vendorSku,
     name: toLocalizedText(override.name, product.name),

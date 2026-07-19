@@ -21,6 +21,8 @@ export type PosProduct = {
   slug: string;
   sku: string;
   barcode: string;
+  barcodeValue?: string;
+  barcodeFormat?: "CODE128";
   vendorSku?: string;
   price: number;
   compareAtPrice?: number;
@@ -53,6 +55,7 @@ export type PosCartItem = {
   name: string;
   sku: string;
   barcode: string;
+  barcodeValue?: string;
   image: string | null;
   unitPrice: number;
   quantity: number;

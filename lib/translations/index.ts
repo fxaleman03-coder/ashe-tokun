@@ -190,7 +190,10 @@ export type Translation = {
       fallback: string;
       available: string;
       addProduct: string;
+      allProducts: string;
+      printLabels: string;
       table: {
+        select: string;
         product: string;
         sku: string;
         vendor: string;
@@ -205,7 +208,36 @@ export type Translation = {
         unavailable: string;
         yes: string;
         no: string;
+        printLabels: string;
+        selectedProducts: string;
       };
+    };
+    productIdentification: {
+      productIdentification: string;
+      internalBarcode: string;
+      code128: string;
+      code128Preview: string;
+      notUpcEanGtin: string;
+      barcodeValue: string;
+      sku: string;
+      shelfLabel: string;
+      productLabel: string;
+      miniProductLabel: string;
+      printLabels: string;
+      printProductLabel: string;
+      printShelfLabel: string;
+      printMiniLabel: string;
+      preview: string;
+      previewDescription: string;
+      cancel: string;
+      labelType: string;
+      copiesPerProduct: string;
+      printing: string;
+      recordingPrint: string;
+      printReady: string;
+      printFailed: string;
+      printPermissionRequired: string;
+      internalNotice: string;
     };
     customers: {
       title: string;

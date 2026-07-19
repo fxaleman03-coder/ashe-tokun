@@ -15,6 +15,11 @@ export type Product = {
   vendor: ProductVendor;
   sku: string;
   barcode: string;
+  barcodeValue?: string;
+  barcodeFormat?: "CODE128";
+  barcodeGeneratedAt?: string | null;
+  barcodePrintCount?: number;
+  barcodeLastPrintedAt?: string | null;
   vendorSku?: string;
   name: LocalizedText;
   category: LocalizedText;

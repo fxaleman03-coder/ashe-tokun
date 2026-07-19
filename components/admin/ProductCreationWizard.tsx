@@ -388,7 +388,6 @@ export default function ProductCreationWizard({
       shortDescription: state.shortDescription,
       description: state.shortDescription,
       sku: previewSku,
-      barcode: previewSku,
       price,
       compareAtPrice,
       cost,
@@ -1037,7 +1036,10 @@ export default function ProductCreationWizard({
                   ) : null}
                 </div>
                 <ReviewItem label="Preview SKU" value={previewSku} />
-                <ReviewItem label="Preview Barcode" value={previewSku} />
+                <ReviewItem
+                  label="Internal Barcode"
+                  value="Generated after save"
+                />
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button

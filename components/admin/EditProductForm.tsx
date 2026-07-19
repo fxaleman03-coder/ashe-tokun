@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import ProductIdentificationPanel from "@/components/admin/ProductIdentificationPanel";
 import { USE_SUPABASE } from "@/lib/config";
 import { updateProduct } from "@/lib/data/productMutations";
 import type { InventoryProductSummary } from "@/lib/data/inventoryRepository";
@@ -32,6 +33,7 @@ type EditProductFormProps = {
   mediaAssets?: MediaAsset[];
   productMedia?: ProductMediaRecord[];
   inventorySummary?: InventoryProductSummary;
+  canPrintBarcodes?: boolean;
 };
 
 type ProductStatus = "Draft" | "Active" | "Archived";
@@ -193,6 +195,20 @@ function formatEstimatedMargin(price: string, cost: string) {
   return `${margin.toFixed(1)}% estimated margin`;
 }
 
+function getBarcodeDisplayValue(
+  product: Product,
+  formBarcode: string,
+  formSku: string,
+) {
+  return (
+    product.barcodeValue?.trim() ||
+    product.barcode?.trim() ||
+    formBarcode.trim() ||
+    formSku.trim() ||
+    product.sku
+  );
+}
+
 function SectionCard({
   title,
   eyebrow,
@@ -247,6 +263,7 @@ function ProductStudioForm({
   mediaAssets = [],
   productMedia = [],
   inventorySummary,
+  canPrintBarcodes = false,
   seedProduct,
   stock,
 }: ProductStudioFormProps) {
@@ -277,6 +294,17 @@ function ProductStudioForm({
         image.category.toLowerCase().includes(normalizedQuery),
     );
   }, [mediaAssets, mediaQuery]);
+  const barcodeLabelProduct = {
+    id: seedProduct.id,
+    name: formState.name || seedProduct.name.en,
+    sku: formState.sku || seedProduct.sku,
+    barcodeValue: getBarcodeDisplayValue(
+      seedProduct,
+      formState.barcode,
+      formState.sku,
+    ),
+    price: Number(formState.price),
+  };
 
   function updateField<Field extends keyof EditProductFormState>(
     field: Field,
@@ -451,7 +479,6 @@ function ProductStudioForm({
       name: formState.name.trim() || seedProduct.name.en,
       vendor: formState.vendor,
       sku: formState.sku.trim() || seedProduct.sku,
-      barcode: formState.barcode.trim() || seedProduct.barcode,
       vendorSku: formState.vendorSku.trim(),
       category: formState.category.trim() || seedProduct.category.en,
       tradition: formState.tradition.trim() || seedProduct.tradition.en,
@@ -494,7 +521,10 @@ function ProductStudioForm({
         ),
         cost: formatOptionalDatabaseNumber(result.product.cost),
         sku: result.product.sku ?? currentState.sku,
-        barcode: result.product.barcode ?? currentState.barcode,
+        barcode:
+          result.product.barcode_value ??
+          result.product.barcode ??
+          currentState.barcode,
         vendorSku: result.product.vendor_sku ?? currentState.vendorSku,
         availableOnline:
           result.product.available_online ?? currentState.availableOnline,
@@ -532,6 +562,13 @@ function ProductStudioForm({
 
   return (
     <>
+      <div className="mb-6">
+        <ProductIdentificationPanel
+          product={barcodeLabelProduct}
+          canPrint={canPrintBarcodes}
+        />
+      </div>
+
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -911,13 +948,16 @@ function ProductStudioForm({
                 className={inputClass}
               />
             </FieldLabel>
-            <FieldLabel label="Barcode">
+            <FieldLabel label="Internal Barcode">
               <input
                 type="text"
-                value={formState.barcode}
-                onChange={(event) => updateField("barcode", event.target.value)}
-                className={inputClass}
+                value={seedProduct.barcodeValue ?? formState.barcode}
+                readOnly
+                className={`${inputClass} cursor-not-allowed text-[#e8dcc8]/58`}
               />
+              <p className="mt-2 text-xs leading-5 text-[#e8dcc8]/50">
+                ASHE TOKUN internal Code 128 value. Not a UPC, EAN, or GTIN.
+              </p>
             </FieldLabel>
             <FieldLabel label="Vendor SKU">
               <input
@@ -1280,6 +1320,7 @@ export default function EditProductForm({
   mediaAssets = [],
   productMedia = [],
   inventorySummary,
+  canPrintBarcodes = false,
 }: EditProductFormProps) {
   const override = useProductOverride(product.slug);
   const shouldClearCustomOpeleOverride =
@@ -1303,6 +1344,7 @@ export default function EditProductForm({
       mediaAssets={mediaAssets}
       productMedia={productMedia}
       inventorySummary={inventorySummary}
+      canPrintBarcodes={canPrintBarcodes}
       seedProduct={product}
       stock={effectiveOverride?.stock}
     />

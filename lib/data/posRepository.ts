@@ -184,6 +184,7 @@ function getLocalPosProducts(): PosProduct[] {
       slug: product.slug,
       sku: product.sku,
       barcode: product.barcode,
+      barcodeValue: product.barcodeValue,
       vendorSku: product.vendorSku,
       price: product.price,
       compareAtPrice: product.compareAtPrice,
@@ -315,8 +316,9 @@ export async function getPosProductBySkuOrBarcode(
 
   return products.find(
     (product) =>
-      product.sku.toLowerCase() === normalizedValue ||
-      product.barcode.toLowerCase() === normalizedValue,
+      product.barcodeValue?.toLowerCase() === normalizedValue ||
+      product.barcode.toLowerCase() === normalizedValue ||
+      product.sku.toLowerCase() === normalizedValue,
   );
 }
 

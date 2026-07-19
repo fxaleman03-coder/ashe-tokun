@@ -37,6 +37,11 @@ type SupabaseProductRow = {
   description?: string | null;
   sku: string;
   barcode: string;
+  barcode_value?: string | null;
+  barcode_format?: "CODE128" | string | null;
+  barcode_generated_at?: string | null;
+  barcode_print_count?: number | null;
+  barcode_last_printed_at?: string | null;
   vendor_sku?: string | null;
   price?: number | string | null;
   compare_at_price?: number | string | null;
@@ -162,6 +167,14 @@ const mapSupabaseProduct = (
     vendor: normalizeVendor(row.brand?.name),
     sku: row.sku,
     barcode: row.barcode,
+    barcodeValue: row.barcode_value ?? row.barcode,
+    barcodeFormat:
+      row.barcode_format === "CODE128" || row.barcode_value
+        ? "CODE128"
+        : undefined,
+    barcodeGeneratedAt: row.barcode_generated_at ?? null,
+    barcodePrintCount: row.barcode_print_count ?? 0,
+    barcodeLastPrintedAt: row.barcode_last_printed_at ?? null,
     vendorSku: row.vendor_sku ?? undefined,
     name: localized(row.name),
     category: localized(categoryName),
@@ -356,8 +369,9 @@ export async function getProductBySkuOrBarcode(
 
   return products.find(
     (product) =>
-      product.sku.toLowerCase() === normalizedValue ||
-      product.barcode.toLowerCase() === normalizedValue,
+      product.barcodeValue?.toLowerCase() === normalizedValue ||
+      product.barcode.toLowerCase() === normalizedValue ||
+      product.sku.toLowerCase() === normalizedValue,
   );
 }
 
