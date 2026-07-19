@@ -5,6 +5,8 @@ import Navbar from "@/components/Navbar";
 import StorefrontCategoriesPreview from "@/components/shop/StorefrontCategoriesPreview";
 import StorefrontProviders from "@/components/storefront/StorefrontProviders";
 
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   return (
     <StorefrontProviders>

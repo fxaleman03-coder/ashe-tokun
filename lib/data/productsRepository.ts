@@ -1,3 +1,5 @@
+import "server-only";
+
 import { USE_SUPABASE } from "@/lib/config";
 import {
   products as localProducts,
@@ -6,6 +8,7 @@ import {
   type ProductVendor,
 } from "@/lib/products";
 import { supabase } from "@/lib/supabase";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { Language } from "@/lib/translations";
 
 type ProductSourceStatus = "Supabase" | "Local fallback";
@@ -81,12 +84,10 @@ type ProductInventoryRow = {
   on_hand_quantity?: number | null;
   reserved_quantity?: number | null;
   available_quantity?: number | null;
-  reorder_level?: number | null;
 };
 
 type ProductInventorySummary = {
   stock: number;
-  reorderLevel?: number;
 };
 
 const localProductsBySku = new Map(
@@ -107,6 +108,18 @@ const toNumber = (value: number | string | null | undefined): number | undefined
   const numberValue = typeof value === "number" ? value : Number(value);
 
   return Number.isFinite(numberValue) ? numberValue : undefined;
+};
+
+const getPublicAvailableQuantity = (row: ProductInventoryRow): number => {
+  const onHand = Math.max(toNumber(row.on_hand_quantity) ?? 0, 0);
+  const reserved = Math.max(toNumber(row.reserved_quantity) ?? 0, 0);
+  const available = toNumber(row.available_quantity);
+
+  if (available !== undefined && available >= 0) {
+    return available;
+  }
+
+  return Math.max(onHand - reserved, 0);
 };
 
 const normalizeVendor = (brandName?: string | null): ProductVendor => {
@@ -149,7 +162,7 @@ const mapSupabaseProduct = (
   inventoryByProductId: Map<string, ProductInventorySummary>,
 ): Product => {
   const inventorySummary = inventoryByProductId.get(row.id);
-  const stock = inventorySummary?.stock ?? row.stock ?? 0;
+  const stock = inventorySummary?.stock ?? 0;
   const categoryName = row.category?.name ?? "Uncategorized";
   const traditionName = row.tradition?.name ?? "Unassigned";
   const productTypeName = row.product_type?.name;
@@ -184,7 +197,7 @@ const mapSupabaseProduct = (
     compareAtPrice,
     cost,
     stock,
-    reorderLevel: inventorySummary?.reorderLevel ?? row.reorder_level ?? undefined,
+    reorderLevel: row.reorder_level ?? undefined,
     inventoryLocation: row.inventory_location ?? undefined,
     availableOnline: row.available_online ?? true,
     availableInStore: row.available_in_store ?? true,
@@ -283,48 +296,43 @@ async function readProducts(): Promise<ProductsResult> {
       }
     }
 
-    const inventoryResult = await supabase
-      .from("inventory_items")
-      .select(
-        "product_id, on_hand_quantity, reserved_quantity, available_quantity, reorder_level",
-      )
-      .in("product_id", productIds);
+    const inventoryClient = createSupabaseServiceClient();
 
-    if (inventoryResult.error) {
+    if (!inventoryClient) {
       console.info(
         "[ASHE TOKUN product repository]",
-        "Inventory item query failed. Product stock will use product fallback values.",
-        {
-          errorMessage: inventoryResult.error.message,
-          errorCode: inventoryResult.error.code,
-          errorDetails: inventoryResult.error.details,
-          errorHint: inventoryResult.error.hint,
-        },
+        "Service-role inventory read is unavailable. Public product stock will remain unavailable.",
       );
     } else {
-      for (const row of (inventoryResult.data ?? []) as ProductInventoryRow[]) {
-        const currentSummary = inventoryByProductId.get(row.product_id) ?? {
-          stock: 0,
-          reorderLevel: undefined,
-        };
-        const onHand = row.on_hand_quantity ?? 0;
-        const reserved = row.reserved_quantity ?? 0;
-        const calculatedAvailable = onHand - reserved;
-        const available =
-          row.available_quantity === calculatedAvailable
-            ? row.available_quantity
-            : calculatedAvailable;
-        const reorderLevel = row.reorder_level ?? undefined;
+      const inventoryResult = await inventoryClient
+        .from("inventory_items")
+        .select(
+          "product_id, on_hand_quantity, reserved_quantity, available_quantity",
+        )
+        .in("product_id", productIds);
 
-        inventoryByProductId.set(row.product_id, {
-          stock: currentSummary.stock + available,
-          reorderLevel:
-            currentSummary.reorderLevel === undefined
-              ? reorderLevel
-              : reorderLevel === undefined
-                ? currentSummary.reorderLevel
-                : Math.min(currentSummary.reorderLevel, reorderLevel),
-        });
+      if (inventoryResult.error) {
+        console.info(
+          "[ASHE TOKUN product repository]",
+          "Service-role inventory item query failed. Public product stock will remain unavailable.",
+          {
+            errorMessage: inventoryResult.error.message,
+            errorCode: inventoryResult.error.code,
+            errorDetails: inventoryResult.error.details,
+            errorHint: inventoryResult.error.hint,
+          },
+        );
+      } else {
+        for (const row of (inventoryResult.data ?? []) as ProductInventoryRow[]) {
+          const currentSummary = inventoryByProductId.get(row.product_id) ?? {
+            stock: 0,
+          };
+          const available = getPublicAvailableQuantity(row);
+
+          inventoryByProductId.set(row.product_id, {
+            stock: Math.max(currentSummary.stock + available, 0),
+          });
+        }
       }
     }
   }

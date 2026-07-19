@@ -13,6 +13,8 @@ type CategoryPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
   const categories = await getCategories();
   const seenSlugs = new Set<string>();

@@ -4,6 +4,8 @@ import StorefrontCategorySection from "@/components/shop/StorefrontCategorySecti
 import StorefrontProviders from "@/components/storefront/StorefrontProviders";
 import { getStorefrontCategories } from "@/lib/data/storefrontCategories";
 
+export const dynamic = "force-dynamic";
+
 export default async function ShopPage() {
   const categories = await getStorefrontCategories();
 

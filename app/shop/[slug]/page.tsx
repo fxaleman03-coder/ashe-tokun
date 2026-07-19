@@ -11,6 +11,8 @@ type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
   const products = await getProducts();
 
