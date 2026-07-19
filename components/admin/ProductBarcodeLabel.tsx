@@ -28,16 +28,41 @@ function formatPrice(price?: number) {
   }).format(price);
 }
 
+function getBarcodeRenderOptions(kind: ProductBarcodeLabelKind) {
+  if (kind === "SHELF") {
+    return {
+      barHeight: 48,
+      moduleWidth: 1.1,
+      quietZone: 10,
+      showText: false,
+    };
+  }
+
+  if (kind === "PRODUCT") {
+    return {
+      barHeight: 30,
+      moduleWidth: 0.78,
+      quietZone: 7,
+      showText: false,
+    };
+  }
+
+  return {
+    barHeight: 16,
+    moduleWidth: 0.48,
+    quietZone: 5,
+    showText: false,
+  };
+}
+
 export default function ProductBarcodeLabel({
   product,
   kind,
 }: ProductBarcodeLabelProps) {
-  const barcodeSvg = renderCode128Svg(product.barcodeValue, {
-    barHeight: kind === "MINI_PRODUCT" ? 44 : 62,
-    moduleWidth: kind === "MINI_PRODUCT" ? 1 : 1.4,
-    quietZone: kind === "MINI_PRODUCT" ? 8 : 12,
-    showText: false,
-  });
+  const barcodeSvg = renderCode128Svg(
+    product.barcodeValue,
+    getBarcodeRenderOptions(kind),
+  );
   const price = formatPrice(product.price);
 
   return (

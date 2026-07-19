@@ -327,10 +327,22 @@ const es: Translation = {
       recordingPrint: "Registrando conteo de impresión...",
       printReady: "Las etiquetas están listas para imprimir.",
       printFailed: "Falló la impresión de etiquetas",
+      printTrackingPending:
+        "El seguimiento de impresión está pendiente de la migración de base de datos de la Fase 16A. Las etiquetas se imprimirán de todos modos.",
       printPermissionRequired:
         "Se requiere permiso de administración de productos para imprimir etiquetas.",
       internalNotice:
         "Estas etiquetas usan valores internos Code 128 de ASHE TOKUN para operaciones de tienda.",
+      printInstructionsTitle: "Configuración de impresión Brother HL-L2370DW",
+      printInstructions: [
+        "Tamaño de papel: Carta",
+        "Escala: 100%",
+        "Márgenes: Ninguno o Mínimo",
+        "Encabezados y pies de página: Desactivados",
+        "Doble cara: Desactivado",
+        "Tipo de papel: Etiquetas o Papel Grueso",
+        "Use la ranura de alimentación manual Brother",
+      ],
     },
     customers: {
       title: "Clientes",

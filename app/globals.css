@@ -30,34 +30,65 @@ body {
 
 .product-barcode-print-root {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  background: #ffffff;
+  color: #0f0b07;
+  grid-auto-flow: row;
+  margin: 0 auto;
+  overflow: auto;
+  padding: 0.2in;
+  width: max-content;
+}
+
+.product-barcode-print-root-shelf {
+  grid-template-columns: repeat(2, 4in);
+}
+
+.product-barcode-print-root-product,
+.product-barcode-print-root-mini-product {
+  grid-template-columns: repeat(4, 2in);
 }
 
 .product-barcode-label {
   background: #ffffff;
   border: 1px solid rgba(15, 11, 7, 0.24);
+  box-sizing: border-box;
   color: #0f0b07;
   display: flex;
   flex-direction: column;
   font-family: Arial, Helvetica, sans-serif;
-  gap: 8px;
+  gap: 0.05in;
   justify-content: center;
-  min-height: 132px;
-  padding: 12px;
+  overflow: hidden;
+  padding: 0.08in;
+  width: 2in;
+}
+
+.product-barcode-label-shelf {
+  height: 2in;
+  padding: 0.12in;
+  width: 4in;
+}
+
+.product-barcode-label-product {
+  height: 1in;
+  padding: 0.07in;
+  width: 2in;
 }
 
 .product-barcode-label-mini-product {
-  min-height: 86px;
+  height: 0.5in;
+  justify-content: center;
+  padding: 0.035in 0.055in;
+  width: 2in;
 }
 
 .product-barcode-label-heading {
   display: grid;
-  gap: 4px;
+  gap: 0.04in;
 }
 
 .product-barcode-brand {
-  font-size: 9px;
+  font-size: 0.12in;
   font-weight: 800;
   letter-spacing: 0.16em;
   margin: 0;
@@ -65,16 +96,17 @@ body {
 }
 
 .product-barcode-product-name {
-  font-size: 12px;
+  font-size: 0.18in;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.05;
   margin: 0;
 }
 
 .product-barcode-price {
-  font-size: 17px;
+  font-size: 0.34in;
   font-weight: 800;
-  margin: 2px 0 0;
+  line-height: 1;
+  margin: 0;
 }
 
 .product-barcode-svg svg {
@@ -87,10 +119,20 @@ body {
 .product-barcode-sku {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
-  font-size: 10px;
+  font-size: 0.09in;
   letter-spacing: 0.04em;
   margin: 0;
   text-align: center;
+}
+
+.product-barcode-label-shelf .product-barcode-value,
+.product-barcode-label-shelf .product-barcode-sku {
+  font-size: 0.11in;
+}
+
+.product-barcode-label-mini-product .product-barcode-value {
+  font-size: 0.065in;
+  letter-spacing: 0.02em;
 }
 
 @page {
@@ -104,8 +146,8 @@ body {
 }
 
 @page product-barcode-label {
-  size: 2.25in 1.25in;
-  margin: 0.08in;
+  size: letter;
+  margin: 0.25in;
 }
 
 @media print {
@@ -207,39 +249,71 @@ body {
     background: #ffffff !important;
     color: #000000 !important;
     display: grid !important;
-    gap: 0.08in !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    grid-auto-flow: row !important;
     left: 0 !important;
     margin: 0 !important;
+    overflow: visible !important;
     padding: 0 !important;
     page: product-barcode-label;
     position: absolute !important;
     top: 0 !important;
-    width: 100% !important;
+    width: max-content !important;
+  }
+
+  body:has(.product-barcode-print-root) .product-barcode-print-root-shelf {
+    grid-template-columns: repeat(2, 4in) !important;
+  }
+
+  body:has(.product-barcode-print-root) .product-barcode-print-root-product,
+  body:has(.product-barcode-print-root)
+    .product-barcode-print-root-mini-product {
+    grid-template-columns: repeat(4, 2in) !important;
   }
 
   body:has(.product-barcode-print-root) .product-barcode-label {
     background: #ffffff !important;
     border: 1px solid #000000 !important;
+    box-sizing: border-box !important;
     break-inside: avoid !important;
     color: #000000 !important;
     display: flex !important;
     flex-direction: column !important;
     font-family: Arial, Helvetica, sans-serif !important;
-    gap: 0.04in !important;
+    gap: 0.025in !important;
     justify-content: center !important;
-    min-height: 1.05in !important;
-    padding: 0.06in !important;
+    overflow: hidden !important;
+    padding: 0.07in !important;
     page-break-inside: avoid !important;
+    width: 2in !important;
+  }
+
+  body:has(.product-barcode-print-root) .product-barcode-label-shelf {
+    height: 2in !important;
+    padding: 0.12in !important;
+    width: 4in !important;
+  }
+
+  body:has(.product-barcode-print-root) .product-barcode-label-product {
+    height: 1in !important;
+    padding: 0.07in !important;
+    width: 2in !important;
+  }
+
+  body:has(.product-barcode-print-root)
+    .product-barcode-label-mini-product {
+    height: 0.5in !important;
+    padding: 0.035in 0.055in !important;
+    width: 2in !important;
   }
 
   body:has(.product-barcode-print-root) .product-barcode-label-heading {
     display: grid !important;
-    gap: 0.08in !important;
+    gap: 0.04in !important;
   }
 
   body:has(.product-barcode-print-root) .product-barcode-brand {
-    font-size: 7px !important;
+    font-size: 0.12in !important;
     font-weight: 800 !important;
     letter-spacing: 0.12em !important;
     margin: 0 !important;
@@ -247,15 +321,16 @@ body {
   }
 
   body:has(.product-barcode-print-root) .product-barcode-product-name {
-    font-size: 9px !important;
+    font-size: 0.18in !important;
     font-weight: 700 !important;
-    line-height: 1.1 !important;
+    line-height: 1.05 !important;
     margin: 0 !important;
   }
 
   body:has(.product-barcode-print-root) .product-barcode-price {
-    font-size: 11px !important;
+    font-size: 0.34in !important;
     font-weight: 800 !important;
+    line-height: 1 !important;
     margin: 0 !important;
     white-space: nowrap !important;
   }
@@ -271,10 +346,26 @@ body {
   body:has(.product-barcode-print-root) .product-barcode-sku {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New", monospace !important;
-    font-size: 8px !important;
+    font-size: 0.085in !important;
     letter-spacing: 0.04em !important;
     margin: 0 !important;
     text-align: center !important;
+  }
+
+  body:has(.product-barcode-print-root)
+    .product-barcode-label-shelf
+    .product-barcode-value,
+  body:has(.product-barcode-print-root)
+    .product-barcode-label-shelf
+    .product-barcode-sku {
+    font-size: 0.11in !important;
+  }
+
+  body:has(.product-barcode-print-root)
+    .product-barcode-label-mini-product
+    .product-barcode-value {
+    font-size: 0.065in !important;
+    letter-spacing: 0.02em !important;
   }
 
   .staff-print-header {

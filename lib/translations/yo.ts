@@ -331,10 +331,22 @@ const yo: Translation = {
       recordingPrint: "Recording print count...",
       printReady: "Labels are ready to print.",
       printFailed: "Label printing failed",
+      printTrackingPending:
+        "Print tracking is pending the Phase 16A database migration. Labels will still print.",
       printPermissionRequired:
         "Product management permission is required to print labels.",
       internalNotice:
         "These labels use internal ASHE TOKUN Code 128 values for store operations.",
+      printInstructionsTitle: "Brother HL-L2370DW print setup",
+      printInstructions: [
+        "Paper size: Letter",
+        "Scale: 100%",
+        "Margins: None or Minimum",
+        "Headers and footers: Off",
+        "Two-sided: Off",
+        "Paper type: Labels or Thick Paper",
+        "Use the Brother manual feed slot",
+      ],
     },
     customers: {
       title: "Customers",

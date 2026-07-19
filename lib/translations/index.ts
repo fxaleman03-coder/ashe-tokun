@@ -236,8 +236,11 @@ export type Translation = {
       recordingPrint: string;
       printReady: string;
       printFailed: string;
+      printTrackingPending: string;
       printPermissionRequired: string;
       internalNotice: string;
+      printInstructionsTitle: string;
+      printInstructions: string[];
     };
     customers: {
       title: string;

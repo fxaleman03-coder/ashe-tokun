@@ -19,6 +19,18 @@ type ProductBarcodePrintSheetProps = {
   canPrint: boolean;
 };
 
+function isMissingPrintTrackingRpc(error: string) {
+  const normalizedError = error.toLowerCase();
+
+  return (
+    normalizedError.includes("record_product_barcode_prints") &&
+    (normalizedError.includes("function") ||
+      normalizedError.includes("schema cache") ||
+      normalizedError.includes("not found") ||
+      normalizedError.includes("could not find"))
+  );
+}
+
 export default function ProductBarcodePrintSheet({
   items,
   kind,
@@ -56,12 +68,17 @@ export default function ProductBarcodePrintSheet({
     );
 
     if (!result.ok) {
-      setIsPrinting(false);
-      setMessage(`${labels.printFailed}: ${result.error}`);
-      return;
+      if (!isMissingPrintTrackingRpc(result.error)) {
+        setIsPrinting(false);
+        setMessage(`${labels.printFailed}: ${result.error}`);
+        return;
+      }
+
+      setMessage(labels.printTrackingPending);
+    } else {
+      setMessage(labels.printReady);
     }
 
-    setMessage(labels.printReady);
     window.requestAnimationFrame(() => {
       window.print();
       setIsPrinting(false);
@@ -95,7 +112,20 @@ export default function ProductBarcodePrintSheet({
         </p>
       ) : null}
 
-      <div className="product-barcode-print-root">
+      <div className="no-print border border-[#f7ead2]/10 bg-[#120d08] p-4">
+        <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
+          {labels.printInstructionsTitle}
+        </p>
+        <ul className="mt-3 grid gap-2 text-xs leading-5 text-[#e8dcc8]/66 sm:grid-cols-2">
+          {labels.printInstructions.map((instruction) => (
+            <li key={instruction}>{instruction}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div
+        className={`product-barcode-print-root product-barcode-print-root-${kind.toLowerCase().replaceAll("_", "-")}`}
+      >
         {printableItems.map((item) => (
           <ProductBarcodeLabel
             key={item.key}
