@@ -64,8 +64,9 @@ body {
 }
 
 .product-barcode-label-shelf {
+  gap: 0.035in;
   height: 2in;
-  padding: 0.12in;
+  padding: 0.18in 0.12in 0.16in;
   width: 4in;
 }
 
@@ -289,8 +290,9 @@ body {
   }
 
   body:has(.product-barcode-print-root) .product-barcode-label-shelf {
+    gap: 0.018in !important;
     height: 2in !important;
-    padding: 0.12in !important;
+    padding: 0.18in 0.12in 0.16in !important;
     width: 4in !important;
   }
 
