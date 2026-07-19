@@ -64,9 +64,9 @@ body {
 }
 
 .product-barcode-label-shelf {
-  gap: 0.035in;
+  gap: 0.012in;
   height: 2in;
-  padding: 0.18in 0.12in 0.16in;
+  padding: 0.27in 0.12in 0.25in;
   width: 4in;
 }
 
@@ -241,6 +241,11 @@ body {
     visibility: hidden !important;
   }
 
+  body:has(.product-barcode-print-root) .product-barcode-print-controls,
+  body:has(.product-barcode-print-root) .no-print {
+    display: none !important;
+  }
+
   body:has(.product-barcode-print-root) .product-barcode-print-root,
   body:has(.product-barcode-print-root) .product-barcode-print-root * {
     visibility: visible !important;
@@ -290,9 +295,9 @@ body {
   }
 
   body:has(.product-barcode-print-root) .product-barcode-label-shelf {
-    gap: 0.018in !important;
+    gap: 0.006in !important;
     height: 2in !important;
-    padding: 0.18in 0.12in 0.16in !important;
+    padding: 0.27in 0.12in 0.25in !important;
     width: 4in !important;
   }
 
