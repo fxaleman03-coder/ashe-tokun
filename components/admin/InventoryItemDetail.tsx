@@ -106,6 +106,9 @@ export default function InventoryItemDetail({
   const [receiveQuantity, setReceiveQuantity] = useState("");
   const [receiveNotes, setReceiveNotes] = useState("");
   const [reorderValue, setReorderValue] = useState(String(item.reorder_level));
+  const [pendingOperation, setPendingOperation] = useState<
+    "adjustment" | "receiving" | "reorder" | "transfer" | null
+  >(null);
   const transferLocationOptions = locations.filter(
     (location) => location.id !== item.location_id,
   );
@@ -124,7 +127,14 @@ export default function InventoryItemDetail({
     USE_SUPABASE &&
     Boolean(toLocationId) &&
     isTransferQuantityValid &&
-    !isTransferOverAvailable;
+    !isTransferOverAvailable &&
+    pendingOperation === null;
+  const canAdjust =
+    !launchContainment.inventoryAdjustments && pendingOperation === null;
+  const canReceive =
+    !launchContainment.inventoryReceiving && pendingOperation === null;
+  const canUpdateReorderLevel =
+    !launchContainment.inventoryReorderLevel && pendingOperation === null;
   const stats = [
     ["On Hand", item.on_hand_quantity],
     ["Reserved", item.reserved_quantity],
@@ -135,7 +145,7 @@ export default function InventoryItemDetail({
   ];
 
   async function handleAdjustment() {
-    if (launchContainment.inventoryWrites) {
+    if (launchContainment.inventoryAdjustments) {
       setMessage(containmentLabels.inventoryActionsUnavailable);
       return;
     }
@@ -147,27 +157,35 @@ export default function InventoryItemDetail({
       return;
     }
 
-    const result = await adjustInventory({
-      inventoryItemId: item.id,
-      quantityChange: parsedQuantity,
-      transactionType,
-      notes: adjustmentNotes,
-      referenceType: "Manual Adjustment",
-    });
+    setPendingOperation("adjustment");
+    setMessage("Saving adjustment...");
 
-    if (!result.ok) {
-      setMessage(`Adjustment failed: ${result.error}`);
-      return;
+    try {
+      const result = await adjustInventory({
+        inventoryItemId: item.id,
+        quantityChange: parsedQuantity,
+        transactionType,
+        notes: adjustmentNotes,
+        referenceType: "Manual Adjustment",
+        requestKey: crypto.randomUUID(),
+      });
+
+      if (!result.ok) {
+        setMessage(`Adjustment failed: ${result.error}`);
+        return;
+      }
+
+      setMessage("Inventory adjustment saved.");
+      setQuantityChange("");
+      setAdjustmentNotes("");
+      router.refresh();
+    } finally {
+      setPendingOperation(null);
     }
-
-    setMessage("Inventory adjustment saved.");
-    setQuantityChange("");
-    setAdjustmentNotes("");
-    router.refresh();
   }
 
   async function handleReceive() {
-    if (launchContainment.inventoryWrites) {
+    if (launchContainment.inventoryReceiving) {
       setMessage(containmentLabels.inventoryActionsUnavailable);
       return;
     }
@@ -179,26 +197,34 @@ export default function InventoryItemDetail({
       return;
     }
 
-    const result = await receiveInventory({
-      inventoryItemId: item.id,
-      quantityReceived: parsedQuantity,
-      notes: receiveNotes,
-      referenceType: "Purchase Order",
-    });
+    setPendingOperation("receiving");
+    setMessage("Receiving inventory...");
 
-    if (!result.ok) {
-      setMessage(`Receiving failed: ${result.error}`);
-      return;
+    try {
+      const result = await receiveInventory({
+        inventoryItemId: item.id,
+        quantityReceived: parsedQuantity,
+        notes: receiveNotes,
+        referenceType: "Purchase Order",
+        requestKey: crypto.randomUUID(),
+      });
+
+      if (!result.ok) {
+        setMessage(`Receiving failed: ${result.error}`);
+        return;
+      }
+
+      setMessage("Inventory received.");
+      setReceiveQuantity("");
+      setReceiveNotes("");
+      router.refresh();
+    } finally {
+      setPendingOperation(null);
     }
-
-    setMessage("Inventory received.");
-    setReceiveQuantity("");
-    setReceiveNotes("");
-    router.refresh();
   }
 
   async function handleReorderLevel() {
-    if (launchContainment.inventoryWrites) {
+    if (launchContainment.inventoryReorderLevel) {
       setMessage(containmentLabels.inventoryActionsUnavailable);
       return;
     }
@@ -210,15 +236,22 @@ export default function InventoryItemDetail({
       return;
     }
 
-    const result = await setReorderLevel(item.id, parsedReorderLevel);
+    setPendingOperation("reorder");
+    setMessage("Updating reorder level...");
 
-    if (!result.ok) {
-      setMessage(`Reorder level update failed: ${result.error}`);
-      return;
+    try {
+      const result = await setReorderLevel(item.id, parsedReorderLevel);
+
+      if (!result.ok) {
+        setMessage(`Reorder level update failed: ${result.error}`);
+        return;
+      }
+
+      setMessage("Reorder level updated.");
+      router.refresh();
+    } finally {
+      setPendingOperation(null);
     }
-
-    setMessage("Reorder level updated.");
-    router.refresh();
   }
 
   async function handleTransfer() {
@@ -252,25 +285,30 @@ export default function InventoryItemDetail({
       return;
     }
 
+    setPendingOperation("transfer");
     setMessage("Transferring...");
 
-    const result = await transferInventory({
-      productId: item.product_id,
-      fromLocationId: item.location_id,
-      toLocationId,
-      quantity: parsedTransferQuantity,
-      notes: transferNotes,
-    });
+    try {
+      const result = await transferInventory({
+        productId: item.product_id,
+        fromLocationId: item.location_id,
+        toLocationId,
+        quantity: parsedTransferQuantity,
+        notes: transferNotes,
+      });
 
-    if (!result.ok) {
-      setMessage(`Transfer failed: ${result.error}`);
-      return;
+      if (!result.ok) {
+        setMessage(`Transfer failed: ${result.error}`);
+        return;
+      }
+
+      setMessage("Transfer completed.");
+      setTransferQuantity("");
+      setTransferNotes("");
+      router.refresh();
+    } finally {
+      setPendingOperation(null);
     }
-
-    setMessage("Transfer completed.");
-    setTransferQuantity("");
-    setTransferNotes("");
-    router.refresh();
   }
 
   return (
@@ -291,7 +329,7 @@ export default function InventoryItemDetail({
       <p className="border border-[#d8a344]/30 bg-[#0f0b07] px-5 py-4 text-sm leading-6 text-[#e8dcc8]/72">
         {launchContainment.inventoryTransfers
           ? containmentLabels.inventoryReadOnly
-          : "Adjustment, receiving, and reorder actions remain read-only. Transfer Stock is active for controlled store replenishment."}
+          : "Inventory transfers, adjustments, receiving, and reorder levels are active for controlled store operations."}
       </p>
 
       <section className="grid gap-6 border border-[#f7ead2]/10 bg-[#120d08] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)] lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -357,7 +395,7 @@ export default function InventoryItemDetail({
                 value={quantityChange}
                 onChange={(event) => setQuantityChange(event.target.value)}
                 className={inputClass}
-                disabled={launchContainment.inventoryWrites}
+                disabled={launchContainment.inventoryAdjustments}
               />
             </Field>
             <Field label="Reason">
@@ -367,7 +405,7 @@ export default function InventoryItemDetail({
                   setTransactionType(event.target.value as InventoryAdjustmentType)
                 }
                 className={inputClass}
-                disabled={launchContainment.inventoryWrites}
+                disabled={launchContainment.inventoryAdjustments}
               >
                 {[
                   "adjustment",
@@ -389,17 +427,19 @@ export default function InventoryItemDetail({
                 value={adjustmentNotes}
                 onChange={(event) => setAdjustmentNotes(event.target.value)}
                 className={`${textareaClass} min-h-28`}
-                disabled={launchContainment.inventoryWrites}
+                disabled={launchContainment.inventoryAdjustments}
               />
             </Field>
             <button
               type="button"
               onClick={handleAdjustment}
-              disabled={launchContainment.inventoryWrites}
+              disabled={!canAdjust}
               className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              {launchContainment.inventoryWrites
+              {launchContainment.inventoryAdjustments
                 ? containmentLabels.actionUnavailable
+                : pendingOperation === "adjustment"
+                  ? "Saving..."
                 : "Save Adjustment"}
             </button>
           </div>
@@ -415,7 +455,7 @@ export default function InventoryItemDetail({
                 value={receiveQuantity}
                 onChange={(event) => setReceiveQuantity(event.target.value)}
                 className={inputClass}
-                disabled={launchContainment.inventoryWrites}
+                disabled={launchContainment.inventoryReceiving}
               />
             </Field>
             <Field label="Notes">
@@ -423,17 +463,19 @@ export default function InventoryItemDetail({
                 value={receiveNotes}
                 onChange={(event) => setReceiveNotes(event.target.value)}
                 className={`${textareaClass} min-h-28`}
-                disabled={launchContainment.inventoryWrites}
+                disabled={launchContainment.inventoryReceiving}
               />
             </Field>
             <button
               type="button"
               onClick={handleReceive}
-              disabled={launchContainment.inventoryWrites}
+              disabled={!canReceive}
               className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              {launchContainment.inventoryWrites
+              {launchContainment.inventoryReceiving
                 ? containmentLabels.actionUnavailable
+                : pendingOperation === "receiving"
+                  ? "Receiving..."
                 : "Receive Stock"}
             </button>
           </div>
@@ -449,17 +491,19 @@ export default function InventoryItemDetail({
                 value={reorderValue}
                 onChange={(event) => setReorderValue(event.target.value)}
                 className={inputClass}
-                disabled={launchContainment.inventoryWrites}
+                disabled={launchContainment.inventoryReorderLevel}
               />
             </Field>
             <button
               type="button"
               onClick={handleReorderLevel}
-              disabled={launchContainment.inventoryWrites}
+              disabled={!canUpdateReorderLevel}
               className="inline-flex min-h-12 items-center justify-center bg-[#d8a344] px-7 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[#0f0b07] transition duration-500 hover:bg-[#f0c062] disabled:cursor-not-allowed disabled:bg-[#d8a344]/30 disabled:text-[#0f0b07]/50"
             >
-              {launchContainment.inventoryWrites
+              {launchContainment.inventoryReorderLevel
                 ? containmentLabels.actionUnavailable
+                : pendingOperation === "reorder"
+                  ? "Saving..."
                 : "Save"}
             </button>
           </div>
@@ -647,7 +691,7 @@ export default function InventoryItemDetail({
       <p className="text-sm leading-6 text-[#e8dcc8]/52">
         {launchContainment.inventoryTransfers
           ? containmentLabels.inventoryReadOnly
-          : "Transfers are enabled for controlled store replenishment. Other inventory write tools remain contained."}
+          : "Inventory operations are enabled through secure server-side controls."}
       </p>
     </div>
   );

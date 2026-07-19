@@ -52,6 +52,7 @@ type AdjustInventoryInput = {
   notes?: string;
   referenceType?: string;
   referenceId?: string | null;
+  requestKey?: string;
 };
 
 type ReceiveInventoryInput = {
@@ -60,6 +61,7 @@ type ReceiveInventoryInput = {
   notes?: string;
   referenceType?: string;
   referenceId?: string | null;
+  requestKey?: string;
 };
 
 type TransferInventoryInput = {
@@ -74,6 +76,11 @@ type InventoryTransferRpcResult = {
   success?: boolean;
   transfer_id?: string;
   destination_inventory_item_id?: string;
+};
+
+type InventoryOperationRpcResult = {
+  success?: boolean;
+  inventory_item_id?: string;
 };
 
 function disabledResult(): InventoryMutationResult {
@@ -97,6 +104,10 @@ function availableQuantity(onHand: number, reserved: number) {
 
 function createTransferRequestKey() {
   return `inventory-transfer-${randomUUID()}`;
+}
+
+function createInventoryOperationRequestKey(operation: string) {
+  return `inventory-${operation}-${randomUUID()}`;
 }
 
 async function readInventoryItem(inventoryItemId: string) {
@@ -138,45 +149,6 @@ async function readInventoryItemForLocation(productId: string, locationId: strin
   }
 
   return data ?? null;
-}
-
-async function insertTransaction({
-  inventoryItemId,
-  transactionType,
-  referenceType,
-  referenceId,
-  quantityChange,
-  balanceAfter,
-  notes,
-}: {
-  inventoryItemId: string;
-  transactionType: string;
-  referenceType: string;
-  referenceId?: string | null;
-  quantityChange: number;
-  balanceAfter: number;
-  notes?: string;
-}) {
-  const supabase = createSupabaseServiceClient();
-
-  if (!supabase) {
-    throw new Error("Supabase client is not configured.");
-  }
-
-  const { error } = await supabase.from("inventory_transactions").insert({
-    inventory_item_id: inventoryItemId,
-    transaction_type: transactionType,
-    reference_type: referenceType,
-    reference_id: referenceId ?? null,
-    quantity_change: quantityChange,
-    balance_after: balanceAfter,
-    notes: notes?.trim() || null,
-    performed_by: "Admin",
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
 }
 
 export async function createInventoryItem(
@@ -252,7 +224,7 @@ export async function createInventoryItem(
 export async function adjustInventory(
   input: AdjustInventoryInput,
 ): Promise<InventoryMutationResult> {
-  if (launchContainment.inventoryWrites) {
+  if (launchContainment.inventoryAdjustments) {
     return {
       ok: false,
       error: launchContainmentMessages.inventoryWrites,
@@ -285,6 +257,13 @@ export async function adjustInventory(
     };
   }
 
+  if (!input.transactionType) {
+    return {
+      ok: false,
+      error: "Inventory adjustment requires a reason.",
+    };
+  }
+
   try {
     const currentItem = await readInventoryItem(input.inventoryItemId);
 
@@ -295,61 +274,59 @@ export async function adjustInventory(
       };
     }
 
-    const nextOnHand = currentItem.on_hand_quantity + input.quantityChange;
+    const nextAvailable =
+      currentItem.available_quantity + input.quantityChange;
 
-    if (nextOnHand < 0) {
+    if (
+      currentItem.on_hand_quantity + input.quantityChange < 0 ||
+      nextAvailable < 0
+    ) {
       return {
         ok: false,
-        error: "Inventory adjustment would create negative on-hand quantity.",
+        error: "Inventory adjustment would create negative available stock.",
       };
     }
 
-    const nextAvailable = availableQuantity(
-      nextOnHand,
-      currentItem.reserved_quantity,
-    );
-    const { data, error } = await supabase
-      .from("inventory_items")
-      .update({
-        on_hand_quantity: nextOnHand,
-        available_quantity: nextAvailable,
-      })
-      .eq("id", input.inventoryItemId)
-      .select("*")
-      .single<InventoryItemRow>();
+    const { data, error } = await supabase.rpc("adjust_inventory_transaction", {
+      p_request_key:
+        input.requestKey ?? createInventoryOperationRequestKey("adjustment"),
+      p_inventory_item_id: input.inventoryItemId,
+      p_quantity_change: input.quantityChange,
+      p_transaction_type: input.transactionType,
+      p_notes: input.notes ?? null,
+      p_reference_type: input.referenceType ?? "Manual Adjustment",
+      p_reference_id: input.referenceId ?? null,
+      p_performed_by: auth.employeeNumber,
+    });
 
-    if (error || !data) {
-      return {
-        ok: false,
-        error: error?.message ?? "Updated inventory item was not returned.",
-      };
-    }
-
-    try {
-      await insertTransaction({
-        inventoryItemId: input.inventoryItemId,
-        transactionType: input.transactionType,
-        referenceType: input.referenceType ?? "Manual Adjustment",
-        referenceId: input.referenceId,
-        quantityChange: input.quantityChange,
-        balanceAfter: nextOnHand,
-        notes: input.notes,
+    if (error) {
+      console.info("[ASHE TOKUN inventory]", "Adjustment RPC failed.", {
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
       });
-    } catch (transactionError) {
+
       return {
         ok: false,
-        critical: true,
-        error: `Inventory quantity was updated, but ledger insert failed: ${
-          transactionError instanceof Error
-            ? transactionError.message
-            : "Unknown error"
-        }. Future atomic RPC is required before production writes.`,
+        error: error.message || "Inventory adjustment failed.",
       };
     }
+
+    const result = data as InventoryOperationRpcResult | null;
+
+    if (!result?.success || result.inventory_item_id !== input.inventoryItemId) {
+      return {
+        ok: false,
+        error: "Inventory adjustment did not return a verified result.",
+      };
+    }
+
+    const updatedItem = await readInventoryItem(input.inventoryItemId);
 
     return {
       ok: true,
-      item: data,
+      item: updatedItem ?? currentItem,
     };
   } catch (error) {
     return {
@@ -362,7 +339,7 @@ export async function adjustInventory(
 export async function receiveInventory(
   input: ReceiveInventoryInput,
 ): Promise<InventoryMutationResult> {
-  if (launchContainment.inventoryWrites) {
+  if (launchContainment.inventoryReceiving) {
     return {
       ok: false,
       error: launchContainmentMessages.inventoryWrites,
@@ -405,58 +382,45 @@ export async function receiveInventory(
       };
     }
 
-    const nextOnHand = currentItem.on_hand_quantity + input.quantityReceived;
-    const nextIncoming = Math.max(
-      currentItem.incoming_quantity - input.quantityReceived,
-      0,
-    );
-    const nextAvailable = availableQuantity(
-      nextOnHand,
-      currentItem.reserved_quantity,
-    );
-    const { data, error } = await supabase
-      .from("inventory_items")
-      .update({
-        on_hand_quantity: nextOnHand,
-        available_quantity: nextAvailable,
-        incoming_quantity: nextIncoming,
-      })
-      .eq("id", input.inventoryItemId)
-      .select("*")
-      .single<InventoryItemRow>();
+    const { data, error } = await supabase.rpc("receive_inventory_transaction", {
+      p_request_key:
+        input.requestKey ?? createInventoryOperationRequestKey("receiving"),
+      p_inventory_item_id: input.inventoryItemId,
+      p_quantity_received: input.quantityReceived,
+      p_notes: input.notes ?? null,
+      p_reference_type: input.referenceType ?? "Purchase Order",
+      p_reference_id: input.referenceId ?? null,
+      p_performed_by: auth.employeeNumber,
+    });
 
-    if (error || !data) {
-      return {
-        ok: false,
-        error: error?.message ?? "Received inventory item was not returned.",
-      };
-    }
-
-    try {
-      await insertTransaction({
-        inventoryItemId: input.inventoryItemId,
-        transactionType: "receiving",
-        referenceType: input.referenceType ?? "Purchase Order",
-        referenceId: input.referenceId,
-        quantityChange: input.quantityReceived,
-        balanceAfter: nextOnHand,
-        notes: input.notes,
+    if (error) {
+      console.info("[ASHE TOKUN inventory]", "Receiving RPC failed.", {
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
       });
-    } catch (transactionError) {
+
       return {
         ok: false,
-        critical: true,
-        error: `Inventory quantity was received, but ledger insert failed: ${
-          transactionError instanceof Error
-            ? transactionError.message
-            : "Unknown error"
-        }. Future atomic RPC is required before production writes.`,
+        error: error.message || "Inventory receiving failed.",
       };
     }
+
+    const result = data as InventoryOperationRpcResult | null;
+
+    if (!result?.success || result.inventory_item_id !== input.inventoryItemId) {
+      return {
+        ok: false,
+        error: "Inventory receiving did not return a verified result.",
+      };
+    }
+
+    const updatedItem = await readInventoryItem(input.inventoryItemId);
 
     return {
       ok: true,
-      item: data,
+      item: updatedItem ?? currentItem,
     };
   } catch (error) {
     return {
@@ -596,7 +560,7 @@ export async function setReorderLevel(
   inventoryItemId: string,
   reorderLevel: number,
 ): Promise<InventoryMutationResult> {
-  if (launchContainment.inventoryWrites) {
+  if (launchContainment.inventoryReorderLevel) {
     return {
       ok: false,
       error: launchContainmentMessages.inventoryWrites,

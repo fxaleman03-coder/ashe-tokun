@@ -1,6 +1,9 @@
 export const launchContainment = {
   posSaleCompletion: false,
   inventoryWrites: true,
+  inventoryAdjustments: false,
+  inventoryReceiving: false,
+  inventoryReorderLevel: false,
   inventoryTransfers: false,
   shipmentCreation: true,
   returnCompletion: true,
