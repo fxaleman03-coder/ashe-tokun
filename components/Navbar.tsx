@@ -7,7 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { useCartItemCount } from "@/components/storefront/CartProvider";
 import { languageOptions } from "@/lib/translations";
 
-const navHrefs = ["/", "/shop", "/#traditions", "/shop/category/ide"] as const;
+const navHrefs = ["/", "/shop", "/#traditions", "/shop#collections"] as const;
 
 export default function Navbar() {
   const { language, setLanguage, t } = useLanguage();

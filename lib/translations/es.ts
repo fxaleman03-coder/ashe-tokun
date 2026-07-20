@@ -6,7 +6,7 @@ const es: Translation = {
     homeLabel: "ASHE TOKUN home",
   },
   nav: {
-    links: ["Inicio", "Tienda", "Tradiciones", "Categorías"],
+    links: ["Inicio", "Tienda", "Tradiciones", "Colecciones"],
     cta: "Visitar Tienda",
   },
   hero: {
@@ -29,28 +29,28 @@ const es: Translation = {
         title: "Ifá",
         description:
           "Artículos y herramientas tradicionales vinculados con sabiduría, guía y estudio sagrado.",
-        imageSrc: "/categories/ifa.svg",
+        imageSrc: "/categories/ifa-category.webp",
         imageAlt: "Imagen provisional de la categoría Ifá",
       },
       {
         title: "Òrìṣà",
         description:
           "Piezas devocionales y elementos ceremoniales para honrar tradiciones espirituales veneradas.",
-        imageSrc: "/categories/orisa.svg",
+        imageSrc: "/categories/orishas-category.webp",
         imageAlt: "Imagen provisional de la categoría Òrìṣà",
       },
       {
         title: "Suministros Espirituales",
         description:
           "Suministros premium para limpieza, preparación, ofrendas y práctica intencional.",
-        imageSrc: "/categories/spiritual-supplies.svg",
+        imageSrc: "/categories/spiritual-supplies-category.webp",
         imageAlt: "Imagen provisional de suministros espirituales",
       },
       {
         title: "Artículos Devocionales",
         description:
           "Artículos religiosos elegantes para reverencia diaria, reflexión y devoción.",
-        imageSrc: "/categories/devotional-articles.svg",
+        imageSrc: "/categories/devotional-articles-category.webp",
         imageAlt: "Imagen provisional de artículos devocionales",
       },
     ],
@@ -99,35 +99,35 @@ const es: Translation = {
   },
   storefront: {
     categorySection: {
-      homeLabel: "Comprar por Categoría",
+      homeLabel: "Comprar por Colección",
       homeHeading: "Explora nuestras colecciones",
       homeSubtitle:
-        "Entra a la tienda por categorías ceremoniales y devocionales enfocadas, cada una curada para descubrir con claridad.",
-      shopLabel: "Explora ASHE TOKUN",
-      shopHeading: "Tienda",
+        "Entra a la tienda por colecciones de productos enfocadas, cada una curada para descubrir con claridad.",
+      shopLabel: "Colecciones",
+      shopHeading: "Colecciones",
       shopSubtitle:
-        "Explora nuestras categorías de artículos espirituales, herramientas ceremoniales, piezas artesanales y elementos devocionales.",
-      viewCategory: "Ver Categoría",
+        "Explora colecciones por tipo de producto entre artículos espirituales, herramientas ceremoniales, piezas artesanales y elementos devocionales.",
+      viewCategory: "Ver Colección",
       productSingular: "Producto",
       productPlural: "Productos",
-      noCategoriesTitle: "No hay categorías disponibles",
+      noCategoriesTitle: "No hay colecciones disponibles",
       noCategoriesAvailable:
-        "Las colecciones por categoría se están preparando para la tienda.",
-      featuredCategory: "Categoría Destacada",
+        "Las colecciones de productos se están preparando para la tienda.",
+      featuredCategory: "Colección Destacada",
       availableOnline: "Disponible en Línea",
-      category: "Categoría",
-      categories: "Categorías",
+      category: "Colección",
+      categories: "Colecciones",
       genericCategoryDescription:
-        "Explora esta categoría de ASHE TOKUN a medida que nuevos productos estén disponibles.",
+        "Explora esta colección de ASHE TOKUN a medida que nuevos productos estén disponibles.",
     },
     categoryPage: {
       breadcrumbLabel: "Ruta de navegación",
       breadcrumbHome: "Inicio",
       breadcrumbShop: "Tienda",
-      label: "Categoría",
+      label: "Colección",
       noProductsTitle: "No hay productos disponibles",
       noProductsAvailable:
-        "Esta categoría aún no tiene productos disponibles.",
+        "Esta colección aún no tiene productos disponibles.",
       backToShop: "Volver a Tienda",
     },
     cart: {

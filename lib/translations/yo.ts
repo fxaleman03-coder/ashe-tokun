@@ -9,7 +9,7 @@ const yo: Translation = {
     homeLabel: "ASHE TOKUN ile",
   },
   nav: {
-    links: ["Ilé", "Ọjà", "Nípa wa", "Kan sí wa"],
+    links: ["Ilé", "Ọjà", "Àṣà", "Àkójọpọ̀"],
     cta: "Wá sí Ọjà",
   },
   hero: {
@@ -33,28 +33,28 @@ const yo: Translation = {
         title: "Ifá",
         description:
           "Àwọn ohun èlò àti nkan fún ẹ̀kọ́, ìmọ̀, àti ìtọ́sọ́nà.",
-        imageSrc: "/categories/ifa.svg",
+        imageSrc: "/categories/ifa-category.webp",
         imageAlt: "Àwòrán ìpò fún ẹ̀ka Ifá",
       },
       {
         title: "Òrìṣà",
         description:
           "Àwọn nkan fún ìbòwọ̀, ìrántí, àti ìṣe àṣà pẹ̀lú ọ̀wọ̀.",
-        imageSrc: "/categories/orisa.svg",
+        imageSrc: "/categories/orishas-category.webp",
         imageAlt: "Àwòrán ìpò fún ẹ̀ka Òrìṣà",
       },
       {
         title: "Àwọn Ohun Èlò Ẹ̀mí",
         description:
           "Àwọn ohun èlò fún ìmúra, ìtọ́jú, àti ìṣe pẹ̀lú èrò rere.",
-        imageSrc: "/categories/spiritual-supplies.svg",
+        imageSrc: "/categories/spiritual-supplies-category.webp",
         imageAlt: "Àwòrán ìpò fún àwọn ohun èlò ẹ̀mí",
       },
       {
         title: "Àwọn Nkan Ìbòwọ̀",
         description:
           "Àwọn nkan rírẹwà fún ìbòwọ̀, ìronú, àti ìṣe lójoojúmọ́.",
-        imageSrc: "/categories/devotional-articles.svg",
+        imageSrc: "/categories/devotional-articles-category.webp",
         imageAlt: "Àwòrán ìpò fún àwọn nkan ìbòwọ̀",
       },
     ],
@@ -106,34 +106,34 @@ const yo: Translation = {
   storefront: {
     // Draft Yoruba placeholders only. Storefront category labels need later review.
     categorySection: {
-      homeLabel: "Ra Nípasẹ̀ Ẹ̀ka",
+      homeLabel: "Ra Nípasẹ̀ Àkójọpọ̀",
       homeHeading: "Wo àwọn àkójọpọ̀ wa",
       homeSubtitle:
-        "Wọlé sí ọjà nípasẹ̀ àwọn ẹ̀ka tí a ṣètò fún ohun ayẹyẹ, ìbòwọ̀, àti ìṣe ojoojúmọ́.",
-      shopLabel: "Wo ASHE TOKUN",
-      shopHeading: "Ọjà",
+        "Wọlé sí ọjà nípasẹ̀ àwọn àkójọpọ̀ ọjà tí a ṣètò fún ìwárí tó rọrùn.",
+      shopLabel: "Àkójọpọ̀",
+      shopHeading: "Àkójọpọ̀",
       shopSubtitle:
-        "Wo àwọn ẹ̀ka fún ohun ẹ̀mí, ohun èlò ayẹyẹ, iṣẹ́ ọwọ́, àti àwọn nkan ìbòwọ̀.",
-      viewCategory: "Wo Ẹ̀ka",
+        "Wo àwọn àkójọpọ̀ ọjà fún ohun ẹ̀mí, ohun èlò ayẹyẹ, iṣẹ́ ọwọ́, àti àwọn nkan ìbòwọ̀.",
+      viewCategory: "Wo Àkójọpọ̀",
       productSingular: "Ọjà",
       productPlural: "Àwọn Ọjà",
-      noCategoriesTitle: "Kò sí ẹ̀ka lọ́wọ́lọ́wọ́",
+      noCategoriesTitle: "Kò sí àkójọpọ̀ lọ́wọ́lọ́wọ́",
       noCategoriesAvailable:
-        "A ń ṣètò àwọn ẹ̀ka fún ọjà ASHE TOKUN.",
-      featuredCategory: "Ẹ̀ka Àṣàyàn",
+        "A ń ṣètò àwọn àkójọpọ̀ ọjà fún ASHE TOKUN.",
+      featuredCategory: "Àkójọpọ̀ Àṣàyàn",
       availableOnline: "Wà Lórí Ayélujára",
-      category: "Ẹ̀ka",
-      categories: "Àwọn Ẹ̀ka",
+      category: "Àkójọpọ̀",
+      categories: "Àwọn Àkójọpọ̀",
       genericCategoryDescription:
-        "Wo ẹ̀ka ASHE TOKUN yìí bí àwọn ọjà tuntun ṣe ń wá.",
+        "Wo àkójọpọ̀ ASHE TOKUN yìí bí àwọn ọjà tuntun ṣe ń wá.",
     },
     categoryPage: {
       breadcrumbLabel: "Ọ̀nà ojúewé",
       breadcrumbHome: "Ilé",
       breadcrumbShop: "Ọjà",
-      label: "Ẹ̀ka",
+      label: "Àkójọpọ̀",
       noProductsTitle: "Kò sí ọjà lọ́wọ́lọ́wọ́",
-      noProductsAvailable: "Ẹ̀ka yìí kò ní ọjà tó wà lọ́wọ́lọ́wọ́.",
+      noProductsAvailable: "Àkójọpọ̀ yìí kò ní ọjà tó wà lọ́wọ́lọ́wọ́.",
       backToShop: "Padà sí Ọjà",
     },
     cart: {

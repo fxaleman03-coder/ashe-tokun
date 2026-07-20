@@ -26,6 +26,7 @@ export default function StorefrontCategorySection({
 
   return (
     <section
+      id="collections"
       className={`bg-[#0f0b07] px-6 sm:px-8 lg:px-10 ${
         compact ? "py-20 sm:py-24" : "py-24 sm:py-28 lg:py-32"
       }`}
