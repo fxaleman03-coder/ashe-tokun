@@ -115,6 +115,11 @@ export type Translation = {
       total: string;
       pending: string;
       pendingTotals: string;
+      itemSubtotal: string;
+      estimatedAmountBeforeTaxAndShipping: string;
+      taxCalculatedBeforePayment: string;
+      shippingCalculatedBeforePayment: string;
+      finalAmountPending: string;
       checkout: string;
       clear: string;
       unavailableProduct: string;
@@ -154,6 +159,9 @@ export type Translation = {
       orderStatus: string;
       date: string;
       items: string;
+      taxPendingCalculation: string;
+      shippingPendingCalculation: string;
+      finalAmountWillBeConfirmed: string;
       notFoundTitle: string;
       notFoundDescription: string;
     };
@@ -643,6 +651,10 @@ export type Translation = {
         action: string;
         primaryContact: string;
         pending: string;
+        estimate: string;
+        taxPending: string;
+        paymentPending: string;
+        currentEstimatedAmount: string;
         view: string;
         viewReceipt: string;
         reprintReceipt: string;
@@ -657,6 +669,8 @@ export type Translation = {
         cancellationFailed: string;
         completingHeld: string;
         heldCompleted: string;
+        websitePendingPricingNotice: string;
+        websitePendingPricingPaymentBlocked: string;
       };
     };
     shipping: {

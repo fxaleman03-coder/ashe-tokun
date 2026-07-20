@@ -44,6 +44,10 @@ export type AdminOrder = {
   item_count: number;
   payment_methods: string[];
   receipt_number: string | null;
+  isWebsitePendingPricing: boolean;
+  requiresTaxCalculation: boolean;
+  requiresShippingCalculation: boolean;
+  isFinalTotal: boolean;
 };
 
 export type AdminOrderItem = {
@@ -181,6 +185,26 @@ function getDerivedFulfillmentStatus(order: OrderRow) {
   return "pending";
 }
 
+export function getOrderPricingPresentation(
+  order: Pick<
+    AdminOrder,
+    "sales_channel" | "payment_status" | "tax_total" | "receipt_number"
+  >,
+) {
+  const isWebsitePendingPricing =
+    order.sales_channel === "Website" &&
+    order.payment_status === "pending" &&
+    order.tax_total === 0 &&
+    !order.receipt_number;
+
+  return {
+    isWebsitePendingPricing,
+    requiresTaxCalculation: isWebsitePendingPricing,
+    requiresShippingCalculation: isWebsitePendingPricing,
+    isFinalTotal: !isWebsitePendingPricing,
+  };
+}
+
 type ShipmentQuantityRow = {
   order_id: string;
   shipment_status: string;
@@ -263,6 +287,13 @@ async function getShipmentFulfillmentSummaries(orders: OrderRow[]) {
 }
 
 function normalizeOrder(row: OrderRow): AdminOrder {
+  const pricingPresentation = getOrderPricingPresentation({
+    sales_channel: row.sales_channel,
+    payment_status: row.payment_status,
+    tax_total: toNumber(row.tax_total),
+    receipt_number: row.receipts?.[0]?.receipt_number ?? null,
+  });
+
   return {
     id: row.id,
     order_number: row.order_number,
@@ -289,6 +320,7 @@ function normalizeOrder(row: OrderRow): AdminOrder {
       new Set((row.payments ?? []).map((payment) => payment.payment_method ?? "")),
     ).filter(Boolean),
     receipt_number: row.receipts?.[0]?.receipt_number ?? null,
+    ...pricingPresentation,
   };
 }
 

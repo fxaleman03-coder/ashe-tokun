@@ -302,11 +302,32 @@ export default function AdminOrdersManager({
                   </td>
                   <td className="px-5 py-4">{order.sales_channel}</td>
                   <td className="px-5 py-4">{order.item_count}</td>
-                  <td className="px-5 py-4">{order.payment_status}</td>
+                  <td className="px-5 py-4">
+                    <div className="space-y-2">
+                      <p>{order.payment_status}</p>
+                      {order.isWebsitePendingPricing ? (
+                        <span className="inline-flex border border-[#d8a344]/35 px-2 py-1 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-[#d8a344]">
+                          {labels.table.paymentPending}
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="px-5 py-4">{order.order_status}</td>
                   <td className="px-5 py-4">{order.fulfillment_status}</td>
                   <td className="px-5 py-4">
-                    {formatCurrency(order.grand_total)}
+                    <div className="space-y-2">
+                      <p>{formatCurrency(order.grand_total)}</p>
+                      {order.isWebsitePendingPricing ? (
+                        <div className="flex flex-wrap gap-1">
+                          <span className="inline-flex border border-[#f7ead2]/12 px-2 py-1 text-[0.56rem] font-bold uppercase tracking-[0.12em] text-[#e8dcc8]/58">
+                            {labels.table.estimate}
+                          </span>
+                          <span className="inline-flex border border-[#d8a344]/35 px-2 py-1 text-[0.56rem] font-bold uppercase tracking-[0.12em] text-[#d8a344]">
+                            {labels.table.taxPending}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     {order.receipt_number ?? labels.table.pending}

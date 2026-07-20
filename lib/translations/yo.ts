@@ -159,6 +159,13 @@ const yo: Translation = {
       pending: "Pending",
       pendingTotals:
         "Online orders are created as unpaid requests. Final payment and fulfillment details are confirmed by ASHE TOKUN.",
+      itemSubtotal: "Àpapọ̀ iye àwọn ọjà",
+      estimatedAmountBeforeTaxAndShipping:
+        "Ìye àfojúsùn ṣáájú owó-ori àti fífi ránṣẹ́",
+      taxCalculatedBeforePayment: "A ó ṣe iṣiro ṣáájú ìsanwó",
+      shippingCalculatedBeforePayment: "A ó ṣe iṣiro ṣáájú ìsanwó",
+      finalAmountPending:
+        "Ìye ikẹhin yóò jẹ́rìí ṣáájú ìsanwó.",
       checkout: "Checkout",
       clear: "Clear Cart",
       unavailableProduct: "Unavailable product",
@@ -202,6 +209,10 @@ const yo: Translation = {
       orderStatus: "Order Status",
       date: "Date",
       items: "Items",
+      taxPendingCalculation: "Ìṣirò ṣì ń dúró",
+      shippingPendingCalculation: "Ìṣirò ṣì ń dúró",
+      finalAmountWillBeConfirmed:
+        "Ìye ikẹhin yóò jẹ́rìí ṣáájú ìsanwó.",
       notFoundTitle: "Order not found",
       notFoundDescription:
         "We could not find this online order confirmation. Please contact ASHE TOKUN if you need help.",
@@ -781,6 +792,10 @@ const yo: Translation = {
         action: "Action",
         primaryContact: "Primary Contact",
         pending: "Pending",
+        estimate: "Àfojúsùn",
+        taxPending: "Owó-ori ṣì ń dúró",
+        paymentPending: "Ìsanwó ṣì ń dúró",
+        currentEstimatedAmount: "Ìye àfojúsùn lọ́wọ́lọ́wọ́",
         view: "View",
         viewReceipt: "View Receipt",
         reprintReceipt: "Reprint Receipt",
@@ -796,6 +811,10 @@ const yo: Translation = {
         cancellationFailed: "Cancellation Failed",
         completingHeld: "Completing held order...",
         heldCompleted: "Held order completed.",
+        websitePendingPricingNotice:
+          "A kò tíì tún iye ibere Website yìí ṣe fún owó-ori, fífi ránṣẹ́, tàbí ìsanwó. Má gba ìsanwó pẹ̀lú iye yìí.",
+        websitePendingPricingPaymentBlocked:
+          "A kò lè samisi ìsanwó ibere Website gẹ́gẹ́ bí ti san títí tí owó-ori, fífi ránṣẹ́, àti ìye ikẹhin yóò fi jẹ́ iṣiro.",
       },
     },
     shipping: {

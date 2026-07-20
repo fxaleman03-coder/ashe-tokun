@@ -329,23 +329,26 @@ export default function CheckoutPageContent({ products }: CheckoutPageContentPro
           </div>
           <div className="mt-6 space-y-3 text-sm text-[#e8dcc8]/72">
             <div className="flex justify-between">
-              <span>{t.storefront.cart.subtotal}</span>
+              <span>{t.storefront.cart.itemSubtotal}</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>{t.storefront.cart.tax}</span>
-              <span>{formatPrice(0)}</span>
+              <span>{t.storefront.cart.taxCalculatedBeforePayment}</span>
             </div>
             <div className="flex justify-between">
               <span>{t.storefront.cart.shipping}</span>
-              <span>{formatPrice(0)}</span>
+              <span>{t.storefront.cart.shippingCalculatedBeforePayment}</span>
             </div>
             <div className="border-t border-[#f7ead2]/10 pt-4 text-lg font-semibold text-[#f7ead2]">
               <div className="flex justify-between">
-                <span>{t.storefront.cart.total}</span>
+                <span>{t.storefront.cart.estimatedAmountBeforeTaxAndShipping}</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
             </div>
+            <p className="text-xs leading-5 text-[#d8a344]">
+              {t.storefront.cart.finalAmountPending}
+            </p>
             <p className="text-xs leading-5 text-[#e8dcc8]/56">
               {t.storefront.checkout.paymentNotice}
             </p>

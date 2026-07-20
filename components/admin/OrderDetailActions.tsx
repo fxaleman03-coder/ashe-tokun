@@ -49,6 +49,7 @@ function canCancel(order: AdminOrderDetail) {
 export default function OrderDetailActions({ order }: OrderDetailActionsProps) {
   const router = useRouter();
   const { t } = useLanguage();
+  const labels = t.admin.orders;
   const [note, setNote] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(
     order.payment_status,
@@ -81,6 +82,14 @@ export default function OrderDetailActions({ order }: OrderDetailActionsProps) {
   }
 
   async function handlePaymentStatus() {
+    if (
+      order.isWebsitePendingPricing &&
+      (paymentStatus === "paid" || paymentStatus === "partially_paid")
+    ) {
+      setMessage(labels.messages.websitePendingPricingPaymentBlocked);
+      return;
+    }
+
     await runMutation(() =>
       updatePaymentStatus(
         order.id,
@@ -118,6 +127,11 @@ export default function OrderDetailActions({ order }: OrderDetailActionsProps) {
       <p className="mt-3 text-sm leading-6 text-[#e8dcc8]/62">
         Payment status updates do not process or reverse real payments.
       </p>
+      {order.isWebsitePendingPricing ? (
+        <p className="mt-4 border border-[#d8a344]/30 bg-[#0f0b07] px-4 py-3 text-sm leading-6 text-[#d8a344]">
+          {labels.messages.websitePendingPricingNotice}
+        </p>
+      ) : null}
       <div className="mt-5 grid gap-5 xl:grid-cols-3">
         <div className="space-y-3">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#d8a344]">
@@ -151,13 +165,33 @@ export default function OrderDetailActions({ order }: OrderDetailActionsProps) {
             className={inputClass}
           >
             <option value="pending">pending</option>
-            <option value="paid">paid</option>
-            <option value="partially_paid">partially_paid</option>
+            <option
+              value="paid"
+              disabled={order.isWebsitePendingPricing}
+            >
+              paid
+            </option>
+            <option
+              value="partially_paid"
+              disabled={order.isWebsitePendingPricing}
+            >
+              partially_paid
+            </option>
           </select>
+          {order.isWebsitePendingPricing ? (
+            <p className="text-xs leading-5 text-[#d8a344]">
+              {labels.messages.websitePendingPricingPaymentBlocked}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={handlePaymentStatus}
-            disabled={isWorking || paymentStatus === order.payment_status}
+            disabled={
+              isWorking ||
+              paymentStatus === order.payment_status ||
+              (order.isWebsitePendingPricing &&
+                (paymentStatus === "paid" || paymentStatus === "partially_paid"))
+            }
             className={buttonClass}
           >
             Update Payment

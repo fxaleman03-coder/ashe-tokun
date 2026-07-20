@@ -17,6 +17,7 @@ import {
   launchContainmentMessages,
 } from "@/lib/launchContainment";
 import { requirePermission } from "@/lib/staff/permissionGuard";
+import en from "@/lib/translations/en";
 
 type OrderDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -94,6 +95,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
       ] as const),
     ),
   );
+  const isWebsitePendingPricing = order.isWebsitePendingPricing;
+  const pendingPricingLabels = en.storefront;
+  const orderLabels = en.admin.orders;
 
   return (
     <AdminShell
@@ -166,6 +170,17 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
         <OrderDetailActions order={order} />
 
+        {isWebsitePendingPricing ? (
+          <section className="border border-[#d8a344]/35 bg-[#2a1d0f] p-5 text-sm leading-6 text-[#f7ead2] shadow-[0_22px_70px_rgba(0,0,0,0.22)] sm:p-6">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-[#d8a344]">
+              {orderLabels.table.paymentPending}
+            </p>
+            <p className="mt-3">
+              {orderLabels.messages.websitePendingPricingNotice}
+            </p>
+          </section>
+        ) : null}
+
         <DetailCard title="Items">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[840px] border-collapse text-left">
@@ -214,7 +229,11 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           <DetailCard title="Totals">
             <div className="space-y-3 text-sm text-[#e8dcc8]/72">
               <p className="flex justify-between gap-4">
-                <span>Subtotal</span>
+                <span>
+                  {isWebsitePendingPricing
+                    ? pendingPricingLabels.cart.itemSubtotal
+                    : pendingPricingLabels.cart.subtotal}
+                </span>
                 <span>{formatCurrency(order.subtotal)}</span>
               </p>
               <p className="flex justify-between gap-4">
@@ -223,12 +242,33 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               </p>
               <p className="flex justify-between gap-4">
                 <span>Tax</span>
-                <span>{formatCurrency(order.tax_total)}</span>
+                <span>
+                  {isWebsitePendingPricing
+                    ? pendingPricingLabels.confirmation.taxPendingCalculation
+                    : formatCurrency(order.tax_total)}
+                </span>
               </p>
+              {isWebsitePendingPricing ? (
+                <p className="flex justify-between gap-4">
+                  <span>{pendingPricingLabels.cart.shipping}</span>
+                  <span>
+                    {pendingPricingLabels.confirmation.shippingPendingCalculation}
+                  </span>
+                </p>
+              ) : null}
               <p className="flex justify-between gap-4 border-t border-[#f7ead2]/10 pt-3 font-serif text-xl text-[#f7ead2]">
-                <span>Grand Total</span>
+                <span>
+                  {isWebsitePendingPricing
+                    ? orderLabels.table.currentEstimatedAmount
+                    : "Grand Total"}
+                </span>
                 <span>{formatCurrency(order.grand_total)}</span>
               </p>
+              {isWebsitePendingPricing ? (
+                <p className="text-xs leading-5 text-[#d8a344]">
+                  {pendingPricingLabels.confirmation.finalAmountWillBeConfirmed}
+                </p>
+              ) : null}
             </div>
           </DetailCard>
 

@@ -153,6 +153,13 @@ const en: Translation = {
       pending: "Pending",
       pendingTotals:
         "Online orders are created as unpaid requests. Final payment and fulfillment details are confirmed by ASHE TOKUN.",
+      itemSubtotal: "Item Subtotal",
+      estimatedAmountBeforeTaxAndShipping:
+        "Estimated amount before tax and shipping",
+      taxCalculatedBeforePayment: "Calculated before payment",
+      shippingCalculatedBeforePayment: "Calculated before payment",
+      finalAmountPending:
+        "Final amount will be confirmed before payment.",
       checkout: "Checkout",
       clear: "Clear Cart",
       unavailableProduct: "Unavailable product",
@@ -196,6 +203,10 @@ const en: Translation = {
       orderStatus: "Order Status",
       date: "Date",
       items: "Items",
+      taxPendingCalculation: "Pending calculation",
+      shippingPendingCalculation: "Pending calculation",
+      finalAmountWillBeConfirmed:
+        "Final amount will be confirmed before payment.",
       notFoundTitle: "Order not found",
       notFoundDescription:
         "We could not find this online order confirmation. Please contact ASHE TOKUN if you need help.",
@@ -775,6 +786,10 @@ const en: Translation = {
         action: "Action",
         primaryContact: "Primary Contact",
         pending: "Pending",
+        estimate: "Estimate",
+        taxPending: "Tax pending",
+        paymentPending: "Payment pending",
+        currentEstimatedAmount: "Current estimated amount",
         view: "View",
         viewReceipt: "View Receipt",
         reprintReceipt: "Reprint Receipt",
@@ -790,6 +805,10 @@ const en: Translation = {
         cancellationFailed: "Cancellation Failed",
         completingHeld: "Completing held order...",
         heldCompleted: "Held order completed.",
+        websitePendingPricingNotice:
+          "This Website order has not been repriced for tax, shipping, or payment. Do not collect payment using this amount.",
+        websitePendingPricingPaymentBlocked:
+          "Website order payment cannot be marked paid until tax, shipping, and final payment amount are calculated.",
       },
     },
     shipping: {

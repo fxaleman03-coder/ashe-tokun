@@ -8,7 +8,12 @@ import {
 } from "@/lib/launchContainment";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
-import type { OrderStatus, PaymentStatus } from "@/lib/data/ordersRepository";
+import {
+  getOrderPricingPresentation,
+  type OrderStatus,
+  type PaymentStatus,
+  type SalesChannel,
+} from "@/lib/data/ordersRepository";
 
 type MutationResult =
   | { ok: true; message: string }
@@ -17,9 +22,12 @@ type MutationResult =
 type OrderRow = {
   id: string;
   order_number: string;
+  sales_channel: SalesChannel;
   order_status: OrderStatus;
   payment_status: PaymentStatus;
+  tax_total: number | string | null;
   notes: string | null;
+  receipts?: { receipt_number: string | null }[] | null;
 };
 
 type InventoryTransactionRow = {
@@ -123,7 +131,7 @@ async function readOrder(orderId: string) {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, order_status, payment_status, notes")
+    .select("id, order_number, sales_channel, order_status, payment_status, tax_total, notes, receipts(receipt_number)")
     .eq("id", orderId)
     .maybeSingle<OrderRow>();
 
@@ -297,6 +305,22 @@ export async function updatePaymentStatus(
 
     if (order.order_status === "refunded") {
       return { ok: false, error: "Refunded orders cannot be modified in this phase." };
+    }
+
+    if (
+      (status === "paid" || status === "partially_paid") &&
+      getOrderPricingPresentation({
+        sales_channel: order.sales_channel,
+        payment_status: order.payment_status,
+        tax_total: toNumber(order.tax_total),
+        receipt_number: order.receipts?.[0]?.receipt_number ?? null,
+      }).isWebsitePendingPricing
+    ) {
+      return {
+        ok: false,
+        error:
+          "Website order payment cannot be marked paid until tax, shipping, and final payment amount are calculated.",
+      };
     }
 
     const nextNotes = appendNote(

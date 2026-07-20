@@ -27,6 +27,8 @@ export default function OrderConfirmationPageContent({
   order,
 }: OrderConfirmationPageContentProps) {
   const { t } = useLanguage();
+  const isPendingPricing =
+    order?.paymentStatus === "pending" && order.summary.tax === 0;
 
   if (!order) {
     return (
@@ -105,23 +107,40 @@ export default function OrderConfirmationPageContent({
           </div>
           <div className="ml-auto mt-6 max-w-sm space-y-3 text-sm text-[#e8dcc8]/72">
             <div className="flex justify-between">
-              <span>{t.storefront.cart.subtotal}</span>
+              <span>{t.storefront.cart.itemSubtotal}</span>
               <span>{formatPrice(order.summary.subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>{t.storefront.cart.tax}</span>
-              <span>{formatPrice(order.summary.tax)}</span>
+              <span>
+                {isPendingPricing
+                  ? t.storefront.confirmation.taxPendingCalculation
+                  : formatPrice(order.summary.tax)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span>{t.storefront.cart.shipping}</span>
-              <span>{formatPrice(order.summary.shipping)}</span>
+              <span>
+                {isPendingPricing
+                  ? t.storefront.confirmation.shippingPendingCalculation
+                  : formatPrice(order.summary.shipping)}
+              </span>
             </div>
             <div className="border-t border-[#f7ead2]/10 pt-4 text-lg font-semibold text-[#f7ead2]">
               <div className="flex justify-between">
-                <span>{t.storefront.cart.total}</span>
+                <span>
+                  {isPendingPricing
+                    ? t.storefront.cart.estimatedAmountBeforeTaxAndShipping
+                    : t.storefront.cart.total}
+                </span>
                 <span>{formatPrice(order.summary.total)}</span>
               </div>
             </div>
+            {isPendingPricing ? (
+              <p className="text-xs leading-5 text-[#d8a344]">
+                {t.storefront.confirmation.finalAmountWillBeConfirmed}
+              </p>
+            ) : null}
           </div>
         </section>
       </div>

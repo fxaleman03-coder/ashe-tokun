@@ -153,6 +153,13 @@ const es: Translation = {
       pending: "Pendiente",
       pendingTotals:
         "Los pedidos en línea se crean como solicitudes sin pago. ASHE TOKUN confirma los detalles finales de pago y cumplimiento.",
+      itemSubtotal: "Subtotal de Artículos",
+      estimatedAmountBeforeTaxAndShipping:
+        "Monto estimado antes de impuestos y envío",
+      taxCalculatedBeforePayment: "Calculado antes del pago",
+      shippingCalculatedBeforePayment: "Calculado antes del pago",
+      finalAmountPending:
+        "El monto final se confirmará antes del pago.",
       checkout: "Checkout",
       clear: "Vaciar Carrito",
       unavailableProduct: "Producto no disponible",
@@ -196,6 +203,10 @@ const es: Translation = {
       orderStatus: "Estado del Pedido",
       date: "Fecha",
       items: "Artículos",
+      taxPendingCalculation: "Cálculo pendiente",
+      shippingPendingCalculation: "Cálculo pendiente",
+      finalAmountWillBeConfirmed:
+        "El monto final se confirmará antes del pago.",
       notFoundTitle: "Pedido no encontrado",
       notFoundDescription:
         "No pudimos encontrar esta confirmación de pedido en línea. Contacta a ASHE TOKUN si necesitas ayuda.",
@@ -779,6 +790,10 @@ const es: Translation = {
         action: "Acción",
         primaryContact: "Contacto Principal",
         pending: "Pendiente",
+        estimate: "Estimado",
+        taxPending: "Impuesto pendiente",
+        paymentPending: "Pago pendiente",
+        currentEstimatedAmount: "Monto estimado actual",
         view: "Ver",
         viewReceipt: "Ver Recibo",
         reprintReceipt: "Reimprimir Recibo",
@@ -794,6 +809,10 @@ const es: Translation = {
         cancellationFailed: "Cancelación fallida",
         completingHeld: "Completando pedido pausado...",
         heldCompleted: "Pedido pausado completado.",
+        websitePendingPricingNotice:
+          "Este pedido Website no se ha recalculado con impuestos, envío o pago. No cobre el pago usando este monto.",
+        websitePendingPricingPaymentBlocked:
+          "El pago del pedido Website no puede marcarse como pagado hasta calcular impuestos, envío y monto final.",
       },
     },
     shipping: {
