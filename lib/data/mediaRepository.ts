@@ -49,7 +49,7 @@ export type MediaAsset = MediaImage & {
   created_at: string | null;
 };
 
-type MediaAssetRow = {
+export type MediaAssetRow = {
   id: string;
   filename: string;
   original_filename: string;
@@ -93,7 +93,7 @@ function getFolder(storagePath: string) {
   return segments.join("/");
 }
 
-function mapSupabaseAsset(row: MediaAssetRow): MediaAsset {
+export function mapSupabaseAsset(row: MediaAssetRow): MediaAsset {
   const extension =
     row.file_extension?.replace(/^\./, "").toLowerCase() ||
     row.filename.split(".").pop()?.toLowerCase() ||

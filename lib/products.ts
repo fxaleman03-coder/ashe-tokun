@@ -8,6 +8,7 @@ export const productVendors = [
 ] as const;
 
 export type ProductVendor = (typeof productVendors)[number];
+export type ProductPublicationStatus = "draft" | "active" | "archived";
 
 export type Product = {
   id: string;
@@ -32,6 +33,7 @@ export type Product = {
   stock: number;
   reorderLevel?: number;
   inventoryLocation?: string;
+  status?: ProductPublicationStatus;
   availableOnline: boolean;
   availableInStore: boolean;
   image: string | null;

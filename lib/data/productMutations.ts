@@ -5,7 +5,7 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { requireServerActionPermission } from "@/lib/staff/serverActionAuth";
 import type { ProductOverride } from "@/lib/productStore";
 
-type ProductStatus = "draft" | "active" | "archived";
+export type ProductStatus = "draft" | "active" | "archived";
 
 type ProductLookupTable = "brands" | "categories" | "traditions" | "product_types";
 
@@ -98,6 +98,24 @@ type BarcodePrintCountResult =
       ok: false;
       error: string;
     };
+
+export type ProductStatusUpdateResult =
+  | {
+      ok: true;
+      updatedProductIds: string[];
+      unchangedProductIds: string[];
+      status: ProductStatus;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+const productStatuses = new Set<ProductStatus>([
+  "draft",
+  "active",
+  "archived",
+]);
 
 export type ProductPriceTrace = {
   requested: number;
@@ -296,7 +314,7 @@ export async function updateProduct(
     available_online: updates.availableOnline,
     available_in_store: updates.availableInStore,
     status: updates.status,
-    active: updates.active,
+    active: updates.status === "active" ? true : updates.active,
   });
 
   const { data, error } = await supabase
@@ -398,6 +416,104 @@ export async function updateProduct(
       returned: returnedPrice,
       verified: verifiedPrice,
     },
+  };
+}
+
+export async function updateProductStatuses(
+  productIds: string[],
+  nextStatus: ProductStatus,
+): Promise<ProductStatusUpdateResult> {
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const uniqueProductIds = Array.from(
+    new Set(productIds.map((id) => id.trim()).filter(Boolean)),
+  );
+
+  if (
+    uniqueProductIds.length === 0 ||
+    uniqueProductIds.length > 100 ||
+    !productStatuses.has(nextStatus)
+  ) {
+    return { ok: false, error: "Invalid product status request." };
+  }
+
+  if (!USE_SUPABASE) {
+    return {
+      ok: true,
+      updatedProductIds: uniqueProductIds,
+      unchangedProductIds: [],
+      status: nextStatus,
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
+
+  if (!supabase) {
+    return {
+      ok: false,
+      error:
+        "Supabase is enabled, but the Supabase client is not configured. Check environment variables.",
+    };
+  }
+
+  const { data: currentProducts, error: readError } = await supabase
+    .from("products")
+    .select("id, status")
+    .in("id", uniqueProductIds);
+
+  if (readError) {
+    return { ok: false, error: readError.message };
+  }
+
+  const currentRows = (currentProducts ?? []) as {
+    id: string;
+    status: ProductStatus;
+  }[];
+  const existingIds = new Set(currentRows.map((product) => product.id));
+  const missingIds = uniqueProductIds.filter((id) => !existingIds.has(id));
+
+  if (missingIds.length > 0) {
+    return { ok: false, error: "One or more products could not be found." };
+  }
+
+  const updatedProductIds = currentRows
+    .filter((product) => product.status !== nextStatus)
+    .map((product) => product.id);
+  const unchangedProductIds = currentRows
+    .filter((product) => product.status === nextStatus)
+    .map((product) => product.id);
+
+  if (updatedProductIds.length === 0) {
+    return {
+      ok: true,
+      updatedProductIds,
+      unchangedProductIds,
+      status: nextStatus,
+    };
+  }
+
+  const updatePayload =
+    nextStatus === "active"
+      ? { status: nextStatus, active: true }
+      : { status: nextStatus };
+  const { error: updateError } = await supabase
+    .from("products")
+    .update(updatePayload)
+    .in("id", updatedProductIds);
+
+  if (updateError) {
+    return { ok: false, error: updateError.message };
+  }
+
+  return {
+    ok: true,
+    updatedProductIds,
+    unchangedProductIds,
+    status: nextStatus,
   };
 }
 

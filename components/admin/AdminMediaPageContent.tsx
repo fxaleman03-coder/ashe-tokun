@@ -2,14 +2,17 @@
 
 import MediaLibrary from "@/components/admin/MediaLibrary";
 import { useLanguage } from "@/components/LanguageProvider";
+import type { Brand } from "@/lib/data/localBrands";
 import type { MediaAsset } from "@/lib/data/mediaRepository";
 
 type AdminMediaPageContentProps = {
   mediaAssets: MediaAsset[];
+  brands: Brand[];
 };
 
 export default function AdminMediaPageContent({
   mediaAssets,
+  brands,
 }: AdminMediaPageContentProps) {
   const { t } = useLanguage();
   const labels = t.admin.media;
@@ -25,7 +28,7 @@ export default function AdminMediaPageContent({
         </p>
       </div>
 
-      <MediaLibrary mediaAssets={mediaAssets} />
+      <MediaLibrary mediaAssets={mediaAssets} brands={brands} />
     </>
   );
 }

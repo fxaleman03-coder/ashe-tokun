@@ -2,7 +2,7 @@ import Link from "next/link";
 import AdminShell from "@/components/admin/AdminShell";
 import EditProductForm from "@/components/admin/EditProductForm";
 import {
-  getProductBySlug,
+  getAdminProductBySlug,
   getProducts,
 } from "@/lib/data/productsRepository";
 import { getMediaAssets } from "@/lib/data/mediaRepository";
@@ -31,7 +31,7 @@ export default async function AdminEditProductPage({
   const { slug } = await params;
   await requirePermission("products.edit");
 
-  const product = await getProductBySlug(slug);
+  const product = await getAdminProductBySlug(slug);
   const [mediaAssets, productMedia, inventoryItems] = await Promise.all([
     getMediaAssets(),
     product ? getProductMedia(product.id) : Promise.resolve([]),

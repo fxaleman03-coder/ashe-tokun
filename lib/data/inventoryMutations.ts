@@ -190,25 +190,62 @@ export async function createInventoryItem(
     };
   }
 
+  try {
+    const existingItem = await readInventoryItemForLocation(
+      input.productId,
+      input.locationId,
+    );
+
+    if (existingItem) {
+      return {
+        ok: true,
+        item: existingItem,
+      };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Existing inventory lookup failed.",
+    };
+  }
+
   const { data, error } = await supabase
     .from("inventory_items")
-    .upsert(
-      {
-        product_id: input.productId,
-        location_id: input.locationId,
-        on_hand_quantity: onHand,
-        reserved_quantity: reserved,
-        available_quantity: availableQuantity(onHand, reserved),
-        incoming_quantity: input.incomingQuantity ?? 0,
-        reorder_level: input.reorderLevel ?? 0,
-        inventory_value: input.inventoryValue ?? 0,
-      },
-      { onConflict: "product_id,location_id" },
-    )
+    .insert({
+      product_id: input.productId,
+      location_id: input.locationId,
+      on_hand_quantity: onHand,
+      reserved_quantity: reserved,
+      available_quantity: availableQuantity(onHand, reserved),
+      incoming_quantity: input.incomingQuantity ?? 0,
+      reorder_level: input.reorderLevel ?? 0,
+      inventory_value: input.inventoryValue ?? 0,
+    })
     .select("*")
     .single<InventoryItemRow>();
 
   if (error || !data) {
+    if (error?.code === "23505") {
+      try {
+        const existingItem = await readInventoryItemForLocation(
+          input.productId,
+          input.locationId,
+        );
+
+        if (existingItem) {
+          return {
+            ok: true,
+            item: existingItem,
+          };
+        }
+      } catch {
+        // Return the original insert error below.
+      }
+    }
+
     return {
       ok: false,
       error: error?.message ?? "Inventory item was not returned.",

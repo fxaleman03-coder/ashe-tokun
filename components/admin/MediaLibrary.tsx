@@ -4,18 +4,41 @@ import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { USE_SUPABASE } from "@/lib/config";
+import type { Brand } from "@/lib/data/localBrands";
 import type { MediaAsset } from "@/lib/data/mediaRepository";
 import { PRODUCT_MEDIA_BUCKET } from "@/lib/storage/mediaStorage";
-import { uploadProductImage } from "@/lib/storage/mediaStorageActions";
+import {
+  updateMediaAsset,
+  uploadProductImage,
+  type UpdateMediaAssetResult,
+} from "@/lib/storage/mediaStorageActions";
 
 type MediaLibraryProps = {
   mediaAssets: MediaAsset[];
+  brands: Brand[];
 };
 
 type ViewMode = "grid" | "list";
+type StatusFilter = "active" | "inactive" | "all";
 type UploadStatus = "idle" | "uploading" | "complete" | "failed";
+type Feedback = { kind: "success" | "error"; message: string } | null;
 
 type LibraryImage = MediaAsset & { vendor: string };
+
+const editableAssetTypes: MediaAsset["asset_type"][] = [
+  "product_image",
+  "gallery_image",
+  "thumbnail",
+  "brand_logo",
+  "banner",
+  "icon",
+  "marketing",
+  "pdf",
+  "manual",
+  "certificate",
+  "video",
+  "other",
+];
 
 const inputClass =
   "min-h-12 w-full border border-[#f7ead2]/10 bg-[#120d08] px-4 text-sm text-[#f7ead2] outline-none transition duration-300 placeholder:text-[#e8dcc8]/38 focus:border-[#d8a344]/70";
@@ -114,12 +137,14 @@ async function getImageDimensions(file: File) {
 
 export default function MediaLibrary({
   mediaAssets,
+  brands,
 }: MediaLibraryProps) {
   const { t } = useLanguage();
   const labels = t.admin.media;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [assets, setAssets] = useState(mediaAssets);
   const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<StatusFilter>("active");
   const [vendor, setVendor] = useState("all");
   const [assetType, setAssetType] = useState("all");
   const [folder, setFolder] = useState("all");
@@ -130,14 +155,29 @@ export default function MediaLibrary({
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [previewImage, setPreviewImage] = useState<MediaAsset | null>(null);
   const [detailImage, setDetailImage] = useState<MediaAsset | null>(null);
+  const [editImage, setEditImage] = useState<MediaAsset | null>(null);
+  const [editFilename, setEditFilename] = useState("");
+  const [editAssetType, setEditAssetType] =
+    useState<MediaAsset["asset_type"]>("product_image");
+  const [editBrandId, setEditBrandId] = useState("");
+  const [editActive, setEditActive] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback>(null);
+
+  const brandNames = useMemo(
+    () => new Map(brands.map((brand) => [brand.id, brand.name])),
+    [brands],
+  );
 
   const enrichedImages = useMemo(
     () =>
       assets.map((image) => ({
         ...image,
-        vendor: detectVendor(image),
+        vendor:
+          (image.brand_id ? brandNames.get(image.brand_id) : undefined) ??
+          detectVendor(image),
       })),
-    [assets],
+    [assets, brandNames],
   );
 
   const vendors = useMemo(
@@ -168,6 +208,9 @@ export default function MediaLibrary({
         image.category.toLowerCase().includes(normalizedQuery) ||
         image.asset_type.toLowerCase().includes(normalizedQuery) ||
         image.vendor.toLowerCase().includes(normalizedQuery);
+      const matchesStatus =
+        status === "all" ||
+        (status === "active" ? image.active : !image.active);
       const matchesVendor = vendor === "all" || image.vendor === vendor;
       const matchesAssetType =
         assetType === "all" || image.asset_type === assetType;
@@ -177,13 +220,14 @@ export default function MediaLibrary({
 
       return (
         matchesQuery &&
+        matchesStatus &&
         matchesVendor &&
         matchesAssetType &&
         matchesFolder &&
         matchesFileType
       );
     });
-  }, [assetType, enrichedImages, fileType, folder, query, vendor]);
+  }, [assetType, enrichedImages, fileType, folder, query, status, vendor]);
 
   const summary = useMemo(
     () => ({
@@ -207,6 +251,84 @@ export default function MediaLibrary({
 
   async function copyPath(url: string) {
     await navigator.clipboard.writeText(url);
+  }
+
+  function openEdit(image: MediaAsset) {
+    setFeedback(null);
+
+    if (image.source === "local-fallback") {
+      setFeedback({ kind: "error", message: labels.localReadOnly });
+      return;
+    }
+
+    setEditImage(image);
+    setEditFilename(image.filename);
+    setEditAssetType(image.asset_type);
+    setEditBrandId(image.brand_id ?? "");
+    setEditActive(image.active);
+  }
+
+  function getUpdateError(result: Extract<UpdateMediaAssetResult, { ok: false }>) {
+    const messages = {
+      invalid_asset: labels.updateError,
+      blank_filename: labels.blankFilenameError,
+      duplicate_filename: labels.duplicateFilenameError,
+      invalid_asset_type: labels.invalidAssetTypeError,
+      invalid_brand: labels.invalidBrandError,
+      update_failed: labels.updateError,
+      service_unavailable: labels.serviceUnavailableError,
+      unauthorized: labels.unauthorizedError,
+    };
+
+    return messages[result.error];
+  }
+
+  async function handleEditSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editImage || isSaving) {
+      return;
+    }
+
+    if (!editFilename.replace(/\.[a-z0-9]+$/i, "").trim()) {
+      setFeedback({ kind: "error", message: labels.blankFilenameError });
+      return;
+    }
+
+    setIsSaving(true);
+    setFeedback(null);
+
+    const formData = new FormData();
+    formData.set("id", editImage.id);
+    formData.set("filename", editFilename);
+    formData.set("assetType", editAssetType);
+    formData.set("brandId", editBrandId);
+    formData.set("active", String(editActive));
+
+    let result: UpdateMediaAssetResult;
+
+    try {
+      result = await updateMediaAsset(formData);
+    } catch {
+      setFeedback({ kind: "error", message: labels.updateError });
+      setIsSaving(false);
+      return;
+    }
+
+    if (!result.ok) {
+      setFeedback({ kind: "error", message: getUpdateError(result) });
+      setIsSaving(false);
+      return;
+    }
+
+    setAssets((currentAssets) =>
+      currentAssets.map((asset) =>
+        asset.id === result.image.id ? result.image : asset,
+      ),
+    );
+    setEditImage(null);
+    setFeedback({ kind: "success", message: labels.updateSuccess });
+    setIsSaving(false);
   }
 
   async function handleUpload(files: FileList | File[]) {
@@ -267,7 +389,7 @@ export default function MediaLibrary({
 
   function renderActionButtons(image: LibraryImage) {
     return (
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
         <button
           type="button"
           onClick={() => setPreviewImage(image)}
@@ -284,10 +406,17 @@ export default function MediaLibrary({
         </button>
         <button
           type="button"
+          onClick={() => openEdit(image)}
+          className="min-h-10 border border-[#f7ead2]/12 px-3 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
+        >
+          {labels.edit}
+        </button>
+        <button
+          type="button"
           onClick={() => setDetailImage(image)}
           className="min-h-10 border border-[#f7ead2]/12 px-3 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
         >
-          Details
+          {labels.details}
         </button>
       </div>
     );
@@ -295,6 +424,18 @@ export default function MediaLibrary({
 
   return (
     <div>
+      {feedback ? (
+        <div
+          role={feedback.kind === "error" ? "alert" : "status"}
+          className={`mb-5 border px-5 py-4 text-sm font-medium ${
+            feedback.kind === "error"
+              ? "border-red-300/25 bg-red-950/30 text-red-100"
+              : "border-emerald-300/25 bg-emerald-950/25 text-emerald-100"
+          }`}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
       <section className="mb-6 border border-dashed border-[#d8a344]/35 bg-[#120d08] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
         <div
           onDragOver={(event) => {
@@ -430,6 +571,22 @@ export default function MediaLibrary({
             {labels.filters}
           </p>
           <div className="mt-5 space-y-4">
+            <label className="block">
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#e8dcc8]/54">
+                {labels.status}
+              </span>
+              <select
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as StatusFilter)
+                }
+                className={`${inputClass} mt-2`}
+              >
+                <option value="active">{labels.active}</option>
+                <option value="inactive">{labels.inactive}</option>
+                <option value="all">{labels.all}</option>
+              </select>
+            </label>
             {[
               [labels.vendorBrand, vendor, setVendor, vendors],
               [labels.assetType, assetType, setAssetType, assetTypes],
@@ -506,6 +663,11 @@ export default function MediaLibrary({
                       image={image}
                       sizes="(min-width: 1536px) 25vw, (min-width: 640px) 50vw, 100vw"
                     />
+                    {!image.active ? (
+                      <span className="absolute right-3 top-3 border border-red-200/35 bg-red-950/90 px-3 py-1.5 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-red-100 shadow-lg">
+                        {labels.inactive}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="p-5">
                     <p className="truncate text-sm font-semibold text-[#f7ead2]">
@@ -570,7 +732,14 @@ export default function MediaLibrary({
                         </div>
                       </td>
                       <td className="px-5 py-4 font-medium text-[#f7ead2]">
-                        {image.filename}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{image.filename}</span>
+                          {!image.active ? (
+                            <span className="border border-red-200/30 bg-red-950/65 px-2 py-1 text-[0.58rem] font-bold uppercase tracking-[0.16em] text-red-100">
+                              {labels.inactive}
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="max-w-xs break-all px-5 py-4">
                         {image.url}
@@ -633,10 +802,156 @@ export default function MediaLibrary({
                 }}
                 className="inline-flex min-h-11 items-center justify-center border border-[#f7ead2]/16 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#f7ead2] transition duration-500 hover:border-[#d8a344]/70 hover:text-[#d8a344]"
               >
-                Details
+                {labels.details}
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {editImage ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-media-title"
+        >
+          <form
+            onSubmit={handleEditSubmit}
+            className="max-h-[92vh] w-full max-w-2xl overflow-auto border border-[#d8a344]/28 bg-[#0f0b07] p-6 shadow-[0_34px_120px_rgba(0,0,0,0.64)] sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#d8a344]">
+                  {labels.edit}
+                </p>
+                <h2
+                  id="edit-media-title"
+                  className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]"
+                >
+                  {labels.editTitle}
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-[#e8dcc8]/62">
+                  {labels.editDescription}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditImage(null)}
+                disabled={isSaving}
+                className="border border-[#f7ead2]/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#f7ead2] transition hover:border-[#d8a344] hover:text-[#d8a344] disabled:opacity-50"
+              >
+                {labels.close}
+              </button>
+            </div>
+
+            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="text-[0.64rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                  {labels.displayFilename}
+                </span>
+                <input
+                  value={editFilename}
+                  onChange={(event) => setEditFilename(event.target.value)}
+                  disabled={isSaving}
+                  autoFocus
+                  className={`${inputClass} mt-2`}
+                />
+                <span className="mt-2 block text-xs text-[#e8dcc8]/48">
+                  {labels.filenameHelp}
+                </span>
+              </label>
+
+              <label className="block">
+                <span className="text-[0.64rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                  {labels.assetType}
+                </span>
+                <select
+                  value={editAssetType}
+                  onChange={(event) =>
+                    setEditAssetType(
+                      event.target.value as MediaAsset["asset_type"],
+                    )
+                  }
+                  disabled={isSaving}
+                  className={`${inputClass} mt-2`}
+                >
+                  {editableAssetTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-[0.64rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                  {labels.vendorBrand}
+                </span>
+                <select
+                  value={editBrandId}
+                  onChange={(event) => setEditBrandId(event.target.value)}
+                  disabled={isSaving}
+                  className={`${inputClass} mt-2`}
+                >
+                  <option value="">{labels.unassigned}</option>
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex items-start gap-3 border border-[#f7ead2]/10 bg-[#120d08] p-4 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={editActive}
+                  onChange={(event) => setEditActive(event.target.checked)}
+                  disabled={isSaving}
+                  className="mt-1 h-4 w-4 accent-[#d8a344]"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-[#f7ead2]">
+                    {labels.activeStatus}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-[#e8dcc8]/52">
+                    {labels.activeHelp}
+                  </span>
+                </span>
+              </label>
+
+              <div className="sm:col-span-2">
+                <p className="text-[0.64rem] font-bold uppercase tracking-[0.18em] text-[#d8a344]">
+                  {labels.storagePathLocked}
+                </p>
+                <p className="mt-2 break-all border border-[#f7ead2]/8 bg-[#080503] px-4 py-3 text-xs leading-5 text-[#e8dcc8]/52">
+                  {editImage.storage_path}
+                </p>
+                <p className="mt-2 text-xs text-[#e8dcc8]/42">
+                  {labels.storagePathLockedHelp}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-[#f7ead2]/10 pt-6">
+              <button
+                type="button"
+                onClick={() => setEditImage(null)}
+                disabled={isSaving}
+                className="inline-flex min-h-11 items-center justify-center border border-[#f7ead2]/16 px-5 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#f7ead2] transition hover:border-[#d8a344]/70 hover:text-[#d8a344] disabled:opacity-50"
+              >
+                {labels.cancel}
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="inline-flex min-h-11 items-center justify-center border border-[#d8a344]/55 bg-[#d8a344] px-6 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#0f0b07] transition hover:bg-[#e2b65f] disabled:cursor-wait disabled:opacity-60"
+              >
+                {isSaving ? labels.savingChanges : labels.saveChanges}
+              </button>
+            </div>
+          </form>
         </div>
       ) : null}
 
@@ -645,7 +960,7 @@ export default function MediaLibrary({
           <div className="flex items-start justify-between gap-6">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#d8a344]">
-                Asset Details
+                {labels.details}
               </p>
               <h2 className="mt-3 font-serif text-3xl font-semibold text-[#f7ead2]">
                 Image
@@ -664,7 +979,12 @@ export default function MediaLibrary({
               ["File name", detailImage.filename],
               ["Public URL path", detailImage.url],
               ["Relative folder", detailImage.folder],
-              ["Vendor / Brand", detectVendor(detailImage)],
+              [
+                labels.vendorBrand,
+                (detailImage.brand_id
+                  ? brandNames.get(detailImage.brand_id)
+                  : undefined) ?? detectVendor(detailImage),
+              ],
               ["Asset Type", detailImage.asset_type.replaceAll("_", " ")],
               ["Category", detailImage.category],
               ["Extension", detailImage.extension],

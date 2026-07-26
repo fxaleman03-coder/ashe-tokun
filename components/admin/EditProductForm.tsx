@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import ProductIdentificationPanel from "@/components/admin/ProductIdentificationPanel";
 import { USE_SUPABASE } from "@/lib/config";
 import { updateProduct } from "@/lib/data/productMutations";
@@ -37,7 +38,6 @@ type EditProductFormProps = {
 };
 
 type ProductStatus = "Draft" | "Active" | "Archived";
-type ProductVisibility = "Storefront" | "Hidden";
 type DatabaseProductStatus = "draft" | "active" | "archived";
 
 type EditProductFormState = {
@@ -70,7 +70,6 @@ type EditProductFormState = {
   seoTitle: string;
   seoDescription: string;
   status: ProductStatus;
-  visibility: ProductVisibility;
 };
 
 function formatInputPrice(price?: number) {
@@ -116,8 +115,7 @@ function toFormState(product: Product, stock?: number): EditProductFormState {
     collectionOdibere: product.vendor === "EDIBERE CREATION",
     seoTitle: "",
     seoDescription: "",
-    status: "Draft",
-    visibility: "Storefront",
+    status: mapStatusFromDatabase(product.status),
   };
 }
 
@@ -268,6 +266,8 @@ function ProductStudioForm({
   stock,
 }: ProductStudioFormProps) {
   const router = useRouter();
+  const { t } = useLanguage();
+  const labels = t.admin.products;
   const seedFormState = useMemo(() => toFormState(seedProduct), [seedProduct]);
   const [formState, setFormState] = useState(() => toFormState(product, stock));
   const [message, setMessage] = useState("");
@@ -501,7 +501,6 @@ function ProductStudioForm({
         formState.shortDescription.trim() ||
         seedProduct.shortDescription.en,
       status: mapStatusToDatabase(formState.status),
-      active: formState.visibility === "Storefront",
     };
 
     const result = await updateProduct(product.slug, productUpdates);
@@ -533,8 +532,6 @@ function ProductStudioForm({
         isFeatured: result.product.featured ?? currentState.isFeatured,
         isNew: result.product.new_arrival ?? currentState.isNew,
         status: mapStatusFromDatabase(result.product.status),
-        visibility:
-          result.product.active === false ? "Hidden" : "Storefront",
       }));
       router.refresh();
       setMessage("Saved to Supabase.");
@@ -938,7 +935,7 @@ function ProductStudioForm({
           </div>
         </SectionCard>
 
-        <SectionCard title="Inventory" eyebrow="04">
+        <SectionCard title={labels.inventory} eyebrow="04">
           <div className="grid gap-5 md:grid-cols-2">
             <FieldLabel label="SKU">
               <input
@@ -1064,10 +1061,13 @@ function ProductStudioForm({
               </div>
             </div>
           ) : null}
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        </SectionCard>
+
+        <SectionCard title={labels.availabilityChannels} eyebrow="05">
+          <div className="grid gap-4 sm:grid-cols-2">
             {[
-              ["Available Online", "availableOnline"],
-              ["Available In Store", "availableInStore"],
+              [labels.availableOnline, "availableOnline"],
+              [labels.availableInPos, "availableInStore"],
             ].map(([label, field]) => (
               <label
                 key={field}
@@ -1092,7 +1092,7 @@ function ProductStudioForm({
           </div>
         </SectionCard>
 
-        <SectionCard title="Collections" eyebrow="05">
+        <SectionCard title="Collections" eyebrow="06">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[
               ["Featured", "isFeatured"],
@@ -1133,7 +1133,7 @@ function ProductStudioForm({
           </div>
         </SectionCard>
 
-        <SectionCard title="SEO" eyebrow="06">
+        <SectionCard title="SEO" eyebrow="07">
           <div className="grid gap-5">
             <FieldLabel label="SEO Title">
               <input
@@ -1165,9 +1165,9 @@ function ProductStudioForm({
           </div>
         </SectionCard>
 
-        <SectionCard title="Publishing" eyebrow="07">
-          <div className="grid gap-5 md:grid-cols-2">
-            <FieldLabel label="Status">
+        <SectionCard title={labels.publishing} eyebrow="08">
+          <div className="grid gap-5">
+            <FieldLabel label={labels.publicationStatus}>
               <select
                 value={formState.status}
                 onChange={(event) =>
@@ -1175,29 +1175,9 @@ function ProductStudioForm({
                 }
                 className={inputClass}
               >
-                {["Draft", "Active", "Archived"].map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </FieldLabel>
-            <FieldLabel label="Visibility">
-              <select
-                value={formState.visibility}
-                onChange={(event) =>
-                  updateField(
-                    "visibility",
-                    event.target.value as ProductVisibility,
-                  )
-                }
-                className={inputClass}
-              >
-                {["Storefront", "Hidden"].map((visibility) => (
-                  <option key={visibility} value={visibility}>
-                    {visibility}
-                  </option>
-                ))}
+                <option value="Draft">{labels.table.draft}</option>
+                <option value="Active">{labels.table.active}</option>
+                <option value="Archived">{labels.table.archived}</option>
               </select>
             </FieldLabel>
           </div>

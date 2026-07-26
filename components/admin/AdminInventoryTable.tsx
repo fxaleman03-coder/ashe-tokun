@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { createInventoryItem } from "@/lib/data/inventoryMutations";
 import type {
   InventoryItem,
   InventoryLocation,
@@ -49,25 +51,84 @@ export default function AdminInventoryTable({
   summary,
 }: AdminInventoryTableProps) {
   const { t } = useLanguage();
+  const router = useRouter();
   const labels = t.admin.inventory;
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("all");
   const [category, setCategory] = useState("all");
   const [location, setLocation] = useState("all");
   const [stockStatus, setStockStatus] = useState<StockStatus>("All");
+  const [initializingProductId, setInitializingProductId] = useState<
+    string | null
+  >(null);
+  const [initializationMessage, setInitializationMessage] = useState("");
+  const [inventoryItems, setInventoryItems] = useState(items);
+
+  async function initializeInventory(item: InventoryItem) {
+    if (!item.location_id || initializingProductId) {
+      return;
+    }
+
+    setInitializingProductId(item.product_id);
+    setInitializationMessage("");
+
+    try {
+      const result = await createInventoryItem({
+        productId: item.product_id,
+        locationId: item.location_id,
+      });
+
+      if (!result.ok) {
+        setInitializationMessage(
+          `${labels.initializationFailed}: ${result.error}`,
+        );
+        return;
+      }
+
+      if ("item" in result) {
+        setInventoryItems((currentItems) =>
+          currentItems.map((currentItem) =>
+            currentItem.product_id === item.product_id &&
+            currentItem.location_id === item.location_id
+              ? {
+                  ...currentItem,
+                  id: result.item.id,
+                  on_hand_quantity: result.item.on_hand_quantity,
+                  reserved_quantity: result.item.reserved_quantity,
+                  available_quantity: result.item.available_quantity,
+                  incoming_quantity: result.item.incoming_quantity,
+                  reorder_level: result.item.reorder_level,
+                  inventory_value: Number(result.item.inventory_value),
+                  initialized: true,
+                }
+              : currentItem,
+          ),
+        );
+        setInitializationMessage(labels.initializationComplete);
+        router.refresh();
+        return;
+      }
+
+      setInitializationMessage(labels.initializationComplete);
+    } catch {
+      setInitializationMessage(labels.initializationFailed);
+    } finally {
+      setInitializingProductId(null);
+    }
+  }
 
   const brands = useMemo(
-    () => unique(items.map((item) => item.product.brand)),
-    [items],
+    () => unique(inventoryItems.map((item) => item.product.brand)),
+    [inventoryItems],
   );
   const categories = useMemo(
-    () => unique(items.map((item) => item.product.category)),
-    [items],
+    () => unique(inventoryItems.map((item) => item.product.category)),
+    [inventoryItems],
   );
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return items.filter((item) => {
+    return inventoryItems.filter((item) => {
       const status = getInventoryStatus(item);
       const matchesQuery =
         normalizedQuery.length === 0 ||
@@ -88,7 +149,7 @@ export default function AdminInventoryTable({
         matchesStatus
       );
     });
-  }, [brand, category, items, location, query, stockStatus]);
+  }, [brand, category, inventoryItems, location, query, stockStatus]);
 
   return (
     <div className="space-y-6">
@@ -191,6 +252,14 @@ export default function AdminInventoryTable({
       </div>
 
       <div className="overflow-x-auto border border-[#f7ead2]/10 bg-[#120d08] shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+        {initializationMessage ? (
+          <p
+            role="status"
+            className="border-b border-[#f7ead2]/10 px-5 py-4 text-sm text-[#e8dcc8]/72"
+          >
+            {initializationMessage}
+          </p>
+        ) : null}
         <table className="w-full min-w-[1500px] border-collapse text-left">
           <thead>
             <tr className="border-b border-[#f7ead2]/10 text-[0.68rem] uppercase tracking-[0.2em] text-[#d8a344]">
@@ -264,12 +333,28 @@ export default function AdminInventoryTable({
                       : labels.status.outOfStock}
                 </td>
                 <td className="px-5 py-4">
-                  <Link
-                    href={`/admin/inventory/${item.id}`}
-                    className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
-                  >
-                    {labels.table.manage}
-                  </Link>
+                  {item.initialized ? (
+                    <Link
+                      href={`/admin/inventory/${item.id}`}
+                      className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07]"
+                    >
+                      {labels.table.manage}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => initializeInventory(item)}
+                      disabled={
+                        !item.location_id ||
+                        initializingProductId === item.product_id
+                      }
+                      className="inline-flex min-h-10 items-center justify-center border border-[#d8a344]/45 px-4 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#d8a344] transition duration-500 hover:bg-[#d8a344] hover:text-[#0f0b07] disabled:cursor-wait disabled:opacity-50"
+                    >
+                      {initializingProductId === item.product_id
+                        ? labels.initializing
+                        : labels.initializeInventory}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

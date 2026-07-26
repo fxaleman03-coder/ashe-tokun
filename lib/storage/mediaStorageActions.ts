@@ -44,6 +44,40 @@ export type MediaStorageResult =
       error: string;
     };
 
+export type UpdateMediaAssetResult =
+  | {
+      ok: true;
+      image: MediaAsset;
+    }
+  | {
+      ok: false;
+      error:
+        | "invalid_asset"
+        | "blank_filename"
+        | "duplicate_filename"
+        | "invalid_asset_type"
+        | "invalid_brand"
+        | "update_failed"
+        | "service_unavailable"
+        | "unauthorized";
+      message?: string;
+    };
+
+const editableAssetTypes = new Set<CommercialMediaAssetType>([
+  "product_image",
+  "gallery_image",
+  "thumbnail",
+  "brand_logo",
+  "banner",
+  "icon",
+  "marketing",
+  "pdf",
+  "manual",
+  "certificate",
+  "video",
+  "other",
+]);
+
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -259,6 +293,141 @@ export async function uploadProductImage(
     image: toMediaAsset(data, publicUrl),
     storagePath,
     publicUrl,
+  };
+}
+
+export async function updateMediaAsset(
+  formData: FormData,
+): Promise<UpdateMediaAssetResult> {
+  const auth = await requireServerActionPermission("products.edit");
+
+  if (!auth.ok) {
+    return { ok: false, error: "unauthorized", message: auth.error };
+  }
+
+  const supabase = createSupabaseServiceClient();
+
+  if (!supabase) {
+    return { ok: false, error: "service_unavailable" };
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  const requestedFilename = String(formData.get("filename") ?? "").trim();
+  const assetType = String(formData.get("assetType") ?? "").trim();
+  const brandIdValue = String(formData.get("brandId") ?? "").trim();
+  const active = formData.get("active") === "true";
+
+  if (!id) {
+    return { ok: false, error: "invalid_asset" };
+  }
+
+  const { data: currentAsset, error: readError } = await supabase
+    .from("media_assets")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle<MediaAssetRow>();
+
+  if (readError || !currentAsset) {
+    return {
+      ok: false,
+      error: "invalid_asset",
+      message: readError?.message,
+    };
+  }
+
+  const extension =
+    currentAsset.file_extension?.replace(/^\./, "").toLowerCase() ||
+    currentAsset.filename.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() ||
+    "";
+  const typedBaseName = requestedFilename.replace(/\.[a-z0-9]+$/i, "").trim();
+
+  if (!typedBaseName) {
+    return { ok: false, error: "blank_filename" };
+  }
+
+  if (
+    typedBaseName.includes("/") ||
+    typedBaseName.includes("\\") ||
+    /[\u0000-\u001f\u007f]/.test(typedBaseName)
+  ) {
+    return { ok: false, error: "blank_filename" };
+  }
+
+  if (!editableAssetTypes.has(assetType as CommercialMediaAssetType)) {
+    return { ok: false, error: "invalid_asset_type" };
+  }
+
+  const filename = extension ? `${typedBaseName}.${extension}` : typedBaseName;
+  const { data: filenameMatches, error: duplicateReadError } = await supabase
+    .from("media_assets")
+    .select("id, filename");
+
+  if (duplicateReadError) {
+    return {
+      ok: false,
+      error: "update_failed",
+      message: duplicateReadError.message,
+    };
+  }
+
+  const hasDuplicate = (filenameMatches ?? []).some(
+    (row) =>
+      row.id !== id &&
+      String(row.filename).localeCompare(filename, undefined, {
+        sensitivity: "accent",
+      }) === 0,
+  );
+
+  if (hasDuplicate) {
+    return { ok: false, error: "duplicate_filename" };
+  }
+
+  const brandId = brandIdValue || null;
+
+  if (brandId) {
+    const { data: brand, error: brandError } = await supabase
+      .from("brands")
+      .select("id")
+      .eq("id", brandId)
+      .eq("active", true)
+      .maybeSingle<{ id: string }>();
+
+    if (brandError || !brand) {
+      return {
+        ok: false,
+        error: "invalid_brand",
+        message: brandError?.message,
+      };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("media_assets")
+    .update({
+      filename,
+      asset_type: assetType,
+      brand_id: brandId,
+      active,
+    })
+    .eq("id", id)
+    .select("*")
+    .single<MediaAssetRow>();
+
+  if (error || !data) {
+    return {
+      ok: false,
+      error: "update_failed",
+      message: error?.message,
+    };
+  }
+
+  const publicUrl = supabase.storage
+    .from(PRODUCT_MEDIA_BUCKET)
+    .getPublicUrl(data.storage_path).data.publicUrl;
+
+  return {
+    ok: true,
+    image: toMediaAsset(data, publicUrl),
   };
 }
 

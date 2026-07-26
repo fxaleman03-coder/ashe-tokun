@@ -5,6 +5,7 @@ import {
   products as localProducts,
   type Product,
   type ProductGalleryImage,
+  type ProductPublicationStatus,
   type ProductVendor,
 } from "@/lib/products";
 import { supabase } from "@/lib/supabase";
@@ -57,6 +58,7 @@ type SupabaseProductRow = {
   featured?: boolean | null;
   new_arrival?: boolean | null;
   active?: boolean | null;
+  status?: ProductPublicationStatus | null;
   brand?: SupabaseRelation;
   category?: SupabaseRelation;
   tradition?: SupabaseRelation;
@@ -199,6 +201,7 @@ const mapSupabaseProduct = (
     stock,
     reorderLevel: row.reorder_level ?? undefined,
     inventoryLocation: row.inventory_location ?? undefined,
+    status: row.status ?? "draft",
     availableOnline: row.available_online ?? true,
     availableInStore: row.available_in_store ?? true,
     image,
@@ -212,17 +215,24 @@ const mapSupabaseProduct = (
   };
 };
 
-async function readProducts(): Promise<ProductsResult> {
-  if (!USE_SUPABASE || !supabase) {
+async function readProducts(includeAllStatuses = false): Promise<ProductsResult> {
+  const productClient = includeAllStatuses
+    ? createSupabaseServiceClient()
+    : supabase;
+
+  if (!USE_SUPABASE || !productClient) {
     return {
-      products: localProducts,
+      products: localProducts.map((product) => ({
+        ...product,
+        status: product.status ?? "active",
+      })),
       source: "Local fallback",
       supabaseProductCount: 0,
       fallbackUsed: true,
     };
   }
 
-  const { data, error } = await supabase
+  let productQuery = productClient
     .from("products")
     .select(
       `
@@ -232,17 +242,25 @@ async function readProducts(): Promise<ProductsResult> {
         tradition:traditions(name, slug),
         product_type:product_types(name, slug)
       `,
-    )
-    .eq("active", true)
-    .eq("status", "active")
-    .eq("available_online", true)
-    .order("name");
+    );
+
+  if (!includeAllStatuses) {
+    productQuery = productQuery
+      .eq("active", true)
+      .eq("status", "active")
+      .eq("available_online", true);
+  }
+
+  const { data, error } = await productQuery.order("name");
 
   const supabaseProductCount = data?.length ?? 0;
 
   if (error || !data || data.length === 0) {
     return {
-      products: localProducts,
+      products: localProducts.map((product) => ({
+        ...product,
+        status: product.status ?? "active",
+      })),
       source: "Local fallback",
       supabaseProductCount,
       fallbackUsed: true,
@@ -255,7 +273,7 @@ async function readProducts(): Promise<ProductsResult> {
   const inventoryByProductId = new Map<string, ProductInventorySummary>();
 
   if (productIds.length > 0) {
-    const mediaResult = await supabase
+    const mediaResult = await productClient
       .from("product_media")
       .select(
         "id, product_id, display_order, is_primary, alt_text, media_asset:media_assets(id, public_url, storage_path, active)",
@@ -355,6 +373,26 @@ export async function getProducts(): Promise<Product[]> {
   const result = await getProductsResult();
 
   return result.products;
+}
+
+export async function getAdminProducts(): Promise<Product[]> {
+  const result = await readProducts(true);
+
+  return result.products;
+}
+
+export async function getAdminProductBySlug(
+  slug: string,
+): Promise<Product | undefined> {
+  const products = await getAdminProducts();
+
+  return products.find((product) => product.slug === slug);
+}
+
+export async function getAdminProductSourceStatus(): Promise<ProductSourceStatus> {
+  const result = await readProducts(true);
+
+  return result.source;
 }
 
 export async function getFeaturedProducts(): Promise<Product[]> {

@@ -37,6 +37,7 @@ export type InventoryItem = {
   reorder_level: number;
   inventory_value: number;
   updated_at: string | null;
+  initialized: boolean;
   source: InventorySource;
   product: InventoryProduct;
 };
@@ -112,9 +113,21 @@ type SupabaseInventoryItemRow = {
     slug?: string | null;
     sku?: string | null;
     barcode?: string | null;
+    status?: string | null;
     brand?: { name?: string | null } | null;
     category?: { name?: string | null } | null;
   } | null;
+};
+
+type SupabaseInventoryProductRow = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  barcode: string;
+  status: string;
+  brand?: { name?: string | null } | null;
+  category?: { name?: string | null } | null;
 };
 
 type ProductMediaRow = {
@@ -182,6 +195,7 @@ function getLocalFallbackInventoryItems(): InventoryItem[] {
     reorder_level: product.reorderLevel ?? 0,
     inventory_value: (product.cost ?? product.price) * product.stock,
     updated_at: null,
+    initialized: true,
     source: "Local fallback",
     product: {
       id: product.id,
@@ -277,6 +291,7 @@ async function readInventoryItems(): Promise<InventoryItem[]> {
           slug,
           sku,
           barcode,
+          status,
           brand:brands(name),
           category:categories(name)
         )
@@ -284,16 +299,39 @@ async function readInventoryItems(): Promise<InventoryItem[]> {
     )
     .order("updated_at", { ascending: false });
 
-  if (error || !data || data.length === 0) {
+  if (error) {
     return getLocalFallbackInventoryItems();
   }
 
-  const rows = data as SupabaseInventoryItemRow[];
+  const rows = (data ?? []) as SupabaseInventoryItemRow[];
+  const { data: eligibleProductData, error: eligibleProductError } =
+    await readClient
+      .from("products")
+      .select(
+        "id, name, slug, sku, barcode, status, brand:brands(name), category:categories(name)",
+      )
+      .neq("status", "archived")
+      .order("name");
+  const eligibleProducts = eligibleProductError
+    ? []
+    : ((eligibleProductData ?? []) as SupabaseInventoryProductRow[]);
+  const eligibleProductIds = new Set(
+    eligibleProducts.map((product) => product.id),
+  );
+  const visibleRows = eligibleProductError
+    ? rows
+    : rows.filter((row) => eligibleProductIds.has(row.product_id));
+  const allProductIds = Array.from(
+    new Set([
+      ...visibleRows.map((row) => row.product_id),
+      ...eligibleProducts.map((product) => product.id),
+    ]),
+  );
   const primaryImagesByProductId = await getPrimaryImagesByProductId(
-    rows.map((row) => row.product_id),
+    allProductIds,
   );
 
-  return rows.map((row) => {
+  const initializedItems: InventoryItem[] = visibleRows.map((row) => {
     const onHand = row.on_hand_quantity ?? 0;
     const reserved = row.reserved_quantity ?? 0;
     const calculatedAvailable = onHand - reserved;
@@ -317,6 +355,7 @@ async function readInventoryItems(): Promise<InventoryItem[]> {
       reorder_level: row.reorder_level ?? 0,
       inventory_value: toNumber(row.inventory_value),
       updated_at: row.updated_at,
+      initialized: true,
       source: "Supabase",
       product: {
         id: row.product?.id ?? row.product_id,
@@ -334,6 +373,51 @@ async function readInventoryItems(): Promise<InventoryItem[]> {
       },
     };
   });
+  const initializedProductIds = new Set(
+    initializedItems.map((item) => item.product_id),
+  );
+  const activeLocations = await getInventoryLocations();
+  const defaultLocation =
+    activeLocations.find((location) => location.code === "MAIN-STOCKROOM") ??
+    activeLocations[0];
+  const uninitializedItems: InventoryItem[] = eligibleProducts
+    .filter((product) => !initializedProductIds.has(product.id))
+    .map((product) => ({
+      id: `uninitialized-${product.id}`,
+      product_id: product.id,
+      location_id: defaultLocation?.id ?? "",
+      location_name: defaultLocation?.name ?? "Uninitialized",
+      on_hand_quantity: 0,
+      reserved_quantity: 0,
+      available_quantity: 0,
+      incoming_quantity: 0,
+      reorder_level: 0,
+      inventory_value: 0,
+      updated_at: null,
+      initialized: false,
+      source: "Supabase",
+      product: {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        sku: product.sku,
+        barcode: product.barcode,
+        image:
+          primaryImagesByProductId.get(product.id) ??
+          localProductsBySku.get(product.sku)?.image ??
+          null,
+        brand:
+          product.brand?.name ??
+          localProductsBySku.get(product.sku)?.vendor ??
+          "Unassigned",
+        category:
+          product.category?.name ??
+          localProductsBySku.get(product.sku)?.category.en ??
+          "Unassigned",
+      },
+    }));
+
+  return [...initializedItems, ...uninitializedItems];
 }
 
 export async function getInventoryLocations(): Promise<InventoryLocation[]> {
@@ -420,7 +504,7 @@ export async function getInventorySummary(): Promise<InventorySummary> {
   const items = await getInventoryItems();
 
   return {
-    totalInventoryItems: items.length,
+    totalInventoryItems: items.filter((item) => item.initialized).length,
     totalOnHand: items.reduce((total, item) => total + item.on_hand_quantity, 0),
     totalAvailable: items.reduce(
       (total, item) => total + item.available_quantity,

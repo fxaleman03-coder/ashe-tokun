@@ -1,16 +1,20 @@
 import AdminShell from "@/components/admin/AdminShell";
 import AdminMediaPageContent from "@/components/admin/AdminMediaPageContent";
-import { getMediaAssets } from "@/lib/data/mediaRepository";
+import { getAdminMediaAssets } from "@/lib/data/adminMediaRepository";
+import { getBrands } from "@/lib/data/brands";
 import { requirePermission } from "@/lib/staff/permissionGuard";
 
 export default async function AdminMediaPage() {
   await requirePermission("products.read");
 
-  const mediaAssets = await getMediaAssets();
+  const [mediaAssets, brands] = await Promise.all([
+    getAdminMediaAssets(),
+    getBrands(),
+  ]);
 
   return (
     <AdminShell title="">
-      <AdminMediaPageContent mediaAssets={mediaAssets} />
+      <AdminMediaPageContent mediaAssets={mediaAssets} brands={brands} />
     </AdminShell>
   );
 }

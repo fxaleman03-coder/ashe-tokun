@@ -9,12 +9,14 @@ type AdminProductsPageContentProps = {
   products: Product[];
   productSourceStatus: string;
   canPrintLabels: boolean;
+  canEditProducts: boolean;
 };
 
 export default function AdminProductsPageContent({
   products,
   productSourceStatus,
   canPrintLabels,
+  canEditProducts,
 }: AdminProductsPageContentProps) {
   const { t } = useLanguage();
   const labels = t.admin.products;
@@ -70,6 +72,7 @@ export default function AdminProductsPageContent({
       <AdminProductsTable
         products={products}
         canPrintLabels={canPrintLabels}
+        canEditProducts={canEditProducts}
       />
     </>
   );
